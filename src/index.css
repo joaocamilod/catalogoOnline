@@ -6,6 +6,7 @@
 
 :root {
   --primary-color: #6366f1;
+  --primary-color-rgb: 99, 102, 241; 
   --primary-dark: #4f46e5;
   --secondary-color: #8b5cf6;
   --text-primary: #1f2937;
@@ -26,12 +27,20 @@ body {
   background-color: var(--bg-secondary);
   color: var(--text-primary);
   line-height: 1.6;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+  -webkit-font-smoothing: antialiased; 
+  -moz-osx-font-smoothing: grayscale; 
+  overflow-x: hidden; 
+  --scrollbar-width: calc(100vw - 100%);
+}
+
+body.sidebar-open {
+  overflow: hidden;
+  padding-right: var(--scrollbar-width);
 }
 
 #root {
   min-height: 100vh;
+  overflow-x: hidden;
 }
 
 ::-webkit-scrollbar {
@@ -45,6 +54,7 @@ body {
 ::-webkit-scrollbar-thumb {
   background: var(--border-color);
   border-radius: 5px;
+  transition: background 0.3s ease;
 }
 
 ::-webkit-scrollbar-thumb:hover {

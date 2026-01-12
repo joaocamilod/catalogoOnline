@@ -8,12 +8,13 @@ import { products } from './data/products'
 import './App.css'
 
 function App() {
-  const [searchTerm, setSearchTerm] = useState('')
-  const [selectedCategory, setSelectedCategory] = useState('all')
-  const [priceRange, setPriceRange] = useState([0, 10000])
-  const [sortBy, setSortBy] = useState('name')
+  const [searchTerm, setSearchTerm] = useState('') 
+  const [selectedCategory, setSelectedCategory] = useState('all') 
+  const [priceRange, setPriceRange] = useState([0, 10000]) 
+  const [sortBy, setSortBy] = useState('name') 
   const [cartItems, setCartItems] = useState([])
-  const [isCartOpen, setIsCartOpen] = useState(false)
+  const [isCartOpen, setIsCartOpen] = useState(false) 
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false) 
 
   const filteredProducts = useMemo(() => {
     let filtered = products.filter(product => {
@@ -45,9 +46,7 @@ function App() {
       const existingItem = prev.find(item => item.id === product.id)
       if (existingItem) {
         return prev.map(item =>
-          item.id === product.id
-            ? { ...item, quantity: item.quantity + 1 }
-            : item
+          item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item
         )
       }
       return [...prev, { ...product, quantity: 1 }]
@@ -84,6 +83,7 @@ function App() {
         onSearchChange={setSearchTerm}
         cartCount={cartCount}
         onCartClick={() => setIsCartOpen(true)}
+        onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)} 
       />
 
       <main className="main-content">
@@ -96,6 +96,8 @@ function App() {
               onPriceRangeChange={setPriceRange}
               sortBy={sortBy}
               onSortChange={setSortBy}
+              isOpen={isSidebarOpen}
+              onClose={() => setIsSidebarOpen(false)} 
             />
 
             <div className="products-section">
