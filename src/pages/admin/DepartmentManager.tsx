@@ -1,46 +1,74 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react'
-import { Plus, Pencil, Trash2, X, LayoutDashboard, Loader2, Search } from 'lucide-react'
+import React, { useState, useEffect, useCallback, useRef } from "react";
+import {
+  Plus,
+  Pencil,
+  Trash2,
+  X,
+  LayoutDashboard,
+  Loader2,
+  Search,
+} from "lucide-react";
 import {
   fetchDepartamentos,
   createDepartamento,
   updateDepartamento,
   deleteDepartamento,
-} from '../../lib/supabase'
-import Toast from '../../components/Toast'
-import Dialog from '../../components/Dialog'
-import type { Departamento } from '../../types'
-
-// ─── Form ──────────────────────────────────────────────────────────────────────
+} from "../../lib/supabase";
+import Toast from "../../components/Toast";
+import Dialog from "../../components/Dialog";
+import type { Departamento } from "../../types";
 interface DepartmentFormProps {
-  initial?: Partial<Departamento>
-  loading: boolean
-  onSubmit: (d: { descricao: string; ativo: boolean }) => void
-  onCancel: () => void
+  initial?: Partial<Departamento>;
+  loading: boolean;
+  onSubmit: (d: { descricao: string; ativo: boolean }) => void;
+  onCancel: () => void;
 }
 
-const DepartmentForm: React.FC<DepartmentFormProps> = ({ initial, loading, onSubmit, onCancel }) => {
-  const [descricao, setDescricao] = useState(initial?.descricao ?? '')
-  const [ativo, setAtivo] = useState(initial?.ativo ?? true)
+const DepartmentForm: React.FC<DepartmentFormProps> = ({
+  initial,
+  loading,
+  onSubmit,
+  onCancel,
+}) => {
+  const [descricao, setDescricao] = useState(initial?.descricao ?? "");
+  const [ativo, setAtivo] = useState(initial?.ativo ?? true);
+  const [descricaoError, setDescricaoError] = useState("");
 
   return (
     <form
       onSubmit={(e) => {
-        e.preventDefault()
-        onSubmit({ descricao, ativo })
+        e.preventDefault();
+        if (!descricao.trim()) {
+          setDescricaoError("Descrição é obrigatória.");
+          return;
+        }
+        setDescricaoError("");
+        onSubmit({ descricao, ativo });
       }}
       className="space-y-4"
     >
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1.5">Descrição *</label>
+        <label className="block text-sm font-medium text-gray-700 mb-1.5">
+          Descrição *
+        </label>
         <input
           type="text"
           value={descricao}
-          onChange={(e) => setDescricao(e.target.value)}
-          className="w-full px-3 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+          onChange={(e) => {
+            setDescricao(e.target.value);
+            if (descricaoError) setDescricaoError("");
+          }}
+          className={`w-full px-3 py-2.5 border rounded-xl transition-all ${
+            descricaoError
+              ? "border-red-500 focus:ring-2 focus:ring-red-400 focus:border-red-500"
+              : "border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+          }`}
           placeholder="Nome do departamento"
-          required
           autoFocus
         />
+        {descricaoError && (
+          <p className="mt-1 text-xs text-red-600">{descricaoError}</p>
+        )}
       </div>
 
       <div className="flex items-center gap-3">
@@ -48,16 +76,18 @@ const DepartmentForm: React.FC<DepartmentFormProps> = ({ initial, loading, onSub
           type="button"
           onClick={() => setAtivo((v) => !v)}
           className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-            ativo ? 'bg-indigo-600' : 'bg-gray-300'
+            ativo ? "bg-indigo-600" : "bg-gray-300"
           }`}
         >
           <span
             className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform shadow ${
-              ativo ? 'translate-x-6' : 'translate-x-1'
+              ativo ? "translate-x-6" : "translate-x-1"
             }`}
           />
         </button>
-        <span className="text-sm text-gray-700">{ativo ? 'Ativo' : 'Inativo'}</span>
+        <span className="text-sm text-gray-700">
+          {ativo ? "Ativo" : "Inativo"}
+        </span>
       </div>
 
       <div className="flex justify-end gap-3 pt-2">
@@ -73,115 +103,134 @@ const DepartmentForm: React.FC<DepartmentFormProps> = ({ initial, loading, onSub
           disabled={loading}
           className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-xl hover:bg-indigo-700 disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
         >
-          {loading ? 'Salvando…' : 'Salvar'}
+          {loading ? "Salvando…" : "Salvar"}
         </button>
       </div>
     </form>
-  )
-}
+  );
+};
 
 // ─── Manager ───────────────────────────────────────────────────────────────────
 const DepartmentManager: React.FC = () => {
-  const [departments, setDepartments] = useState<Departamento[]>([])
-  const [loading, setLoading] = useState(true)
-  const [saving, setSaving] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null)
-  const [isDialogOpen, setIsDialogOpen] = useState(false)
-  const [editing, setEditing] = useState<Departamento | null>(null)
+  const [departments, setDepartments] = useState<Departamento[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [toast, setToast] = useState<{
+    msg: string;
+    type: "success" | "error";
+  } | null>(null);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [editing, setEditing] = useState<Departamento | null>(null);
 
-  const [searchTerm, setSearchTerm] = useState('')
-  const [debouncedSearch, setDebouncedSearch] = useState('')
-  const [currentPage, setCurrentPage] = useState(1)
-  const [totalPages, setTotalPages] = useState(1)
-  const LIMIT = 10
+  const [searchTerm, setSearchTerm] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const LIMIT = 10;
 
   // Debounce
   useEffect(() => {
-    const t = setTimeout(() => setDebouncedSearch(searchTerm), 350)
-    return () => clearTimeout(t)
-  }, [searchTerm])
+    const t = setTimeout(() => setDebouncedSearch(searchTerm), 350);
+    return () => clearTimeout(t);
+  }, [searchTerm]);
 
   const load = useCallback(async (page: number, search: string) => {
-    setLoading(true)
-    setError(null)
+    setLoading(true);
+    setError(null);
     try {
-      const { departamentos, totalPages: tp } = await fetchDepartamentos(page, LIMIT, search)
-      setDepartments(departamentos)
-      setTotalPages(tp)
-      setCurrentPage(page)
+      const { departamentos, totalPages: tp } = await fetchDepartamentos(
+        page,
+        LIMIT,
+        search,
+      );
+      setDepartments(departamentos);
+      setTotalPages(tp);
+      setCurrentPage(page);
     } catch (e: any) {
-      setError('Erro ao carregar departamentos.')
+      setError("Erro ao carregar departamentos.");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }, [])
+  }, []);
 
   useEffect(() => {
-    load(1, debouncedSearch)
-  }, [debouncedSearch, load])
+    load(1, debouncedSearch);
+  }, [debouncedSearch, load]);
 
   const handleSave = async (data: { descricao: string; ativo: boolean }) => {
-    setSaving(true)
+    setSaving(true);
     try {
       if (editing) {
-        await updateDepartamento(editing.id, data.descricao, data.ativo)
-        setToast({ msg: 'Departamento atualizado!', type: 'success' })
+        await updateDepartamento(editing.id, data.descricao, data.ativo);
+        setToast({ msg: "Departamento atualizado!", type: "success" });
       } else {
-        await createDepartamento(data.descricao, data.ativo)
-        setToast({ msg: 'Departamento criado!', type: 'success' })
+        await createDepartamento(data.descricao, data.ativo);
+        setToast({ msg: "Departamento criado!", type: "success" });
       }
-      setIsDialogOpen(false)
-      setEditing(null)
-      await load(currentPage, debouncedSearch)
+      setIsDialogOpen(false);
+      setEditing(null);
+      await load(currentPage, debouncedSearch);
     } catch (e: any) {
-      setToast({ msg: 'Erro ao salvar departamento.', type: 'error' })
+      setToast({ msg: "Erro ao salvar departamento.", type: "error" });
     } finally {
-      setSaving(false)
+      setSaving(false);
     }
-  }
+  };
 
   const handleDelete = async (dep: Departamento) => {
-    if (!window.confirm(`Excluir "${dep.descricao}"? Esta ação não pode ser desfeita.`)) return
-    setLoading(true)
+    if (
+      !window.confirm(
+        `Excluir "${dep.descricao}"? Esta ação não pode ser desfeita.`,
+      )
+    )
+      return;
+    setLoading(true);
     try {
-      await deleteDepartamento(dep.id)
-      setToast({ msg: 'Departamento excluído!', type: 'success' })
-      await load(currentPage, debouncedSearch)
+      await deleteDepartamento(dep.id);
+      setToast({ msg: "Departamento excluído!", type: "success" });
+      await load(currentPage, debouncedSearch);
     } catch (e: any) {
-      setToast({ msg: 'Erro ao excluir. Verifique se há produtos vinculados.', type: 'error' })
+      setToast({
+        msg: "Erro ao excluir. Verifique se há produtos vinculados.",
+        type: "error",
+      });
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const openCreate = () => {
-    setEditing(null)
-    setIsDialogOpen(true)
-  }
+    setEditing(null);
+    setIsDialogOpen(true);
+  };
 
   const openEdit = (dep: Departamento) => {
-    setEditing(dep)
-    setIsDialogOpen(true)
-  }
+    setEditing(dep);
+    setIsDialogOpen(true);
+  };
 
   return (
     <div className="space-y-6">
       {toast && (
-        <Toast message={toast.msg} type={toast.type} onClose={() => setToast(null)} />
+        <Toast
+          message={toast.msg}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
       )}
 
-      {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 bg-indigo-100 rounded-xl flex items-center justify-center">
             <LayoutDashboard className="h-5 w-5 text-indigo-600" />
           </div>
-          <h1 className="text-xl font-bold text-gray-900">Gerenciar Departamentos</h1>
+          <h1 className="text-xl font-bold text-gray-900">
+            Gerenciar Departamentos
+          </h1>
         </div>
 
         <div className="flex items-center gap-2 w-full sm:w-auto">
-          {/* Busca */}
           <div className="relative flex-1 sm:w-72">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
             <input
@@ -193,7 +242,7 @@ const DepartmentManager: React.FC = () => {
             />
             {searchTerm && (
               <button
-                onClick={() => setSearchTerm('')}
+                onClick={() => setSearchTerm("")}
                 className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
               >
                 <X className="h-4 w-4" />
@@ -220,7 +269,6 @@ const DepartmentManager: React.FC = () => {
         </div>
       )}
 
-      {/* Tabela */}
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
         {loading && departments.length === 0 ? (
           <div className="flex items-center justify-center py-16">
@@ -229,7 +277,9 @@ const DepartmentManager: React.FC = () => {
         ) : departments.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16">
             <LayoutDashboard className="h-12 w-12 text-gray-300 mb-3" />
-            <p className="text-gray-500 text-sm">Nenhum departamento encontrado.</p>
+            <p className="text-gray-500 text-sm">
+              Nenhum departamento encontrado.
+            </p>
             <button
               onClick={openCreate}
               className="mt-4 text-sm text-indigo-600 hover:text-indigo-700 font-medium"
@@ -255,17 +305,22 @@ const DepartmentManager: React.FC = () => {
               </thead>
               <tbody className="divide-y divide-gray-50">
                 {departments.map((dep) => (
-                  <tr key={dep.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-6 py-4 text-sm text-gray-900 font-medium">{dep.descricao}</td>
+                  <tr
+                    key={dep.id}
+                    className="hover:bg-gray-50 transition-colors"
+                  >
+                    <td className="px-6 py-4 text-sm text-gray-900 font-medium">
+                      {dep.descricao}
+                    </td>
                     <td className="px-6 py-4">
                       <span
                         className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${
                           dep.ativo
-                            ? 'bg-green-100 text-green-700'
-                            : 'bg-red-100 text-red-700'
+                            ? "bg-green-100 text-green-700"
+                            : "bg-red-100 text-red-700"
                         }`}
                       >
-                        {dep.ativo ? 'Ativo' : 'Inativo'}
+                        {dep.ativo ? "Ativo" : "Inativo"}
                       </span>
                     </td>
                     <td className="px-6 py-4 text-right">
@@ -294,7 +349,6 @@ const DepartmentManager: React.FC = () => {
         )}
       </div>
 
-      {/* Paginação */}
       {!loading && totalPages > 1 && (
         <div className="flex justify-center items-center gap-2">
           <button
@@ -317,21 +371,26 @@ const DepartmentManager: React.FC = () => {
         </div>
       )}
 
-      {/* Dialog */}
       <Dialog
         isOpen={isDialogOpen}
-        onClose={() => { setIsDialogOpen(false); setEditing(null) }}
-        title={editing ? 'Editar Departamento' : 'Novo Departamento'}
+        onClose={() => {
+          setIsDialogOpen(false);
+          setEditing(null);
+        }}
+        title={editing ? "Editar Departamento" : "Novo Departamento"}
       >
         <DepartmentForm
           initial={editing ?? undefined}
           loading={saving}
           onSubmit={handleSave}
-          onCancel={() => { setIsDialogOpen(false); setEditing(null) }}
+          onCancel={() => {
+            setIsDialogOpen(false);
+            setEditing(null);
+          }}
         />
       </Dialog>
     </div>
-  )
-}
+  );
+};
 
-export default DepartmentManager
+export default DepartmentManager;

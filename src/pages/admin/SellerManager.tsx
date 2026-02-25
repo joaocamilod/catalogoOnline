@@ -28,23 +28,51 @@ const SellerForm: React.FC<SellerFormProps> = ({
   onSubmit,
   onCancel,
 }) => {
+  const formatPhoneInput = (rawValue: string) => {
+    const digits = rawValue.replace(/\D/g, "").slice(0, 11);
+
+    if (digits.length <= 2) return digits;
+    if (digits.length <= 6) return `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
+    if (digits.length <= 10) {
+      return `(${digits.slice(0, 2)}) ${digits.slice(2, 6)}-${digits.slice(6)}`;
+    }
+    return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
+  };
+
   const [nome, setNome] = useState(initial?.nome ?? "");
   const [telefoneWhatsapp, setTelefoneWhatsapp] = useState(
-    initial?.telefone_whatsapp ?? "",
+    formatPhoneInput(initial?.telefone_whatsapp ?? ""),
   );
   const [email, setEmail] = useState(initial?.email ?? "");
   const [ativo, setAtivo] = useState(initial?.ativo ?? true);
-  const [formError, setFormError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<{
+    nome?: string;
+    telefone_whatsapp?: string;
+  }>({});
 
   return (
     <form
       onSubmit={(e) => {
         e.preventDefault();
-        if (!telefoneWhatsapp.trim() && !email.trim()) {
-          setFormError("Informe telefone/whatsapp ou email.");
+
+        const nextErrors: { nome?: string; telefone_whatsapp?: string } = {};
+
+        if (!nome.trim()) {
+          nextErrors.nome = "Nome do vendedor é obrigatório.";
+        }
+
+        if (!telefoneWhatsapp.trim()) {
+          nextErrors.telefone_whatsapp = "Telefone/WhatsApp é obrigatório.";
+        } else if (telefoneWhatsapp.replace(/\D/g, "").length < 10) {
+          nextErrors.telefone_whatsapp = "Informe um telefone/WhatsApp válido.";
+        }
+
+        if (Object.keys(nextErrors).length > 0) {
+          setFieldErrors(nextErrors);
           return;
         }
-        setFormError(null);
+
+        setFieldErrors({});
         onSubmit({
           nome,
           telefone_whatsapp: telefoneWhatsapp,
@@ -61,12 +89,23 @@ const SellerForm: React.FC<SellerFormProps> = ({
         <input
           type="text"
           value={nome}
-          onChange={(e) => setNome(e.target.value)}
-          className="w-full px-3 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+          onChange={(e) => {
+            setNome(e.target.value);
+            if (fieldErrors.nome) {
+              setFieldErrors((prev) => ({ ...prev, nome: undefined }));
+            }
+          }}
+          className={`w-full px-3 py-2.5 border rounded-xl transition-all ${
+            fieldErrors.nome
+              ? "border-red-500 focus:ring-2 focus:ring-red-400 focus:border-red-500"
+              : "border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+          }`}
           placeholder="Nome completo"
-          required
           autoFocus
         />
+        {fieldErrors.nome && (
+          <p className="mt-1 text-xs text-red-600">{fieldErrors.nome}</p>
+        )}
       </div>
 
       <div>
@@ -76,10 +115,29 @@ const SellerForm: React.FC<SellerFormProps> = ({
         <input
           type="text"
           value={telefoneWhatsapp}
-          onChange={(e) => setTelefoneWhatsapp(e.target.value)}
-          className="w-full px-3 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+          onChange={(e) => {
+            setTelefoneWhatsapp(formatPhoneInput(e.target.value));
+            if (fieldErrors.telefone_whatsapp) {
+              setFieldErrors((prev) => ({
+                ...prev,
+                telefone_whatsapp: undefined,
+              }));
+            }
+          }}
+          inputMode="numeric"
+          maxLength={16}
+          className={`w-full px-3 py-2.5 border rounded-xl transition-all ${
+            fieldErrors.telefone_whatsapp
+              ? "border-red-500 focus:ring-2 focus:ring-red-400 focus:border-red-500"
+              : "border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+          }`}
           placeholder="(11) 99999-9999"
         />
+        {fieldErrors.telefone_whatsapp && (
+          <p className="mt-1 text-xs text-red-600">
+            {fieldErrors.telefone_whatsapp}
+          </p>
+        )}
       </div>
 
       <div>
@@ -94,8 +152,6 @@ const SellerForm: React.FC<SellerFormProps> = ({
           placeholder="vendedor@email.com"
         />
       </div>
-
-      {formError && <p className="text-sm text-red-600 -mt-1">{formError}</p>}
 
       <div className="flex items-center gap-3">
         <button
