@@ -10,6 +10,7 @@ import {
   ImagePlus,
   Star,
   StarOff,
+  Settings,
   Upload,
   CheckCircle,
 } from "lucide-react";
@@ -594,6 +595,10 @@ const ProductManager: React.FC = () => {
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [openActionMenuId, setOpenActionMenuId] = useState<string | null>(null);
+  const [actionMenuOpenUpId, setActionMenuOpenUpId] = useState<string | null>(
+    null,
+  );
   const LIMIT = 10;
 
   useEffect(() => {
@@ -639,6 +644,21 @@ const ProductManager: React.FC = () => {
   useEffect(() => {
     load(1, debouncedSearch);
   }, [debouncedSearch, load]);
+
+  useEffect(() => {
+    if (!openActionMenuId) return;
+
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (!target.closest("[data-action-menu]")) {
+        setOpenActionMenuId(null);
+        setActionMenuOpenUpId(null);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [openActionMenuId]);
 
   const handleSave = async (
     data: Partial<Produto>,
@@ -791,7 +811,7 @@ const ProductManager: React.FC = () => {
         </div>
       )}
 
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-visible">
         {loading && products.length === 0 ? (
           <div className="flex items-center justify-center py-16">
             <Loader2 className="h-8 w-8 text-indigo-500 animate-spin" />
@@ -821,82 +841,134 @@ const ProductManager: React.FC = () => {
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">
                     Status
                   </th>
-                  <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase">
+                  <th className="px-4 py-3 text-center text-xs font-semibold text-gray-500 uppercase">
                     Ações
                   </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
-                {products.map((p) => (
-                  <tr key={p.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-3">
-                        <img
-                          src={getMainImage(p)}
-                          alt={p.descricao}
-                          className="w-10 h-10 object-cover rounded-lg border border-gray-100 flex-shrink-0"
-                        />
-                        <div>
-                          <p className="text-sm font-medium text-gray-900 line-clamp-1">
-                            {p.descricao}
-                          </p>
-                          <p className="text-xs text-gray-400 line-clamp-1">
-                            {p.infadicional}
-                          </p>
+                {products.map((p) => {
+                  const shouldOpenUp = actionMenuOpenUpId === p.id;
+                  return (
+                    <tr
+                      key={p.id}
+                      className="hover:bg-gray-50 transition-colors"
+                    >
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-3">
+                          <img
+                            src={getMainImage(p)}
+                            alt={p.descricao}
+                            className="w-10 h-10 object-cover rounded-lg border border-gray-100 flex-shrink-0"
+                          />
+                          <div>
+                            <p className="text-sm font-medium text-gray-900 line-clamp-1">
+                              {p.descricao}
+                            </p>
+                            <p className="text-xs text-gray-400 line-clamp-1">
+                              {p.infadicional}
+                            </p>
+                          </div>
                         </div>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 text-sm text-gray-600">
-                      {(p.departamento as any)?.descricao ?? "—"}
-                    </td>
-                    <td className="px-4 py-3 text-sm font-medium text-gray-900">
-                      {p.valorunitariocomercial.toLocaleString("pt-BR", {
-                        style: "currency",
-                        currency: "BRL",
-                      })}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-gray-600">
-                      {p.quantidademinima}
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex flex-col gap-1">
-                        <span
-                          className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${p.ativo ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-gray-600">
+                        {(p.departamento as any)?.descricao ?? "—"}
+                      </td>
+                      <td className="px-4 py-3 text-sm font-medium text-gray-900">
+                        {p.valorunitariocomercial.toLocaleString("pt-BR", {
+                          style: "currency",
+                          currency: "BRL",
+                        })}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-gray-600">
+                        {p.quantidademinima}
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex flex-col gap-1">
+                          <span
+                            className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${p.ativo ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}
+                          >
+                            {p.ativo ? "Ativo" : "Inativo"}
+                          </span>
+                          <button
+                            onClick={() => handleToggleCatalog(p)}
+                            className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium cursor-pointer transition-colors ${p.exibircatalogo ? "bg-blue-100 text-blue-700 hover:bg-blue-200" : "bg-gray-100 text-gray-500 hover:bg-gray-200"}`}
+                            title="Clique para alternar visibilidade no catálogo"
+                          >
+                            {p.exibircatalogo ? "No catálogo" : "Oculto"}
+                          </button>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        <div
+                          className="relative inline-block text-left"
+                          data-action-menu
                         >
-                          {p.ativo ? "Ativo" : "Inativo"}
-                        </span>
-                        <button
-                          onClick={() => handleToggleCatalog(p)}
-                          className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium cursor-pointer transition-colors ${p.exibircatalogo ? "bg-blue-100 text-blue-700 hover:bg-blue-200" : "bg-gray-100 text-gray-500 hover:bg-gray-200"}`}
-                          title="Clique para alternar visibilidade no catálogo"
-                        >
-                          {p.exibircatalogo ? "No catálogo" : "Oculto"}
-                        </button>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      <div className="inline-flex items-center gap-2">
-                        <button
-                          onClick={() => {
-                            setEditing(p);
-                            setIsDialogOpen(true);
-                          }}
-                          className="p-1.5 text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50 rounded-lg transition-colors"
-                          title="Editar"
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(p)}
-                          className="p-1.5 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors"
-                          title="Excluir"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                          <button
+                            type="button"
+                            onClick={(event) => {
+                              const buttonRect =
+                                event.currentTarget.getBoundingClientRect();
+                              const estimatedMenuHeight = 96;
+                              const openUp =
+                                window.innerHeight - buttonRect.bottom <
+                                estimatedMenuHeight;
+
+                              setOpenActionMenuId((prev) => {
+                                if (prev === p.id) {
+                                  setActionMenuOpenUpId(null);
+                                  return null;
+                                }
+                                setActionMenuOpenUpId(openUp ? p.id : null);
+                                return p.id;
+                              });
+                            }}
+                            className="p-2 text-gray-600 hover:text-indigo-700 hover:bg-indigo-50 rounded-lg transition-colors"
+                            title="Ações"
+                          >
+                            <Settings className="h-4 w-4" />
+                          </button>
+
+                          {openActionMenuId === p.id && (
+                            <div
+                              className={`absolute right-0 w-36 bg-white border border-gray-200 rounded-xl shadow-lg z-20 overflow-hidden animate-fadeIn ${
+                                shouldOpenUp
+                                  ? "bottom-full mb-2 origin-bottom-right"
+                                  : "top-full mt-2 origin-top-right"
+                              }`}
+                            >
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setOpenActionMenuId(null);
+                                  setActionMenuOpenUpId(null);
+                                  setEditing(p);
+                                  setIsDialogOpen(true);
+                                }}
+                                className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-indigo-50 hover:text-indigo-700 transition-colors"
+                              >
+                                <Pencil className="h-4 w-4" />
+                                Editar
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setOpenActionMenuId(null);
+                                  setActionMenuOpenUpId(null);
+                                  handleDelete(p);
+                                }}
+                                className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                                Excluir
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

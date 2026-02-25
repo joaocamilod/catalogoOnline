@@ -1,5 +1,14 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { Plus, Pencil, Trash2, X, Users, Loader2, Search } from "lucide-react";
+import {
+  Plus,
+  Pencil,
+  Trash2,
+  Settings,
+  X,
+  Users,
+  Loader2,
+  Search,
+} from "lucide-react";
 import {
   fetchVendedores,
   createVendedor,
@@ -208,6 +217,10 @@ const SellerManager: React.FC = () => {
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [openActionMenuId, setOpenActionMenuId] = useState<string | null>(null);
+  const [actionMenuOpenUpId, setActionMenuOpenUpId] = useState<string | null>(
+    null,
+  );
   const LIMIT = 10;
 
   useEffect(() => {
@@ -247,6 +260,21 @@ const SellerManager: React.FC = () => {
   useEffect(() => {
     load(1, debouncedSearch);
   }, [debouncedSearch, load]);
+
+  useEffect(() => {
+    if (!openActionMenuId) return;
+
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (!target.closest("[data-action-menu]")) {
+        setOpenActionMenuId(null);
+        setActionMenuOpenUpId(null);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [openActionMenuId]);
 
   const handleSave = async (data: {
     nome: string;
@@ -371,7 +399,7 @@ const SellerManager: React.FC = () => {
         </div>
       )}
 
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-visible">
         {loading && sellers.length === 0 ? (
           <div className="flex items-center justify-center py-16">
             <Loader2 className="h-8 w-8 text-indigo-500 animate-spin" />
@@ -404,57 +432,110 @@ const SellerManager: React.FC = () => {
                   <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
                     Status
                   </th>
-                  <th className="px-6 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">
                     Acoes
                   </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
-                {sellers.map((seller) => (
-                  <tr
-                    key={seller.id}
-                    className="hover:bg-gray-50 transition-colors"
-                  >
-                    <td className="px-6 py-4 text-sm text-gray-900 font-medium">
-                      {seller.nome}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-700">
-                      {seller.telefone_whatsapp || "-"}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-700">
-                      {seller.email || "-"}
-                    </td>
-                    <td className="px-6 py-4">
-                      <span
-                        className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${
-                          seller.ativo
-                            ? "bg-green-100 text-green-700"
-                            : "bg-red-100 text-red-700"
-                        }`}
-                      >
-                        {seller.ativo ? "Ativo" : "Inativo"}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                      <div className="inline-flex items-center gap-2">
-                        <button
-                          onClick={() => openEdit(seller)}
-                          className="p-1.5 text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50 rounded-lg transition-colors"
-                          title="Editar"
+                {sellers.map((seller) => {
+                  const shouldOpenUp = actionMenuOpenUpId === seller.id;
+                  return (
+                    <tr
+                      key={seller.id}
+                      className="hover:bg-gray-50 transition-colors"
+                    >
+                      <td className="px-6 py-4 text-sm text-gray-900 font-medium">
+                        {seller.nome}
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-700">
+                        {seller.telefone_whatsapp || "-"}
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-700">
+                        {seller.email || "-"}
+                      </td>
+                      <td className="px-6 py-4">
+                        <span
+                          className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${
+                            seller.ativo
+                              ? "bg-green-100 text-green-700"
+                              : "bg-red-100 text-red-700"
+                          }`}
                         >
-                          <Pencil className="h-4 w-4" />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(seller)}
-                          className="p-1.5 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors"
-                          title="Excluir"
+                          {seller.ativo ? "Ativo" : "Inativo"}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        <div
+                          className="relative inline-block text-left"
+                          data-action-menu
                         >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                          <button
+                            type="button"
+                            onClick={(event) => {
+                              const buttonRect =
+                                event.currentTarget.getBoundingClientRect();
+                              const estimatedMenuHeight = 96;
+                              const openUp =
+                                window.innerHeight - buttonRect.bottom <
+                                estimatedMenuHeight;
+
+                              setOpenActionMenuId((prev) => {
+                                if (prev === seller.id) {
+                                  setActionMenuOpenUpId(null);
+                                  return null;
+                                }
+                                setActionMenuOpenUpId(
+                                  openUp ? seller.id : null,
+                                );
+                                return seller.id;
+                              });
+                            }}
+                            className="p-2 text-gray-600 hover:text-indigo-700 hover:bg-indigo-50 rounded-lg transition-colors"
+                            title="Ações"
+                          >
+                            <Settings className="h-4 w-4" />
+                          </button>
+
+                          {openActionMenuId === seller.id && (
+                            <div
+                              className={`absolute right-0 w-36 bg-white border border-gray-200 rounded-xl shadow-lg z-20 overflow-hidden animate-fadeIn ${
+                                shouldOpenUp
+                                  ? "bottom-full mb-2 origin-bottom-right"
+                                  : "top-full mt-2 origin-top-right"
+                              }`}
+                            >
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setOpenActionMenuId(null);
+                                  setActionMenuOpenUpId(null);
+                                  openEdit(seller);
+                                }}
+                                className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-indigo-50 hover:text-indigo-700 transition-colors"
+                              >
+                                <Pencil className="h-4 w-4" />
+                                Editar
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setOpenActionMenuId(null);
+                                  setActionMenuOpenUpId(null);
+                                  handleDelete(seller);
+                                }}
+                                className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                                Excluir
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
