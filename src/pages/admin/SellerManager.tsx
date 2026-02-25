@@ -95,9 +95,7 @@ const SellerForm: React.FC<SellerFormProps> = ({
         />
       </div>
 
-      {formError && (
-        <p className="text-sm text-red-600 -mt-1">{formError}</p>
-      )}
+      {formError && <p className="text-sm text-red-600 -mt-1">{formError}</p>}
 
       <div className="flex items-center gap-3">
         <button
@@ -113,7 +111,9 @@ const SellerForm: React.FC<SellerFormProps> = ({
             }`}
           />
         </button>
-        <span className="text-sm text-gray-700">{ativo ? "Ativo" : "Inativo"}</span>
+        <span className="text-sm text-gray-700">
+          {ativo ? "Ativo" : "Inativo"}
+        </span>
       </div>
 
       <div className="flex justify-end gap-3 pt-2">
@@ -219,7 +219,9 @@ const SellerManager: React.FC = () => {
   };
 
   const handleDelete = async (seller: Vendedor) => {
-    if (!window.confirm(`Excluir "${seller.nome}"? Esta acao nao pode ser desfeita.`))
+    if (
+      !window.confirm(`Excluir "${seller.nome}"? A ação nao pode ser desfeita.`)
+    )
       return;
 
     setLoading(true);
@@ -247,7 +249,11 @@ const SellerManager: React.FC = () => {
   return (
     <div className="space-y-6">
       {toast && (
-        <Toast message={toast.msg} type={toast.type} onClose={() => setToast(null)} />
+        <Toast
+          message={toast.msg}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
       )}
 
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -255,7 +261,9 @@ const SellerManager: React.FC = () => {
           <div className="w-10 h-10 bg-indigo-100 rounded-xl flex items-center justify-center">
             <Users className="h-5 w-5 text-indigo-600" />
           </div>
-          <h1 className="text-xl font-bold text-gray-900">Gerenciar Vendedores</h1>
+          <h1 className="text-xl font-bold text-gray-900">
+            Gerenciar Vendedores
+          </h1>
         </div>
 
         <div className="flex items-center gap-2 w-full sm:w-auto">
@@ -337,7 +345,10 @@ const SellerManager: React.FC = () => {
               </thead>
               <tbody className="divide-y divide-gray-50">
                 {sellers.map((seller) => (
-                  <tr key={seller.id} className="hover:bg-gray-50 transition-colors">
+                  <tr
+                    key={seller.id}
+                    className="hover:bg-gray-50 transition-colors"
+                  >
                     <td className="px-6 py-4 text-sm text-gray-900 font-medium">
                       {seller.nome}
                     </td>
