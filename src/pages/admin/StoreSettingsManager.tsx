@@ -1,8 +1,5 @@
 import React, { useEffect, useState } from "react";
-import {
-  updateStoreSettings,
-  type StoreSettings,
-} from "../../lib/supabase";
+import { updateStoreSettings, type StoreSettings } from "../../lib/supabase";
 
 interface StoreSettingsManagerProps {
   storeSettings: StoreSettings;
@@ -21,7 +18,9 @@ const StoreSettingsManager: React.FC<StoreSettingsManagerProps> = ({
     setDraftSettings(storeSettings);
   }, [storeSettings]);
 
-  const handleSaveSettings = async (event: React.FormEvent<HTMLFormElement>) => {
+  const handleSaveSettings = async (
+    event: React.FormEvent<HTMLFormElement>,
+  ) => {
     event.preventDefault();
     setSettingsFeedback(null);
     setIsSavingSettings(true);
@@ -30,10 +29,10 @@ const StoreSettingsManager: React.FC<StoreSettingsManagerProps> = ({
       const updatedSettings = await updateStoreSettings(draftSettings);
       onStoreSettingsChange(updatedSettings);
       setDraftSettings(updatedSettings);
-      setSettingsFeedback("Configuracoes da loja atualizadas com sucesso.");
+      setSettingsFeedback("Configurações da loja atualizadas com sucesso.");
     } catch (error: any) {
       setSettingsFeedback(
-        error?.message || "Nao foi possivel salvar as configuracoes da loja.",
+        error?.message || "Nao foi possivel salvar as configurações da loja.",
       );
     } finally {
       setIsSavingSettings(false);
@@ -42,9 +41,11 @@ const StoreSettingsManager: React.FC<StoreSettingsManagerProps> = ({
 
   return (
     <section className="bg-white rounded-2xl border border-gray-200 p-4 sm:p-5">
-      <h1 className="text-base font-semibold text-gray-900">Configuracoes da loja</h1>
+      <h1 className="text-base font-semibold text-gray-900">
+        Configurações da loja
+      </h1>
       <p className="text-sm text-gray-500 mt-1">
-        Edite o nome, observacoes e informacoes do footer da sua loja.
+        Edite o nome, observações e informações da sua loja.
       </p>
 
       <form onSubmit={handleSaveSettings} className="mt-4 space-y-4">
@@ -76,7 +77,7 @@ const StoreSettingsManager: React.FC<StoreSettingsManagerProps> = ({
             htmlFor="footer-descricao"
             className="block text-sm font-medium text-gray-700 mb-1"
           >
-            Descricao do footer
+            Descrição
           </label>
           <textarea
             id="footer-descricao"
@@ -99,7 +100,7 @@ const StoreSettingsManager: React.FC<StoreSettingsManagerProps> = ({
             htmlFor="footer-observacoes"
             className="block text-sm font-medium text-gray-700 mb-1"
           >
-            Observacoes da loja
+            Observações da loja
           </label>
           <textarea
             id="footer-observacoes"
@@ -173,7 +174,7 @@ const StoreSettingsManager: React.FC<StoreSettingsManagerProps> = ({
           disabled={isSavingSettings}
           className="px-4 py-2.5 rounded-xl bg-indigo-600 text-white font-medium hover:bg-indigo-700 disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
         >
-          {isSavingSettings ? "Salvando..." : "Salvar configuracoes"}
+          {isSavingSettings ? "Salvando..." : "Salvar configurações"}
         </button>
       </form>
 

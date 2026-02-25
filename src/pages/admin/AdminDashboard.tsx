@@ -20,7 +20,7 @@ const navigation = [
     icon: LayoutDashboard,
   },
   { name: "Vendedores", href: "/admin/vendedores", icon: Users },
-  { name: "Configuracoes", href: "/admin/configuracoes", icon: Settings },
+  { name: "Configurações", href: "/admin/configuracoes", icon: Settings },
 ];
 
 const AdminDashboard: React.FC = () => {
@@ -44,7 +44,7 @@ const AdminDashboard: React.FC = () => {
             <ShoppingBag className="h-5 w-5 text-white" />
           </div>
           <span className="text-base font-bold text-gray-900">
-            Administracao
+            Administração
           </span>
         </div>
 
