@@ -1,70 +1,86 @@
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
+@import "tailwindcss";
 
 :root {
-  --primary-color: #6366f1;
-  --primary-color-rgb: 99, 102, 241; 
-  --primary-dark: #4f46e5;
-  --secondary-color: #8b5cf6;
-  --text-primary: #1f2937;
+  --primary: #6c4cff;
+  --primary-d: #5a3dd6;
+  --primary-light: #7845ff;
+  --secondary: #7b61ff;
+  --primary-color: #6c4cff;
+  --primary-color-rgb: 108, 76, 255;
+  --secondary-color: #7b61ff;
+  --danger-color: #ef4444;
+  --success-color: #10b981;
+  --warning-color: #f59e0b;
+  --text-primary: #111827;
   --text-secondary: #6b7280;
   --bg-primary: #ffffff;
   --bg-secondary: #f9fafb;
   --border-color: #e5e7eb;
-  --success-color: #10b981;
-  --danger-color: #ef4444;
   --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+  --shadow-md:
+    0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --shadow-lg:
+    0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  --shadow-xl:
+    0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  --scrollbar-width: 17px;
 }
 
-body {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
-  background-color: var(--bg-secondary);
-  color: var(--text-primary);
-  line-height: 1.6;
-  -webkit-font-smoothing: antialiased; 
-  -moz-osx-font-smoothing: grayscale; 
-  overflow-x: hidden; 
-  --scrollbar-width: calc(100vw - 100%);
-}
+@layer base {
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
 
-body.sidebar-open {
-  overflow: hidden;
-  padding-right: var(--scrollbar-width);
-}
+  html {
+    scroll-behavior: smooth;
+    overflow-x: hidden;
+  }
 
-#root {
-  min-height: 100vh;
-  overflow-x: hidden;
+  body {
+    font-family:
+      "Inter",
+      -apple-system,
+      BlinkMacSystemFont,
+      "Segoe UI",
+      Roboto,
+      sans-serif;
+    @apply bg-gray-50 text-gray-900 antialiased;
+    overflow-x: hidden;
+  }
+
+  :focus-visible {
+    outline: 2px solid #6c4cff;
+    outline-offset: 2px;
+  }
+
+  #root {
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
 }
 
 ::-webkit-scrollbar {
-  width: 10px;
+  width: 8px;
 }
-
 ::-webkit-scrollbar-track {
-  background: var(--bg-secondary);
+  @apply bg-gray-100;
 }
-
 ::-webkit-scrollbar-thumb {
-  background: var(--border-color);
-  border-radius: 5px;
-  transition: background 0.3s ease;
+  background: #6c4cff40;
+  border-radius: 9999px;
 }
-
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--text-secondary);
+  background: #6c4cff80;
 }
 
 @keyframes fadeIn {
   from {
     opacity: 0;
-    transform: translateY(10px);
+    transform: translateY(8px);
   }
   to {
     opacity: 1;
@@ -72,7 +88,7 @@ body.sidebar-open {
   }
 }
 
-@keyframes slideIn {
+@keyframes slideInRight {
   from {
     transform: translateX(100%);
   }
@@ -81,15 +97,41 @@ body.sidebar-open {
   }
 }
 
-@keyframes pulse {
-  0%, 100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.5;
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
   }
 }
 
-.fade-in {
-  animation: fadeIn 0.5s ease-out;
+.animate-fadeIn {
+  animation: fadeIn 0.25s ease-out;
+}
+.animate-slideInRight {
+  animation: slideInRight 0.3s ease-out;
+}
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+.line-clamp-1 {
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 1;
+}
+.line-clamp-2 {
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

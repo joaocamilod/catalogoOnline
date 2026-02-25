@@ -1,14 +1,18 @@
 .header {
-  background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--primary-color) 0%,
+    var(--secondary-color) 100%
+  );
   color: white;
   box-shadow: var(--shadow-lg);
-  position: sticky; 
+  position: sticky;
   top: 0;
-  z-index: 100; 
+  z-index: 100;
   width: 100%;
   max-width: 100vw;
-  overflow: hidden; 
-  transition: padding-right 0.3s ease; 
+  overflow: hidden;
+  transition: padding-right 0.3s ease;
 }
 
 body.sidebar-open .header {
@@ -63,7 +67,7 @@ body.sidebar-open .header {
   align-items: center;
   gap: 0.75rem;
   flex-shrink: 0;
-  user-select: none; 
+  user-select: none;
 }
 
 .logo-icon {
@@ -75,15 +79,15 @@ body.sidebar-open .header {
 .logo h1 {
   font-size: 1.5rem;
   font-weight: 700;
-  white-space: nowrap; 
+  white-space: nowrap;
   margin: 0;
 }
 
 .search-bar {
-  flex: 1; 
+  flex: 1;
   max-width: 600px;
   position: relative;
-  min-width: 200px; 
+  min-width: 200px;
 }
 
 .search-icon {
@@ -94,7 +98,7 @@ body.sidebar-open .header {
   font-size: 1rem;
   opacity: 0.7;
   color: var(--text-secondary);
-  pointer-events: none; 
+  pointer-events: none;
 }
 
 .search-input {
@@ -135,7 +139,7 @@ body.sidebar-open .header {
   transition: all 0.25s ease;
   position: relative;
   flex-shrink: 0;
-  min-height: 48px; 
+  min-height: 48px;
 }
 
 .cart-button:hover {
@@ -175,8 +179,88 @@ body.sidebar-open .header {
   white-space: nowrap;
 }
 
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-shrink: 0;
+}
+
+.user-menu {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.user-name {
+  display: flex;
+  align-items: center;
+  color: white;
+  font-size: 0.875rem;
+  font-weight: 500;
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.2);
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  color: white;
+  border-radius: 8px;
+  padding: 0.5rem;
+  font-size: 1.1rem;
+  text-decoration: none;
+  transition: all 0.2s;
+}
+
+.admin-link:hover {
+  background: rgba(255, 255, 255, 0.35);
+}
+
+.logout-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.15);
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  color: white;
+  border-radius: 8px;
+  padding: 0.5rem;
+  font-size: 1.1rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.logout-btn:hover {
+  background: rgba(239, 68, 68, 0.5);
+}
+
+.login-link {
+  display: flex;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.2);
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 50px;
+  text-decoration: none;
+  font-size: 0.9rem;
+  font-weight: 600;
+  transition: all 0.2s;
+}
+
+.login-link:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
 @keyframes pulse {
-  0%, 100% {
+  0%,
+  100% {
     transform: scale(1);
   }
   50% {
@@ -186,9 +270,9 @@ body.sidebar-open .header {
 
 @media (min-width: 1025px) {
   .sidebar-toggle-btn {
-    display: flex; 
+    display: flex;
   }
-  
+
   .header-content {
     gap: 2rem;
   }
@@ -233,7 +317,7 @@ body.sidebar-open .header {
   }
 
   .header-content {
-    flex-wrap: wrap; 
+    flex-wrap: wrap;
     padding: 1rem 0;
     gap: 0.75rem;
   }
@@ -246,9 +330,9 @@ body.sidebar-open .header {
   }
 
   .search-bar {
-    order: 3; 
+    order: 3;
     max-width: 100%;
-    flex-basis: 100%; 
+    flex-basis: 100%;
     min-width: 100%;
   }
 

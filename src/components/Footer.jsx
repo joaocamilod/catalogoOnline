@@ -1,69 +1,117 @@
-import { FaShoppingBag, FaFacebook, FaInstagram, FaTwitter, FaYoutube, FaReact } from 'react-icons/fa'
-import './Footer.css'
+import {
+  ShoppingBag,
+  Facebook,
+  Instagram,
+  Twitter,
+  Youtube,
+} from "lucide-react";
 
 function Footer() {
-  const currentYear = new Date().getFullYear()
+  const currentYear = new Date().getFullYear();
+
+  const categoryLinks = ["Eletrônicos", "Moda", "Móveis", "Casa & Cozinha"];
+  const supportLinks = [
+    "FAQ",
+    "Contato",
+    "Trocas e Devoluções",
+    "Prazos de Entrega",
+  ];
+  const socialLinks = [
+    { Icon: Facebook, label: "Facebook" },
+    { Icon: Instagram, label: "Instagram" },
+    { Icon: Twitter, label: "Twitter" },
+    { Icon: Youtube, label: "YouTube" },
+  ];
 
   return (
-    <footer className="footer">
-      <div className="footer-container">
-        <div className="footer-content">
-          <div className="footer-section">
-            <h3>
-              <FaShoppingBag className="footer-logo" />
-              Catálogo Online
+    <footer className="bg-[#0F1724] text-white mt-16" role="contentinfo">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-14 pb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10 mb-12">
+          <div className="sm:col-span-2 lg:col-span-1">
+            <div className="flex items-center gap-2.5 mb-4">
+              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center flex-shrink-0">
+                <ShoppingBag
+                  className="h-5 w-5 text-white"
+                  aria-hidden="true"
+                />
+              </div>
+              <span className="text-lg font-bold">Catálogo Online</span>
+            </div>
+            <p className="text-gray-400 text-sm leading-relaxed">
+              Sua loja virtual completa com os melhores produtos e preços do
+              mercado. Qualidade e conveniência em um só lugar.
+            </p>
+          </div>
+
+          <div>
+            <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-5">
+              Categorias
             </h3>
-            <p>Sua loja virtual completa com os melhores produtos e preços.</p>
-          </div>
-
-          <div className="footer-section">
-            <h4>Categorias</h4>
-            <ul>
-              <li><a href="#eletronicos">Eletrônicos</a></li>
-              <li><a href="#moda">Moda</a></li>
-              <li><a href="#moveis">Móveis</a></li>
-              <li><a href="#casa">Casa & Cozinha</a></li>
+            <ul className="space-y-3">
+              {categoryLinks.map((cat) => (
+                <li key={cat}>
+                  <a
+                    href={`#${cat}`}
+                    className="text-gray-400 hover:text-violet-400 text-sm transition-colors duration-150 inline-block hover:translate-x-1 transition-transform"
+                  >
+                    {cat}
+                  </a>
+                </li>
+              ))}
             </ul>
           </div>
 
-          <div className="footer-section">
-            <h4>Atendimento</h4>
-            <ul>
-              <li><a href="#faq">FAQ</a></li>
-              <li><a href="#contato">Contato</a></li>
-              <li><a href="#trocas">Trocas e Devoluções</a></li>
-              <li><a href="#entrega">Prazos de Entrega</a></li>
+          <div>
+            <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-5">
+              Atendimento
+            </h3>
+            <ul className="space-y-3">
+              {supportLinks.map((item) => (
+                <li key={item}>
+                  <a
+                    href={`#${item}`}
+                    className="text-gray-400 hover:text-violet-400 text-sm transition-colors duration-150 inline-block hover:translate-x-1 transition-transform"
+                  >
+                    {item}
+                  </a>
+                </li>
+              ))}
             </ul>
           </div>
 
-          <div className="footer-section">
-            <h4>Redes Sociais</h4>
-            <div className="social-links">
-              <a href="#facebook" className="social-link">
-                <FaFacebook /> Facebook
-              </a>
-              <a href="#instagram" className="social-link">
-                <FaInstagram /> Instagram
-              </a>
-              <a href="#twitter" className="social-link">
-                <FaTwitter /> Twitter
-              </a>
-              <a href="#youtube" className="social-link">
-                <FaYoutube /> YouTube
-              </a>
+          <div>
+            <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-5">
+              Redes Sociais
+            </h3>
+            <div className="flex flex-col gap-3">
+              {socialLinks.map(({ Icon, label }) => (
+                <a
+                  key={label}
+                  href={`#${label}`}
+                  aria-label={label}
+                  className="flex items-center gap-3 text-gray-400 hover:text-violet-400 text-sm transition-all duration-150 hover:translate-x-1 group"
+                >
+                  <span className="w-8 h-8 rounded-lg bg-white/5 group-hover:bg-violet-500/20 flex items-center justify-center transition-colors flex-shrink-0">
+                    <Icon className="h-4 w-4" aria-hidden="true" />
+                  </span>
+                  {label}
+                </a>
+              ))}
             </div>
           </div>
         </div>
 
-        <div className="footer-bottom">
-          <p>© {currentYear} Catálogo Online.</p>
-          <p className="footer-dev">
-            
+        <div className="border-t border-white/10 pt-7 flex flex-col sm:flex-row items-center justify-between gap-3">
+          <p className="text-gray-500 text-sm">
+            © {currentYear} Catálogo Online. Todos os direitos reservados.
+          </p>
+          <p className="text-gray-600 text-xs">
+            Desenvolvido com React + Vite + Tailwind CSS
           </p>
         </div>
       </div>
     </footer>
-  )
+  );
 }
 
-export default Footer
+export default Footer;

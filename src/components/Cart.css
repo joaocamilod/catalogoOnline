@@ -34,7 +34,11 @@
   align-items: center;
   justify-content: space-between;
   padding: 1.5rem;
-  background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+  background: linear-gradient(
+    135deg,
+    var(--primary-color),
+    var(--secondary-color)
+  );
   color: white;
 }
 
@@ -265,7 +269,11 @@
 
 .checkout-btn {
   padding: 1rem;
-  background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+  background: linear-gradient(
+    135deg,
+    var(--primary-color),
+    var(--secondary-color)
+  );
   border: none;
   border-radius: 8px;
   color: white;
