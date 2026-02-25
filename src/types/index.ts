@@ -15,6 +15,15 @@ export interface Departamento {
   created_at?: string;
 }
 
+export interface Vendedor {
+  id: string;
+  nome: string;
+  telefone_whatsapp: string;
+  email: string;
+  ativo: boolean;
+  created_at?: string;
+}
+
 export interface ImagemProduto {
   id: string;
   produto_id: string;

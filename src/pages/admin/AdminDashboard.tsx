@@ -3,6 +3,7 @@ import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import {
   Package,
   LayoutDashboard,
+  Users,
   Settings,
   LogOut,
   ShoppingBag,
@@ -18,6 +19,7 @@ const navigation = [
     href: "/admin/departamentos",
     icon: LayoutDashboard,
   },
+  { name: "Vendedores", href: "/admin/vendedores", icon: Users },
   { name: "Configuracoes", href: "/admin/configuracoes", icon: Settings },
 ];
 

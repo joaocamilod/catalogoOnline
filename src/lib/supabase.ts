@@ -151,6 +151,101 @@ export async function deleteDepartamento(id: string) {
   if (error) throw error;
 }
 
+export async function fetchVendedores(page = 1, limit = 20, search = "") {
+  let query = supabase
+    .from("vendedores")
+    .select("*", { count: "exact" })
+    .order("nome", { ascending: true })
+    .range((page - 1) * limit, page * limit - 1);
+
+  if (search.trim()) {
+    query = query.or(
+      `nome.ilike.%${search.trim()}%,telefone_whatsapp.ilike.%${search.trim()}%,email.ilike.%${search.trim()}%`,
+    );
+  }
+
+  const { data, count, error } = await query;
+  if (error) throw error;
+  return {
+    vendedores: data ?? [],
+    totalPages: Math.ceil((count ?? 0) / limit),
+  };
+}
+
+export async function fetchAllVendedores() {
+  const { data, error } = await supabase
+    .from("vendedores")
+    .select("*")
+    .eq("ativo", true)
+    .order("nome", { ascending: true });
+
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function createVendedor(
+  nome: string,
+  telefoneWhatsapp: string,
+  email: string,
+  ativo: boolean,
+) {
+  const normalizedTelefone = telefoneWhatsapp.trim();
+  const normalizedEmail = email.trim();
+
+  if (!normalizedTelefone && !normalizedEmail) {
+    throw new Error("Informe telefone/whatsapp ou email do vendedor.");
+  }
+
+  const { data, error } = await supabase
+    .from("vendedores")
+    .insert({
+      nome: nome.trim(),
+      telefone_whatsapp: normalizedTelefone,
+      email: normalizedEmail,
+      ativo,
+    })
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
+export async function updateVendedor(
+  id: string,
+  nome: string,
+  telefoneWhatsapp: string,
+  email: string,
+  ativo: boolean,
+) {
+  const normalizedTelefone = telefoneWhatsapp.trim();
+  const normalizedEmail = email.trim();
+
+  if (!normalizedTelefone && !normalizedEmail) {
+    throw new Error("Informe telefone/whatsapp ou email do vendedor.");
+  }
+
+  const { data, error } = await supabase
+    .from("vendedores")
+    .update({
+      nome: nome.trim(),
+      telefone_whatsapp: normalizedTelefone,
+      email: normalizedEmail,
+      ativo,
+    })
+    .eq("id", id)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
+export async function deleteVendedor(id: string) {
+  const { error } = await supabase.from("vendedores").delete().eq("id", id);
+  if (error) throw error;
+}
+
 export async function fetchProdutos(
   page = 1,
   limit = 20,
