@@ -1,7 +1,11 @@
-import React, { Suspense, lazy } from "react";
+import React, { Suspense, lazy, useEffect, useState } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { useAuthStore } from "./store/authStore";
 import ProtectedRoute from "./components/ProtectedRoute";
+import {
+  DEFAULT_STORE_NAME,
+  fetchStoreSettings,
+  type StoreSettings,
+} from "./lib/supabase";
 
 const Home = lazy(() => import("./pages/Home"));
 const Login = lazy(() => import("./pages/Login"));
@@ -10,6 +14,9 @@ const Register = lazy(() => import("./pages/Register"));
 const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard"));
 const ProductManager = lazy(() => import("./pages/admin/ProductManager"));
 const DepartmentManager = lazy(() => import("./pages/admin/DepartmentManager"));
+const StoreSettingsManager = lazy(
+  () => import("./pages/admin/StoreSettingsManager"),
+);
 
 const PageLoader = () => (
   <div className="flex items-center justify-center min-h-screen bg-gray-50">
@@ -25,11 +32,45 @@ const AdminRoute = ({ children }: { children: React.ReactNode }) => (
 );
 
 function App() {
+  const [storeSettings, setStoreSettings] = useState<StoreSettings>({
+    nome_loja: DEFAULT_STORE_NAME,
+    footer_descricao:
+      "Sua loja virtual completa com os melhores produtos e preços do mercado. Qualidade e conveniência em um só lugar.",
+    footer_observacoes: "",
+    facebook_url: "",
+    instagram_url: "",
+    twitter_url: "",
+    youtube_url: "",
+  });
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadStoreSettings = async () => {
+      try {
+        const loadedSettings = await fetchStoreSettings();
+        if (isMounted) setStoreSettings(loadedSettings);
+      } catch (error) {
+        console.error("Erro ao carregar configurações da loja:", error);
+      }
+    };
+
+    loadStoreSettings();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    document.title = storeSettings.nome_loja;
+  }, [storeSettings.nome_loja]);
+
   return (
     <BrowserRouter>
       <Suspense fallback={<PageLoader />}>
         <Routes>
-          <Route path="/" element={<Home />} />
+          <Route path="/" element={<Home storeSettings={storeSettings} />} />
           <Route path="/entrar" element={<Login />} />
           <Route path="/login" element={<Login />} />
           <Route path="/registrar" element={<Register />} />
@@ -46,6 +87,15 @@ function App() {
             <Route index element={<Navigate to="/admin/produtos" replace />} />
             <Route path="produtos" element={<ProductManager />} />
             <Route path="departamentos" element={<DepartmentManager />} />
+            <Route
+              path="configuracoes"
+              element={
+                <StoreSettingsManager
+                  storeSettings={storeSettings}
+                  onStoreSettingsChange={setStoreSettings}
+                />
+              }
+            />
           </Route>
 
           <Route path="*" element={<Navigate to="/" replace />} />

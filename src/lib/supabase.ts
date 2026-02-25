@@ -14,6 +14,44 @@ export const supabase = createClient(
   supabaseAnonKey || "placeholder-key",
 );
 
+export const DEFAULT_STORE_NAME = "Catálogo Online";
+
+export interface StoreSettings {
+  nome_loja: string;
+  footer_descricao: string;
+  footer_observacoes: string;
+  facebook_url: string;
+  instagram_url: string;
+  twitter_url: string;
+  youtube_url: string;
+}
+
+const DEFAULT_STORE_SETTINGS: StoreSettings = {
+  nome_loja: DEFAULT_STORE_NAME,
+  footer_descricao:
+    "Sua loja virtual completa com os melhores produtos e preços do mercado. Qualidade e conveniência em um só lugar.",
+  footer_observacoes: "",
+  facebook_url: "",
+  instagram_url: "",
+  twitter_url: "",
+  youtube_url: "",
+};
+
+function normalizeStoreSettings(
+  data?: Partial<StoreSettings> | null,
+): StoreSettings {
+  return {
+    nome_loja: data?.nome_loja?.trim() || DEFAULT_STORE_SETTINGS.nome_loja,
+    footer_descricao:
+      data?.footer_descricao?.trim() || DEFAULT_STORE_SETTINGS.footer_descricao,
+    footer_observacoes: data?.footer_observacoes?.trim() || "",
+    facebook_url: data?.facebook_url?.trim() || "",
+    instagram_url: data?.instagram_url?.trim() || "",
+    twitter_url: data?.twitter_url?.trim() || "",
+    youtube_url: data?.youtube_url?.trim() || "",
+  };
+}
+
 export async function signIn(email: string, password: string) {
   const { data, error } = await supabase.auth.signInWithPassword({
     email,
@@ -306,4 +344,71 @@ export async function deleteImagemStorage(url: string) {
   const path = url.split("/storage/v1/object/public/produtos/")[1];
   if (!path) return;
   await supabase.storage.from("produtos").remove([path]);
+}
+
+export async function fetchStoreSettings(): Promise<StoreSettings> {
+  const { data, error } = await supabase
+    .from("loja_config")
+    .select(
+      "nome_loja, footer_descricao, footer_observacoes, facebook_url, instagram_url, twitter_url, youtube_url",
+    )
+    .eq("id", true)
+    .maybeSingle();
+
+  if (error) throw error;
+  return normalizeStoreSettings(data);
+}
+
+export async function updateStoreSettings(
+  settings: Partial<StoreSettings>,
+): Promise<StoreSettings> {
+  const normalizedName = settings.nome_loja?.trim();
+
+  if (normalizedName !== undefined && !normalizedName) {
+    throw new Error("Informe um nome válido para a loja.");
+  }
+
+  const payload = {
+    id: true,
+    ...(settings.nome_loja !== undefined ? { nome_loja: normalizedName } : {}),
+    ...(settings.footer_descricao !== undefined
+      ? { footer_descricao: settings.footer_descricao.trim() }
+      : {}),
+    ...(settings.footer_observacoes !== undefined
+      ? { footer_observacoes: settings.footer_observacoes.trim() }
+      : {}),
+    ...(settings.facebook_url !== undefined
+      ? { facebook_url: settings.facebook_url.trim() }
+      : {}),
+    ...(settings.instagram_url !== undefined
+      ? { instagram_url: settings.instagram_url.trim() }
+      : {}),
+    ...(settings.twitter_url !== undefined
+      ? { twitter_url: settings.twitter_url.trim() }
+      : {}),
+    ...(settings.youtube_url !== undefined
+      ? { youtube_url: settings.youtube_url.trim() }
+      : {}),
+  };
+
+  const { data, error } = await supabase
+    .from("loja_config")
+    .upsert(payload, { onConflict: "id" })
+    .select(
+      "nome_loja, footer_descricao, footer_observacoes, facebook_url, instagram_url, twitter_url, youtube_url",
+    )
+    .single();
+
+  if (error) throw error;
+  return normalizeStoreSettings(data);
+}
+
+export async function fetchStoreName(): Promise<string> {
+  const settings = await fetchStoreSettings();
+  return settings.nome_loja;
+}
+
+export async function updateStoreName(nomeLoja: string): Promise<string> {
+  const settings = await updateStoreSettings({ nome_loja: nomeLoja });
+  return settings.nome_loja;
 }

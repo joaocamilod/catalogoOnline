@@ -6,8 +6,9 @@ import {
   Youtube,
 } from "lucide-react";
 
-function Footer() {
+function Footer({ storeSettings }) {
   const currentYear = new Date().getFullYear();
+  const storeName = storeSettings?.nome_loja || "Catálogo Online";
 
   const categoryLinks = ["Eletrônicos", "Moda", "Móveis", "Casa & Cozinha"];
   const supportLinks = [
@@ -17,10 +18,10 @@ function Footer() {
     "Prazos de Entrega",
   ];
   const socialLinks = [
-    { Icon: Facebook, label: "Facebook" },
-    { Icon: Instagram, label: "Instagram" },
-    { Icon: Twitter, label: "Twitter" },
-    { Icon: Youtube, label: "YouTube" },
+    { Icon: Facebook, label: "Facebook", href: storeSettings?.facebook_url },
+    { Icon: Instagram, label: "Instagram", href: storeSettings?.instagram_url },
+    { Icon: Twitter, label: "Twitter", href: storeSettings?.twitter_url },
+    { Icon: Youtube, label: "YouTube", href: storeSettings?.youtube_url },
   ];
 
   return (
@@ -35,12 +36,17 @@ function Footer() {
                   aria-hidden="true"
                 />
               </div>
-              <span className="text-lg font-bold">Catálogo Online</span>
+              <span className="text-lg font-bold">{storeName}</span>
             </div>
             <p className="text-gray-400 text-sm leading-relaxed">
-              Sua loja virtual completa com os melhores produtos e preços do
-              mercado. Qualidade e conveniência em um só lugar.
+              {storeSettings?.footer_descricao ||
+                "Sua loja virtual completa com os melhores produtos e precos do mercado. Qualidade e conveniencia em um so lugar."}
             </p>
+            {storeSettings?.footer_observacoes && (
+              <p className="text-gray-500 text-xs leading-relaxed mt-3">
+                {storeSettings.footer_observacoes}
+              </p>
+            )}
           </div>
 
           <div>
@@ -84,11 +90,13 @@ function Footer() {
               Redes Sociais
             </h3>
             <div className="flex flex-col gap-3">
-              {socialLinks.map(({ Icon, label }) => (
+              {socialLinks.map(({ Icon, label, href }) => (
                 <a
                   key={label}
-                  href={`#${label}`}
+                  href={href || "#"}
                   aria-label={label}
+                  target={href ? "_blank" : undefined}
+                  rel={href ? "noreferrer" : undefined}
                   className="flex items-center gap-3 text-gray-400 hover:text-violet-400 text-sm transition-all duration-150 hover:translate-x-1 group"
                 >
                   <span className="w-8 h-8 rounded-lg bg-white/5 group-hover:bg-violet-500/20 flex items-center justify-center transition-colors flex-shrink-0">
@@ -103,10 +111,7 @@ function Footer() {
 
         <div className="border-t border-white/10 pt-7 flex flex-col sm:flex-row items-center justify-between gap-3">
           <p className="text-gray-500 text-sm">
-            © {currentYear} Catálogo Online. Todos os direitos reservados.
-          </p>
-          <p className="text-gray-600 text-xs">
-            Desenvolvido com React + Vite + Tailwind CSS
+            © {currentYear} {storeName}. Todos os direitos reservados.
           </p>
         </div>
       </div>

@@ -8,10 +8,15 @@ import { fetchProdutos, fetchAllDepartamentos } from "../lib/supabase";
 import { useCartStore } from "../store/cartStore";
 import type { CatalogProduct, Departamento } from "../types";
 import { normalizeProduto } from "../types";
+import type { StoreSettings } from "../lib/supabase";
 
 const PRODUCTS_PER_PAGE = 20;
 
-const Home: React.FC = () => {
+interface HomeProps {
+  storeSettings: StoreSettings;
+}
+
+const Home: React.FC<HomeProps> = ({ storeSettings }) => {
   const [produtos, setProdutos] = useState<CatalogProduct[]>([]);
   const [departamentos, setDepartamentos] = useState<Departamento[]>([]);
   const [loading, setLoading] = useState(true);
@@ -104,6 +109,7 @@ const Home: React.FC = () => {
   return (
     <div className="flex flex-col min-h-screen overflow-x-hidden bg-gray-50">
       <Header
+        storeName={storeSettings.nome_loja}
         searchTerm={searchTerm}
         onSearchChange={setSearchTerm}
         cartCount={count()}
@@ -208,7 +214,7 @@ const Home: React.FC = () => {
         </div>
       </main>
 
-      <Footer />
+      <Footer storeSettings={storeSettings} />
 
       <Cart
         isOpen={isCartOpen}

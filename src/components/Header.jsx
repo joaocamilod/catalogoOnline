@@ -13,6 +13,7 @@ import { useAuthStore } from "../store/authStore";
 import { signOut } from "../lib/supabase";
 
 function Header({
+  storeName,
   searchTerm,
   onSearchChange,
   cartCount,
@@ -46,9 +47,7 @@ function Header({
 
         <Link to="/" className="flex items-center gap-2 flex-shrink-0">
           <ShoppingBag className="h-7 w-7" />
-          <span className="text-xl font-bold hidden sm:block">
-            Catálogo Online
-          </span>
+          <span className="text-xl font-bold hidden sm:block">{storeName}</span>
         </Link>
 
         <div className="flex-1 max-w-md mx-2 relative hidden md:block">
