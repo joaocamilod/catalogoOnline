@@ -883,16 +883,17 @@ const ProductManager: React.FC = () => {
                       <td className="px-4 py-3 text-sm text-gray-600">
                         {p.quantidademinima}
                       </td>
-                      <td className="px-4 py-3">
-                        <div className="flex flex-col gap-1">
+                    <td className="px-4 py-3 min-w-[150px]">
+                      <div className="flex flex-col items-start gap-1.5">
                           <span
-                            className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${p.ativo ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}
+                          className={`inline-flex items-center whitespace-nowrap px-2.5 py-0.5 rounded-full text-xs font-medium ${p.ativo ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}
                           >
                             {p.ativo ? "Ativo" : "Inativo"}
                           </span>
                           <button
+                          type="button"
                             onClick={() => handleToggleCatalog(p)}
-                            className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium cursor-pointer transition-colors ${p.exibircatalogo ? "bg-blue-100 text-blue-700 hover:bg-blue-200" : "bg-gray-100 text-gray-500 hover:bg-gray-200"}`}
+                          className={`inline-flex items-center whitespace-nowrap px-2.5 py-0.5 rounded-full text-xs font-medium cursor-pointer transition-colors ${p.exibircatalogo ? "bg-blue-100 text-blue-700 hover:bg-blue-200" : "bg-gray-100 text-gray-500 hover:bg-gray-200"}`}
                             title="Clique para alternar visibilidade no catálogo"
                           >
                             {p.exibircatalogo ? "No catálogo" : "Oculto"}
