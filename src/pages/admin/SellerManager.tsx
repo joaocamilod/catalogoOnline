@@ -219,14 +219,24 @@ const SellerManager: React.FC = () => {
     setLoading(true);
     setError(null);
     try {
-      const { vendedores, totalPages: tp } = await fetchVendedores(
-        page,
+      let targetPage = page;
+      let { vendedores, totalPages: tp } = await fetchVendedores(
+        targetPage,
         LIMIT,
         search,
       );
+
+      const normalizedTotalPages = Math.max(tp, 1);
+      if (targetPage > normalizedTotalPages) {
+        targetPage = normalizedTotalPages;
+        const fallback = await fetchVendedores(targetPage, LIMIT, search);
+        vendedores = fallback.vendedores;
+        tp = fallback.totalPages;
+      }
+
       setSellers(vendedores);
-      setTotalPages(tp);
-      setCurrentPage(page);
+      setTotalPages(Math.max(tp, 1));
+      setCurrentPage(targetPage);
     } catch {
       setError("Erro ao carregar vendedores.");
     } finally {

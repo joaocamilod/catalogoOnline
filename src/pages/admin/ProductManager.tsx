@@ -605,14 +605,24 @@ const ProductManager: React.FC = () => {
     setLoading(true);
     setError(null);
     try {
-      const { produtos, totalPages: tp } = await fetchTodosProdutos(
-        page,
+      let targetPage = page;
+      let { produtos, totalPages: tp } = await fetchTodosProdutos(
+        targetPage,
         LIMIT,
         search,
       );
+
+      const normalizedTotalPages = Math.max(tp, 1);
+      if (targetPage > normalizedTotalPages) {
+        targetPage = normalizedTotalPages;
+        const fallback = await fetchTodosProdutos(targetPage, LIMIT, search);
+        produtos = fallback.produtos;
+        tp = fallback.totalPages;
+      }
+
       setProducts(produtos);
-      setTotalPages(tp);
-      setCurrentPage(page);
+      setTotalPages(Math.max(tp, 1));
+      setCurrentPage(targetPage);
     } catch (e: any) {
       setError("Erro ao carregar produtos.");
     } finally {

@@ -139,14 +139,24 @@ const DepartmentManager: React.FC = () => {
     setLoading(true);
     setError(null);
     try {
-      const { departamentos, totalPages: tp } = await fetchDepartamentos(
-        page,
+      let targetPage = page;
+      let { departamentos, totalPages: tp } = await fetchDepartamentos(
+        targetPage,
         LIMIT,
         search,
       );
+
+      const normalizedTotalPages = Math.max(tp, 1);
+      if (targetPage > normalizedTotalPages) {
+        targetPage = normalizedTotalPages;
+        const fallback = await fetchDepartamentos(targetPage, LIMIT, search);
+        departamentos = fallback.departamentos;
+        tp = fallback.totalPages;
+      }
+
       setDepartments(departamentos);
-      setTotalPages(tp);
-      setCurrentPage(page);
+      setTotalPages(Math.max(tp, 1));
+      setCurrentPage(targetPage);
     } catch (e: any) {
       setError("Erro ao carregar departamentos.");
     } finally {
