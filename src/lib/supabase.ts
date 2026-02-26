@@ -555,6 +555,7 @@ export interface CriarVendaParams {
   comprador_email?: string;
   url_imagem?: string;
   texto_mensagem?: string;
+  meio_pagamento?: string;
 }
 
 export async function createSale(params: CriarVendaParams) {
@@ -569,6 +570,7 @@ export async function createSale(params: CriarVendaParams) {
       comprador_email: params.comprador_email?.trim() || null,
       url_imagem: params.url_imagem || null,
       texto_mensagem: params.texto_mensagem || null,
+      meio_pagamento: params.meio_pagamento || null,
       status: "pendente",
       whatsapp_enviado: false,
     })
