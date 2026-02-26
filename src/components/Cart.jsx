@@ -13,48 +13,16 @@ import {
   Phone,
   Mail,
   AlertCircle,
-  MessageCircle,
-  Send,
-  CheckCircle2,
-  Edit3,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { fetchAllVendedores, createSale } from "../lib/supabase";
+import { fetchAllVendedores } from "../lib/supabase";
 import Dialog from "./Dialog";
+import PaymentModal from "./PaymentModal";
 
 const formatBRL = (value) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(
     Number.isFinite(value) ? value : 0,
   );
-
-const normalizePhoneNumber = (value = "") => value.replace(/\D/g, "");
-
-function buildBuyerMessage({
-  sellerName,
-  buyerName,
-  buyerPhone,
-  buyerEmail,
-  items,
-  total,
-}) {
-  const itemLines = items
-    .map(
-      (item) =>
-        `  • ${item.quantity}x ${item.product.name} — ${formatBRL(item.product.price * item.quantity)}`,
-    )
-    .join("\n");
-
-  let msg =
-    `Olá ${sellerName || "vendedor"}, sou ${buyerName || "um cliente"} e gostaria de fazer um pedido! \n\n` +
-    `*Itens do pedido:*\n${itemLines}\n\n` +
-    `*Total: ${formatBRL(total)}*`;
-
-  if (buyerPhone) msg += `\n\nMeu telefone para contato: ${buyerPhone}`;
-  if (buyerEmail) msg += `\nMeu e-mail: ${buyerEmail}`;
-
-  msg += "\n\nAguardo confirmação. Obrigado(a)!";
-  return msg;
-}
 
 function Cart({
   isOpen,
@@ -76,46 +44,12 @@ function Cart({
   const [selectedSellerId, setSelectedSellerId] = useState("");
   const [manualSellerName, setManualSellerName] = useState("");
 
-  const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
-  const [buyerName, setBuyerName] = useState("");
-  const [buyerPhone, setBuyerPhone] = useState("");
-  const [buyerEmail, setBuyerEmail] = useState("");
-  const [editableMessage, setEditableMessage] = useState("");
-  const [sendingSale, setSendingSale] = useState(false);
-  const [saleSuccess, setSaleSuccess] = useState(false);
+  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
 
   const selectedSeller = useMemo(
     () => sellers.find((seller) => seller.id === selectedSellerId) ?? null,
     [sellers, selectedSellerId],
   );
-
-  const generatedMessage = useMemo(
-    () =>
-      buildBuyerMessage({
-        sellerName: selectedSeller?.nome || manualSellerName,
-        buyerName,
-        buyerPhone,
-        buyerEmail,
-        items,
-        total,
-      }),
-    [
-      selectedSeller,
-      manualSellerName,
-      buyerName,
-      buyerPhone,
-      buyerEmail,
-      items,
-      total,
-    ],
-  );
-
-  const [messagePristine, setMessagePristine] = useState(true);
-  useEffect(() => {
-    if (messagePristine) {
-      setEditableMessage(generatedMessage);
-    }
-  }, [generatedMessage, messagePristine]);
 
   useEffect(() => {
     document.body.style.overflow = isOpen ? "hidden" : "unset";
@@ -149,17 +83,6 @@ function Cart({
     setSellerValidationError("");
   };
 
-  const resetConfirmDialog = () => {
-    setIsConfirmDialogOpen(false);
-    setBuyerName("");
-    setBuyerPhone("");
-    setBuyerEmail("");
-    setEditableMessage("");
-    setMessagePristine(true);
-    setSaleSuccess(false);
-    setSendingSale(false);
-  };
-
   const handleCheckout = () => {
     setManualSellerName("");
     onClose();
@@ -167,7 +90,7 @@ function Cart({
     loadSellers();
   };
 
-  const handleConfirmCheckout = () => {
+  const handleConfirmSeller = () => {
     const sellerName = selectedSeller?.nome || manualSellerName.trim();
     if (!sellerName) {
       setSellerValidationError(
@@ -176,7 +99,10 @@ function Cart({
       return;
     }
 
-    const phoneDigits = normalizePhoneNumber(selectedSeller?.telefone_whatsapp);
+    const phoneDigits = (selectedSeller?.telefone_whatsapp ?? "").replace(
+      /\D/g,
+      "",
+    );
     if (selectedSeller && (!phoneDigits || phoneDigits.length < 10)) {
       setSellerValidationError(
         "Este vendedor não possui WhatsApp válido cadastrado para envio da venda.",
@@ -186,69 +112,17 @@ function Cart({
 
     setIsSellerDialogOpen(false);
     setSellerValidationError("");
-    setMessagePristine(true);
-    setIsConfirmDialogOpen(true);
+    setIsPaymentModalOpen(true);
   };
 
-  const openWhatsAppNewTab = (url) => {
-    const link = document.createElement("a");
-    link.href = url;
-    link.target = "_blank";
-    link.rel = "noopener noreferrer";
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+  const handlePaymentBack = () => {
+    setIsPaymentModalOpen(false);
+    setIsSellerDialogOpen(true);
   };
 
-  const handleSendWhatsApp = async () => {
-    setSendingSale(true);
-
-    const phoneDigits = normalizePhoneNumber(
-      selectedSeller?.telefone_whatsapp ?? "",
-    );
-    const whatsappNumber = phoneDigits.startsWith("55")
-      ? phoneDigits
-      : `55${phoneDigits}`;
-    const waUrl = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(editableMessage)}`;
-
-    openWhatsAppNewTab(waUrl);
-
-    try {
-      if (selectedSeller?.id) {
-        const itensVenda = items.map((item) => ({
-          produto_id: item.product.id,
-          nome: item.product.name,
-          preco: item.product.price,
-          quantidade: item.quantity,
-          imagem: item.product.image ?? null,
-        }));
-
-        await createSale({
-          vendedor_id: selectedSeller.id,
-          itens: itensVenda,
-          total,
-          comprador_nome: buyerName || undefined,
-          comprador_telefone: buyerPhone || undefined,
-          comprador_email: buyerEmail || undefined,
-          url_imagem: items[0]?.product.image ?? undefined,
-          texto_mensagem: editableMessage,
-        });
-      }
-
-      setSaleSuccess(true);
-      onClearCart();
-    } catch (err) {
-      console.error("Erro ao registrar venda no banco:", err);
-      // O WhatsApp já foi aberto acima; apenas exibe sucesso mesmo com falha no DB
-      setSaleSuccess(true);
-      onClearCart();
-    } finally {
-      setSendingSale(false);
-    }
-  };
-
-  const handleFinishSaleSuccess = () => {
-    resetConfirmDialog();
+  const handlePaymentSuccess = () => {
+    setIsPaymentModalOpen(false);
+    onClearCart();
   };
 
   const handleBackToStore = () => {
@@ -256,7 +130,7 @@ function Cart({
     navigate("/");
   };
 
-  if (!isOpen && !isSellerDialogOpen && !isConfirmDialogOpen) return null;
+  if (!isOpen && !isSellerDialogOpen && !isPaymentModalOpen) return null;
 
   return (
     <>
@@ -541,13 +415,7 @@ function Cart({
                             backgroundColor: tema.cor_primaria + "10",
                             boxShadow: `0 0 0 2px ${tema.cor_primaria}30`,
                           }
-                        : tema && !isSelected
-                          ? {
-                              ":hover": {
-                                borderColor: tema.cor_primaria + "60",
-                              },
-                            }
-                          : undefined
+                        : undefined
                     }
                   >
                     <div className="flex items-start gap-3">
@@ -651,7 +519,7 @@ function Cart({
             </button>
             <button
               type="button"
-              onClick={handleConfirmCheckout}
+              onClick={handleConfirmSeller}
               disabled={loadingSellers}
               className={`px-4 py-2 text-sm font-semibold rounded-xl disabled:opacity-60 disabled:cursor-not-allowed transition-colors ${!tema ? "text-white bg-indigo-600 hover:bg-indigo-700" : "hover:opacity-90"}`}
               style={
@@ -669,220 +537,16 @@ function Cart({
         </div>
       </Dialog>
 
-      <Dialog
-        isOpen={isConfirmDialogOpen}
-        onClose={resetConfirmDialog}
-        title="Confirmar pedido"
-        maxWidth="max-w-lg"
-      >
-        {saleSuccess ? (
-          <div className="flex flex-col items-center text-center py-6 gap-4">
-            <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center">
-              <CheckCircle2 className="h-8 w-8 text-green-600" />
-            </div>
-            <div>
-              <h3 className="text-lg font-bold text-gray-900">
-                Pedido enviado!
-              </h3>
-              <p className="text-sm text-gray-500 mt-1">
-                Seu pedido foi registrado e o WhatsApp foi aberto para envio. O
-                vendedor entrará em contato em breve.
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={handleFinishSaleSuccess}
-              className={`px-6 py-2.5 font-semibold rounded-xl transition-colors ${!tema ? "bg-indigo-600 text-white hover:bg-indigo-700" : "hover:opacity-90"}`}
-              style={
-                tema
-                  ? {
-                      backgroundColor: tema.cor_primaria,
-                      color: tema.botao_texto_cor,
-                    }
-                  : undefined
-              }
-            >
-              Fechar
-            </button>
-          </div>
-        ) : (
-          <div className="space-y-5">
-            <div
-              className="rounded-xl border px-3 py-2.5 flex items-center gap-2"
-              style={
-                tema
-                  ? {
-                      borderColor: tema.cor_primaria + "30",
-                      backgroundColor: tema.cor_primaria + "10",
-                    }
-                  : {
-                      borderColor: "#e0e7ff",
-                      backgroundColor: "rgba(238,242,255,0.7)",
-                    }
-              }
-            >
-              <UserRound
-                className="h-4 w-4 flex-shrink-0"
-                style={
-                  tema ? { color: tema.cor_primaria } : { color: "#4f46e5" }
-                }
-              />
-              <div className="min-w-0">
-                <p
-                  className="text-xs"
-                  style={
-                    tema ? { color: tema.cor_secundaria } : { color: "#4338ca" }
-                  }
-                >
-                  Vendendo para
-                </p>
-                <p
-                  className="text-sm font-semibold truncate"
-                  style={
-                    tema ? { color: tema.cor_primaria } : { color: "#312e81" }
-                  }
-                >
-                  {selectedSeller?.nome || manualSellerName || "—"}
-                </p>
-              </div>
-              <div className="ml-auto text-right flex-shrink-0">
-                <p
-                  className="text-xs"
-                  style={
-                    tema ? { color: tema.cor_secundaria } : { color: "#4338ca" }
-                  }
-                >
-                  Total
-                </p>
-                <p
-                  className="text-sm font-bold"
-                  style={
-                    tema ? { color: tema.cor_primaria } : { color: "#312e81" }
-                  }
-                >
-                  {formatBRL(total)}
-                </p>
-              </div>
-            </div>
-
-            <div className="space-y-3">
-              <p className="text-sm font-semibold text-gray-700 flex items-center gap-1.5">
-                <UserRound className="h-4 w-4 text-gray-400" />
-                Seus dados (opcional)
-              </p>
-
-              <div className="relative">
-                <UserRound className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
-                <input
-                  type="text"
-                  value={buyerName}
-                  onChange={(e) => setBuyerName(e.target.value)}
-                  placeholder="Seu nome"
-                  className="w-full pl-9 pr-3 py-2.5 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                />
-              </div>
-
-              <div className="relative">
-                <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
-                <input
-                  type="tel"
-                  value={buyerPhone}
-                  onChange={(e) => setBuyerPhone(e.target.value)}
-                  placeholder="Telefone / WhatsApp (ex: +5511999999999)"
-                  className="w-full pl-9 pr-3 py-2.5 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                />
-              </div>
-
-              <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
-                <input
-                  type="email"
-                  value={buyerEmail}
-                  onChange={(e) => setBuyerEmail(e.target.value)}
-                  placeholder="E-mail (opcional)"
-                  className="w-full pl-9 pr-3 py-2.5 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                />
-              </div>
-            </div>
-
-            <div className="space-y-1.5">
-              <div className="flex items-center justify-between">
-                <p className="text-sm font-semibold text-gray-700 flex items-center gap-1.5">
-                  <MessageCircle className="h-4 w-4 text-gray-400" />
-                  Mensagem para o vendedor
-                </p>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setMessagePristine(true);
-                    setEditableMessage(generatedMessage);
-                  }}
-                  className="text-xs flex items-center gap-1 transition-colors hover:opacity-80"
-                  style={
-                    tema ? { color: tema.cor_primaria } : { color: "#4f46e5" }
-                  }
-                  title="Restaurar mensagem padrão"
-                >
-                  <Edit3 className="h-3 w-3" />
-                  Restaurar padrão
-                </button>
-              </div>
-              <textarea
-                value={editableMessage}
-                onChange={(e) => {
-                  setMessagePristine(false);
-                  setEditableMessage(e.target.value);
-                }}
-                rows={8}
-                className="w-full px-3 py-2.5 border border-gray-300 rounded-xl text-sm font-mono leading-relaxed focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none"
-                placeholder="A mensagem será gerada automaticamente com base nos dados acima..."
-              />
-              <p className="text-xs text-gray-400 flex items-center gap-1">
-                <Edit3 className="h-3 w-3" />
-                Você pode editar a mensagem antes de enviar.
-              </p>
-            </div>
-
-            <div className="pt-2 flex items-center justify-between gap-3">
-              <button
-                type="button"
-                onClick={() => {
-                  resetConfirmDialog();
-                  setManualSellerName(manualSellerName);
-                  setIsSellerDialogOpen(true);
-                }}
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-xl hover:bg-gray-50 transition-colors"
-              >
-                ← Voltar
-              </button>
-
-              <button
-                type="button"
-                onClick={handleSendWhatsApp}
-                disabled={sendingSale || !editableMessage.trim()}
-                className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-green-600 text-white font-semibold rounded-xl hover:bg-green-700 disabled:opacity-60 disabled:cursor-not-allowed transition-colors shadow-sm hover:shadow-md"
-              >
-                {sendingSale ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    Abrindo WhatsApp...
-                  </>
-                ) : (
-                  <>
-                    <Send className="h-4 w-4" />
-                    Enviar pelo WhatsApp
-                  </>
-                )}
-              </button>
-            </div>
-
-            <p className="text-xs text-center text-gray-400">
-              Ao confirmar, o WhatsApp será aberto com a mensagem acima
-              pré-preenchida.
-            </p>
-          </div>
-        )}
-      </Dialog>
+      <PaymentModal
+        isOpen={isPaymentModalOpen}
+        onClose={() => setIsPaymentModalOpen(false)}
+        onBack={handlePaymentBack}
+        seller={selectedSeller}
+        manualSellerName={manualSellerName}
+        items={items}
+        tema={tema}
+        onSuccess={handlePaymentSuccess}
+      />
     </>
   );
 }
