@@ -498,6 +498,63 @@ export async function updateStoreSettings(
   return normalizeStoreSettings(data);
 }
 
+export interface ItemVenda {
+  produto_id: string;
+  nome: string;
+  preco: number;
+  quantidade: number;
+  imagem?: string;
+}
+
+export interface CriarVendaParams {
+  vendedor_id: string;
+  itens: ItemVenda[];
+  total: number;
+  comprador_nome?: string;
+  comprador_telefone?: string;
+  comprador_email?: string;
+  url_imagem?: string;
+  texto_mensagem?: string;
+}
+
+export async function createSale(params: CriarVendaParams) {
+  const { data, error } = await supabase
+    .from("vendas")
+    .insert({
+      vendedor_id: params.vendedor_id,
+      itens: params.itens,
+      total: params.total,
+      comprador_nome: params.comprador_nome?.trim() || null,
+      comprador_telefone: params.comprador_telefone?.trim() || null,
+      comprador_email: params.comprador_email?.trim() || null,
+      url_imagem: params.url_imagem || null,
+      texto_mensagem: params.texto_mensagem || null,
+      status: "pendente",
+      whatsapp_enviado: false,
+    })
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
+export async function fetchVendas(page = 1, limit = 20) {
+  const { data, count, error } = await supabase
+    .from("vendas")
+    .select("*, vendedor:vendedores(id, nome, telefone_whatsapp)", {
+      count: "exact",
+    })
+    .order("criado_em", { ascending: false })
+    .range((page - 1) * limit, page * limit - 1);
+
+  if (error) throw error;
+  return {
+    vendas: data ?? [],
+    totalPages: Math.ceil((count ?? 0) / limit),
+  };
+}
+
 export async function fetchStoreName(): Promise<string> {
   const settings = await fetchStoreSettings();
   return settings.nome_loja;
