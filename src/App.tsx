@@ -78,7 +78,11 @@ function App() {
   }, []);
 
   useEffect(() => {
-    document.title = storeSettings.nome_loja;
+    const nome = storeSettings.nome_loja?.trim();
+    document.title =
+      nome && nome !== DEFAULT_STORE_NAME
+        ? `${nome} - Catálogo Online`
+        : "Catálogo Online";
   }, [storeSettings.nome_loja]);
 
   return (
