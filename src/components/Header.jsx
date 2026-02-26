@@ -46,34 +46,47 @@ function Header({
           : undefined
       }
     >
-      <div className="max-w-7xl mx-auto px-4 py-3 flex items-center gap-3">
-        <button
-          onClick={onToggleSidebar}
-          className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-white/20 transition-colors"
-          aria-label="Abrir filtros"
-          type="button"
-        >
-          <Menu className="h-5 w-5" />
-          <span className="hidden sm:inline text-sm font-medium">Filtros</span>
-        </button>
+      <div className="max-w-7xl mx-auto px-4 py-3 grid grid-cols-3 items-center gap-2">
+        <div className="flex items-center gap-1 sm:gap-2">
+          <button
+            onClick={onToggleSidebar}
+            className="flex items-center gap-2 px-2 sm:px-3 py-2 rounded-lg hover:bg-white/20 transition-colors flex-shrink-0"
+            aria-label="Abrir filtros"
+            type="button"
+          >
+            <Menu className="h-5 w-5" />
+            <span className="hidden sm:inline text-sm font-medium">
+              Filtros
+            </span>
+          </button>
 
-        <Link to="/" className="flex items-center gap-2 flex-shrink-0">
-          <ShoppingBag className="h-7 w-7" />
-          <span className="text-xl font-bold hidden sm:block">{storeName}</span>
-        </Link>
-
-        <div className="flex-1 max-w-md mx-2 relative hidden md:block">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/60" />
-          <input
-            type="text"
-            placeholder="Buscar produtos…"
-            value={searchTerm}
-            onChange={(e) => onSearchChange(e.target.value)}
-            className="w-full py-2 pl-9 pr-4 rounded-full bg-white/20 text-white placeholder-white/60 text-sm focus:outline-none focus:ring-2 focus:ring-white/50"
-          />
+          <Link
+            to="/"
+            className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0 min-w-0"
+          >
+            <ShoppingBag className="h-6 w-6 sm:h-7 sm:w-7 flex-shrink-0" />
+            <span className="text-base sm:text-xl font-bold truncate max-w-[110px] sm:max-w-[200px]">
+              {storeName}
+            </span>
+          </Link>
         </div>
 
-        <div className="flex items-center gap-2 ml-auto">
+        <div className="hidden md:flex justify-center">
+          <div className="relative w-full max-w-lg">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/60" />
+            <input
+              type="text"
+              placeholder="Buscar produtos…"
+              value={searchTerm}
+              onChange={(e) => onSearchChange(e.target.value)}
+              className="w-full py-2 pl-9 pr-4 rounded-full bg-white/20 text-white placeholder-white/60 text-sm focus:outline-none focus:ring-2 focus:ring-white/50"
+            />
+          </div>
+        </div>
+
+        <div className="md:hidden" />
+
+        <div className="flex items-center gap-2 justify-end">
           <button
             onClick={onCartClick}
             className="relative p-2 rounded-lg hover:bg-white/20 transition-colors"

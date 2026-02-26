@@ -103,17 +103,21 @@ function ProductCard({ product, onAddToCart, onProductClick, tema }) {
         focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2
         ${!tema ? "rounded-xl hover:border-violet-300 focus-visible:ring-violet-400" : ""}
       `}
-      style={tema ? {
-        borderRadius: tema.card_borda_raio,
-        '--tw-shadow': tema.card_sombra === 'none' ? 'none' : undefined,
-      } : undefined}
+      style={
+        tema
+          ? {
+              borderRadius: tema.card_borda_raio,
+              "--tw-shadow": tema.card_sombra === "none" ? "none" : undefined,
+            }
+          : undefined
+      }
     >
-      <div className="relative w-full aspect-[4/3] overflow-hidden bg-gray-50">
+      <div className="relative w-full aspect-square overflow-hidden bg-gray-50 flex items-center justify-center">
         <img
           src={displayedImage}
           alt={product.name}
           loading="lazy"
-          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+          className="w-full h-full object-contain p-2 group-hover:scale-105 transition-transform duration-300"
           onError={(e) => {
             e.currentTarget.src = firstImage || PLACEHOLDER;
           }}
@@ -187,25 +191,23 @@ function ProductCard({ product, onAddToCart, onProductClick, tema }) {
         </div>
 
         <div className="mt-auto pt-3 border-t border-gray-100">
-          <div className="flex items-end justify-between mb-3">
-            <div>
-              {originalPrice > 0 && (
-                <p className="text-xs text-gray-400 line-through">
-                  {formatBRL(originalPrice)}
-                </p>
-              )}
-              <span
-                className={`text-xl font-extrabold ${!tema ? "text-violet-600" : ""}`}
-                style={tema ? { color: tema.cor_primaria } : undefined}
-              >
-                {formatBRL(product.price)}
-              </span>
-              {hasCustomPricing && (
-                <p className="text-xs text-green-600 font-medium">
-                  {formatBRL(pixPrice)} no Pix
-                </p>
-              )}
-            </div>
+          <div className="flex flex-col gap-0.5 mb-3">
+            {originalPrice > 0 && (
+              <p className="text-xs text-gray-400 line-through">
+                {formatBRL(originalPrice)}
+              </p>
+            )}
+            <span
+              className={`text-xl font-extrabold leading-tight ${!tema ? "text-violet-600" : ""}`}
+              style={tema ? { color: tema.cor_primaria } : undefined}
+            >
+              {formatBRL(product.price)}
+            </span>
+            {hasCustomPricing && (
+              <p className="text-xs text-green-600 font-medium">
+                {formatBRL(pixPrice)} no Pix
+              </p>
+            )}
             <span className="text-xs text-gray-400">
               {product.stock > 0
                 ? `${product.stock} em estoque`
@@ -233,11 +235,15 @@ function ProductCard({ product, onAddToCart, onProductClick, tema }) {
                       : "hover:-translate-y-0.5 hover:shadow-md active:scale-95"
               }
             `}
-            style={tema && !outOfStock && !isAdding ? {
-              background: `linear-gradient(to right, ${tema.botao_bg_de}, ${tema.botao_bg_para})`,
-              color: tema.botao_texto_cor,
-              borderRadius: tema.botao_borda_raio,
-            } : undefined}
+            style={
+              tema && !outOfStock && !isAdding
+                ? {
+                    background: `linear-gradient(to right, ${tema.botao_bg_de}, ${tema.botao_bg_para})`,
+                    color: tema.botao_texto_cor,
+                    borderRadius: tema.botao_borda_raio,
+                  }
+                : undefined
+            }
           >
             {isAdding ? (
               <>

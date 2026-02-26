@@ -148,17 +148,17 @@ const Home: React.FC<HomeProps> = ({ storeSettings, tema }) => {
           />
 
           <div className="min-h-[400px]">
-            <div className="flex items-baseline justify-between mb-6">
-              <h2 className="text-2xl md:text-3xl font-bold text-gray-900 leading-tight">
+            <div className="flex items-center justify-between mb-6 gap-2">
+              <h2 className="text-lg sm:text-2xl md:text-3xl font-bold text-gray-900 leading-tight whitespace-nowrap">
                 Nossos Produtos
               </h2>
 
               {loading ? (
-                <span className="text-sm text-gray-400">Carregando…</span>
+                <span className="text-xs sm:text-sm text-gray-400 flex-shrink-0">Carregando…</span>
               ) : error ? (
-                <span className="text-sm text-red-500">{error}</span>
+                <span className="text-xs sm:text-sm text-red-500 flex-shrink-0">{error}</span>
               ) : (
-                <span className="text-sm text-gray-500">
+                <span className="text-xs sm:text-sm text-gray-500 flex-shrink-0 text-right">
                   {filteredProducts.length}{" "}
                   {filteredProducts.length === 1
                     ? "produto encontrado"

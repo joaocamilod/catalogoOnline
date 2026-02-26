@@ -262,7 +262,7 @@ export default function ProductDetailModal({
                   alt={product.name}
                   className="
                     w-full h-full
-                    object-cover sm:object-contain
+                    object-contain
                     transition-opacity duration-200
                   "
                   onError={(e) => {
@@ -354,7 +354,7 @@ export default function ProductDetailModal({
                       <img
                         src={img}
                         alt=""
-                        className="w-full h-full object-cover"
+                        className="w-full h-full object-contain p-1"
                         onError={(e) => {
                           e.currentTarget.src = PLACEHOLDER;
                         }}
