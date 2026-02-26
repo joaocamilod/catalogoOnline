@@ -189,16 +189,30 @@ function Cart({
     setIsConfirmDialogOpen(true);
   };
 
+  const openWhatsAppNewTab = (url) => {
+    const link = document.createElement("a");
+    link.href = url;
+    link.target = "_blank";
+    link.rel = "noopener noreferrer";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   const handleSendWhatsApp = async () => {
     setSendingSale(true);
-    try {
-      const phoneDigits = normalizePhoneNumber(
-        selectedSeller?.telefone_whatsapp ?? "",
-      );
-      const whatsappNumber = phoneDigits.startsWith("55")
-        ? phoneDigits
-        : `55${phoneDigits}`;
 
+    const phoneDigits = normalizePhoneNumber(
+      selectedSeller?.telefone_whatsapp ?? "",
+    );
+    const whatsappNumber = phoneDigits.startsWith("55")
+      ? phoneDigits
+      : `55${phoneDigits}`;
+    const waUrl = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(editableMessage)}`;
+
+    openWhatsAppNewTab(waUrl);
+
+    try {
       if (selectedSeller?.id) {
         const itensVenda = items.map((item) => ({
           produto_id: item.product.id,
@@ -220,23 +234,11 @@ function Cart({
         });
       }
 
-      const waUrl = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(editableMessage)}`;
-      const popup = window.open(waUrl, "_blank", "noopener,noreferrer");
-      if (!popup) window.location.href = waUrl;
-
       setSaleSuccess(true);
       onClearCart();
     } catch (err) {
-      console.error("Erro ao registrar venda:", err);
-      const phoneDigits = normalizePhoneNumber(
-        selectedSeller?.telefone_whatsapp ?? "",
-      );
-      const whatsappNumber = phoneDigits.startsWith("55")
-        ? phoneDigits
-        : `55${phoneDigits}`;
-      const waUrl = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(editableMessage)}`;
-      const popup = window.open(waUrl, "_blank", "noopener,noreferrer");
-      if (!popup) window.location.href = waUrl;
+      console.error("Erro ao registrar venda no banco:", err);
+      // O WhatsApp já foi aberto acima; apenas exibe sucesso mesmo com falha no DB
       setSaleSuccess(true);
       onClearCart();
     } finally {
