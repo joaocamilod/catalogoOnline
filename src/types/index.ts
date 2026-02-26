@@ -102,6 +102,50 @@ export interface CatalogProduct {
   texto_adicional_preco?: string | null;
 }
 
+export interface CatalogoTema {
+  id: string;
+  nome: string;
+  ativo: boolean;
+  header_bg_de: string;
+  header_bg_para: string;
+  header_texto_cor: string;
+  cor_primaria: string;
+  cor_secundaria: string;
+  botao_bg_de: string;
+  botao_bg_para: string;
+  botao_texto_cor: string;
+  botao_borda_raio: string;
+  card_borda_raio: string;
+  card_sombra: string;
+  footer_bg_cor: string;
+  footer_texto_cor: string;
+  pagina_bg_cor: string;
+  fonte_familia: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export const TEMA_PADRAO: CatalogoTema = {
+  id: "",
+  nome: "Padrão",
+  ativo: false,
+  header_bg_de: "#4f46e5",
+  header_bg_para: "#7e22ce",
+  header_texto_cor: "#ffffff",
+  cor_primaria: "#7c3aed",
+  cor_secundaria: "#6366f1",
+  botao_bg_de: "#7c3aed",
+  botao_bg_para: "#4f46e5",
+  botao_texto_cor: "#ffffff",
+  botao_borda_raio: "0.5rem",
+  card_borda_raio: "0.75rem",
+  card_sombra: "sm",
+  footer_bg_cor: "#0f1724",
+  footer_texto_cor: "#ffffff",
+  pagina_bg_cor: "#f9fafb",
+  fonte_familia: "Inter",
+};
+
 export interface CartItem {
   product: CatalogProduct;
   quantity: number;

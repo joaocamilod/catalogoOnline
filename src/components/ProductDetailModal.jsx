@@ -28,7 +28,12 @@ const PLACEHOLDER =
 
 const SIZES = ["P", "M", "G", "GG", "GGG"]; // mock por enquanto
 
-export default function ProductDetailModal({ product, onClose, onAddToCart }) {
+export default function ProductDetailModal({
+  product,
+  onClose,
+  onAddToCart,
+  tema,
+}) {
   const [imgIdx, setImgIdx] = useState(0);
   const [selectedSize, setSelectedSize] = useState(null);
   const [qty, setQty] = useState(1);
@@ -571,19 +576,30 @@ export default function ProductDetailModal({ product, onClose, onAddToCart }) {
                 disabled={outOfStock || adding}
                 className={`
                   w-full flex items-center justify-center gap-3
-                  py-4 sm:py-5 rounded-2xl font-extrabold text-base sm:text-lg
+                  py-4 sm:py-5 font-extrabold text-base sm:text-lg
                   transition-all duration-200 shadow-sm
-                  focus:outline-none focus:ring-2 focus:ring-violet-500 focus:ring-offset-2
+                  focus:outline-none focus:ring-2 focus:ring-offset-2
                   ${
                     outOfStock
-                      ? "bg-gray-200 text-gray-400 cursor-not-allowed"
+                      ? "bg-gray-200 text-gray-400 cursor-not-allowed rounded-2xl"
                       : added
-                        ? "bg-green-500 text-white shadow-green-200 shadow-lg"
+                        ? "bg-green-500 text-white shadow-green-200 shadow-lg rounded-2xl"
                         : adding
-                          ? "bg-violet-400 text-white scale-95"
-                          : "bg-gradient-to-r from-violet-600 to-indigo-600 text-white hover:shadow-xl hover:shadow-violet-200 hover:-translate-y-0.5 active:scale-95"
+                          ? "bg-violet-400 text-white scale-95 rounded-2xl"
+                          : !tema
+                            ? "bg-gradient-to-r from-violet-600 to-indigo-600 text-white hover:shadow-xl hover:shadow-violet-200 hover:-translate-y-0.5 active:scale-95 rounded-2xl focus:ring-violet-500"
+                            : "hover:shadow-xl hover:-translate-y-0.5 active:scale-95"
                   }
                 `}
+                style={
+                  tema && !outOfStock && !added && !adding
+                    ? {
+                        background: `linear-gradient(to right, ${tema.botao_bg_de}, ${tema.botao_bg_para})`,
+                        color: tema.botao_texto_cor,
+                        borderRadius: tema.botao_borda_raio,
+                      }
+                    : undefined
+                }
               >
                 {added ? (
                   <>

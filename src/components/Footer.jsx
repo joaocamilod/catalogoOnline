@@ -6,7 +6,7 @@ import {
   Youtube,
 } from "lucide-react";
 
-function Footer({ storeSettings }) {
+function Footer({ storeSettings, tema }) {
   const currentYear = new Date().getFullYear();
   const storeName = storeSettings?.nome_loja || "Catálogo Online";
 
@@ -25,7 +25,18 @@ function Footer({ storeSettings }) {
   ];
 
   return (
-    <footer className="bg-[#0F1724] text-white mt-16" role="contentinfo">
+    <footer
+      className={`mt-16 ${!tema ? "bg-[#0F1724] text-white" : ""}`}
+      style={
+        tema
+          ? {
+              backgroundColor: tema.footer_bg_cor,
+              color: tema.footer_texto_cor,
+            }
+          : undefined
+      }
+      role="contentinfo"
+    >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-14 pb-8">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10 mb-12">
           <div className="sm:col-span-2 lg:col-span-1">

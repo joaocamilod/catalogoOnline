@@ -595,6 +595,91 @@ export async function fetchVendas(page = 1, limit = 20) {
   };
 }
 
+import type { CatalogoTema } from "../types";
+
+export async function fetchTemas(page = 1, limit = 20, search = "") {
+  let query = supabase
+    .from("catalogo_temas")
+    .select("*", { count: "exact" })
+    .order("created_at", { ascending: false })
+    .range((page - 1) * limit, page * limit - 1);
+
+  if (search.trim()) {
+    query = query.ilike("nome", `%${search.trim()}%`);
+  }
+
+  const { data, count, error } = await query;
+  if (error) throw error;
+  return {
+    temas: (data ?? []) as CatalogoTema[],
+    totalPages: Math.ceil((count ?? 0) / limit),
+  };
+}
+
+export async function fetchTemaAtivo(): Promise<CatalogoTema | null> {
+  const { data, error } = await supabase
+    .from("catalogo_temas")
+    .select("*")
+    .eq("ativo", true)
+    .maybeSingle();
+
+  if (error) throw error;
+  return data as CatalogoTema | null;
+}
+
+export async function createTema(
+  tema: Omit<CatalogoTema, "id" | "created_at" | "updated_at">,
+) {
+  const { data, error } = await supabase
+    .from("catalogo_temas")
+    .insert(tema)
+    .select()
+    .single();
+  if (error) throw error;
+  return data as CatalogoTema;
+}
+
+export async function updateTema(
+  id: string,
+  tema: Partial<Omit<CatalogoTema, "id" | "created_at" | "updated_at">>,
+) {
+  const { data, error } = await supabase
+    .from("catalogo_temas")
+    .update(tema)
+    .eq("id", id)
+    .select()
+    .single();
+  if (error) throw error;
+  return data as CatalogoTema;
+}
+
+export async function deleteTema(id: string) {
+  const { error } = await supabase.from("catalogo_temas").delete().eq("id", id);
+  if (error) throw error;
+}
+
+export async function ativarTema(id: string) {
+  const { data, error } = await supabase
+    .from("catalogo_temas")
+    .update({ ativo: true })
+    .eq("id", id)
+    .select()
+    .single();
+  if (error) throw error;
+  return data as CatalogoTema;
+}
+
+export async function desativarTema(id: string) {
+  const { data, error } = await supabase
+    .from("catalogo_temas")
+    .update({ ativo: false })
+    .eq("id", id)
+    .select()
+    .single();
+  if (error) throw error;
+  return data as CatalogoTema;
+}
+
 export async function fetchStoreName(): Promise<string> {
   const settings = await fetchStoreSettings();
   return settings.nome_loja;

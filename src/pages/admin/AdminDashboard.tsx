@@ -8,6 +8,7 @@ import {
   LogOut,
   ShoppingBag,
   ChevronRight,
+  Palette,
 } from "lucide-react";
 import { useAuthStore } from "../../store/authStore";
 import { signOut } from "../../lib/supabase";
@@ -20,6 +21,7 @@ const navigation = [
     icon: LayoutDashboard,
   },
   { name: "Vendedores", href: "/admin/vendedores", icon: Users },
+  { name: "Temas", href: "/admin/temas", icon: Palette },
   { name: "Configurações", href: "/admin/configuracoes", icon: Settings },
 ];
 
@@ -141,7 +143,6 @@ const AdminDashboard: React.FC = () => {
           </nav>
         </div>
 
-        {/* Conteúdo */}
         <main className="flex-1 overflow-y-auto">
           <div className="py-6 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
             <Outlet />

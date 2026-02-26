@@ -25,6 +25,7 @@ export default {
       animation: {
         fadeIn: "fadeIn 0.25s ease-out",
         slideInRight: "slideInRight 0.3s ease-out",
+        slideUp: "slideUp 0.3s ease-out",
         spin: "spin 1s linear infinite",
       },
       keyframes: {
@@ -35,6 +36,10 @@ export default {
         slideInRight: {
           from: { transform: "translateX(100%)" },
           to: { transform: "translateX(0)" },
+        },
+        slideUp: {
+          from: { opacity: "0", transform: "translate(-50%, 16px)" },
+          to: { opacity: "1", transform: "translate(-50%, 0)" },
         },
       },
     },

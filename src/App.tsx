@@ -4,8 +4,10 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import {
   DEFAULT_STORE_NAME,
   fetchStoreSettings,
+  fetchTemaAtivo,
   type StoreSettings,
 } from "./lib/supabase";
+import type { CatalogoTema } from "./types";
 
 const Home = lazy(() => import("./pages/Home"));
 const Login = lazy(() => import("./pages/Login"));
@@ -18,6 +20,7 @@ const SellerManager = lazy(() => import("./pages/admin/SellerManager"));
 const StoreSettingsManager = lazy(
   () => import("./pages/admin/StoreSettingsManager"),
 );
+const ThemeManager = lazy(() => import("./pages/admin/ThemeManager"));
 
 const PageLoader = () => (
   <div className="flex items-center justify-center min-h-screen bg-gray-50">
@@ -43,6 +46,7 @@ function App() {
     twitter_url: "",
     youtube_url: "",
   });
+  const [temaAtivo, setTemaAtivo] = useState<CatalogoTema | null>(null);
 
   useEffect(() => {
     let isMounted = true;
@@ -56,7 +60,17 @@ function App() {
       }
     };
 
+    const loadTema = async () => {
+      try {
+        const tema = await fetchTemaAtivo();
+        if (isMounted) setTemaAtivo(tema);
+      } catch (error) {
+        console.error("Erro ao carregar tema ativo:", error);
+      }
+    };
+
     loadStoreSettings();
+    loadTema();
 
     return () => {
       isMounted = false;
@@ -71,7 +85,10 @@ function App() {
     <BrowserRouter>
       <Suspense fallback={<PageLoader />}>
         <Routes>
-          <Route path="/" element={<Home storeSettings={storeSettings} />} />
+          <Route
+            path="/"
+            element={<Home storeSettings={storeSettings} tema={temaAtivo} />}
+          />
           <Route path="/entrar" element={<Login />} />
           <Route path="/login" element={<Login />} />
           <Route path="/registrar" element={<Register />} />
@@ -89,6 +106,7 @@ function App() {
             <Route path="produtos" element={<ProductManager />} />
             <Route path="departamentos" element={<DepartmentManager />} />
             <Route path="vendedores" element={<SellerManager />} />
+            <Route path="temas" element={<ThemeManager />} />
             <Route
               path="configuracoes"
               element={

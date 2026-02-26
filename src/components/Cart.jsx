@@ -64,6 +64,7 @@ function Cart({
   onRemoveItem,
   onClearCart,
   total,
+  tema,
 }) {
   const navigate = useNavigate();
 
@@ -273,7 +274,17 @@ function Cart({
             aria-modal="true"
             className="fixed top-0 right-0 bottom-0 w-full max-w-[440px] bg-white shadow-2xl z-[1000] flex flex-col animate-slideInRight"
           >
-            <div className="flex items-center justify-between px-5 py-4 bg-gradient-to-r from-violet-600 to-indigo-600 text-white flex-shrink-0">
+            <div
+              className={`flex items-center justify-between px-5 py-4 flex-shrink-0 ${!tema ? "bg-gradient-to-r from-violet-600 to-indigo-600 text-white" : ""}`}
+              style={
+                tema
+                  ? {
+                      background: `linear-gradient(to right, ${tema.header_bg_de}, ${tema.header_bg_para})`,
+                      color: tema.header_texto_cor,
+                    }
+                  : undefined
+              }
+            >
               <div className="flex items-center gap-2.5">
                 <ShoppingCart className="h-5 w-5" aria-hidden="true" />
                 <h2 className="text-lg font-bold">Seu Carrinho</h2>
@@ -313,7 +324,16 @@ function Cart({
                 <button
                   onClick={handleBackToStore}
                   type="button"
-                  className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-violet-600 to-indigo-600 text-white font-semibold rounded-xl hover:shadow-lg hover:-translate-y-0.5 active:scale-95 transition-all duration-200"
+                  className={`flex items-center gap-2 px-6 py-3 font-semibold rounded-xl hover:shadow-lg hover:-translate-y-0.5 active:scale-95 transition-all duration-200 ${!tema ? "bg-gradient-to-r from-violet-600 to-indigo-600 text-white" : ""}`}
+                  style={
+                    tema
+                      ? {
+                          background: `linear-gradient(to right, ${tema.botao_bg_de}, ${tema.botao_bg_para})`,
+                          color: tema.botao_texto_cor,
+                          borderRadius: tema.botao_borda_raio,
+                        }
+                      : undefined
+                  }
                 >
                   <ArrowLeft className="h-4 w-4" />
                   Voltar para a loja
@@ -383,7 +403,12 @@ function Cart({
                       </div>
 
                       <div className="flex flex-col items-end justify-between flex-shrink-0">
-                        <span className="text-sm font-bold text-indigo-600">
+                        <span
+                          className={`text-sm font-bold ${!tema ? "text-indigo-600" : ""}`}
+                          style={
+                            tema ? { color: tema.cor_primaria } : undefined
+                          }
+                        >
                           {formatBRL(item.product.price * item.quantity)}
                         </span>
                         <button
@@ -412,7 +437,10 @@ function Cart({
                     <span className="text-base font-semibold text-gray-700">
                       Total:
                     </span>
-                    <span className="text-2xl font-extrabold text-indigo-600">
+                    <span
+                      className={`text-2xl font-extrabold ${!tema ? "text-indigo-600" : ""}`}
+                      style={tema ? { color: tema.cor_primaria } : undefined}
+                    >
                       {formatBRL(total)}
                     </span>
                   </div>
@@ -420,7 +448,16 @@ function Cart({
                   <button
                     type="button"
                     onClick={handleCheckout}
-                    className="w-full flex items-center justify-center gap-2 py-3 bg-gradient-to-r from-violet-600 to-indigo-600 text-white font-bold rounded-xl hover:shadow-lg hover:-translate-y-0.5 active:scale-95 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+                    className={`w-full flex items-center justify-center gap-2 py-3 font-bold hover:shadow-lg hover:-translate-y-0.5 active:scale-95 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 ${!tema ? "bg-gradient-to-r from-violet-600 to-indigo-600 text-white rounded-xl focus:ring-indigo-500" : ""}`}
+                    style={
+                      tema
+                        ? {
+                            background: `linear-gradient(to right, ${tema.botao_bg_de}, ${tema.botao_bg_para})`,
+                            color: tema.botao_texto_cor,
+                            borderRadius: tema.botao_borda_raio,
+                          }
+                        : undefined
+                    }
                   >
                     <CreditCard className="h-5 w-5" />
                     Finalizar Compra
@@ -439,18 +476,44 @@ function Cart({
         maxWidth="max-w-xl"
       >
         <div className="space-y-4">
-          <div className="rounded-xl border border-indigo-100 bg-indigo-50/70 px-3 py-2.5">
-            <p className="text-sm text-indigo-900">
+          <div
+            className="rounded-xl border px-3 py-2.5"
+            style={
+              tema
+                ? {
+                    borderColor: tema.cor_primaria + "30",
+                    backgroundColor: tema.cor_primaria + "10",
+                  }
+                : {
+                    borderColor: "#e0e7ff",
+                    backgroundColor: "rgba(238,242,255,0.7)",
+                  }
+            }
+          >
+            <p
+              className="text-sm"
+              style={tema ? { color: tema.cor_primaria } : { color: "#312e81" }}
+            >
               Selecione o vendedor responsável para concluir o pedido.
             </p>
-            <p className="text-xs text-indigo-700 mt-1">
+            <p
+              className="text-xs mt-1"
+              style={
+                tema ? { color: tema.cor_secundaria } : { color: "#4338ca" }
+              }
+            >
               Total da venda: <strong>{formatBRL(total)}</strong>
             </p>
           </div>
 
           {loadingSellers ? (
             <div className="flex items-center justify-center gap-2 rounded-xl border border-gray-200 bg-gray-50 py-8">
-              <Loader2 className="h-4 w-4 animate-spin text-indigo-600" />
+              <Loader2
+                className="h-4 w-4 animate-spin"
+                style={
+                  tema ? { color: tema.cor_primaria } : { color: "#4f46e5" }
+                }
+              />
               <span className="text-sm text-gray-600">
                 Carregando vendedores...
               </span>
@@ -464,9 +527,28 @@ function Cart({
                     key={seller.id}
                     className={`block cursor-pointer rounded-xl border p-3 transition-all ${
                       isSelected
-                        ? "border-indigo-500 bg-indigo-50 ring-2 ring-indigo-200"
-                        : "border-gray-200 bg-white hover:border-indigo-300 hover:bg-indigo-50/40"
+                        ? !tema
+                          ? "border-indigo-500 bg-indigo-50 ring-2 ring-indigo-200"
+                          : ""
+                        : !tema
+                          ? "border-gray-200 bg-white hover:border-indigo-300 hover:bg-indigo-50/40"
+                          : "border-gray-200 bg-white"
                     }`}
+                    style={
+                      tema && isSelected
+                        ? {
+                            borderColor: tema.cor_primaria,
+                            backgroundColor: tema.cor_primaria + "10",
+                            boxShadow: `0 0 0 2px ${tema.cor_primaria}30`,
+                          }
+                        : tema && !isSelected
+                          ? {
+                              ":hover": {
+                                borderColor: tema.cor_primaria + "60",
+                              },
+                            }
+                          : undefined
+                    }
                   >
                     <div className="flex items-start gap-3">
                       <input
@@ -477,11 +559,23 @@ function Cart({
                           setSelectedSellerId(seller.id);
                           setSellerValidationError("");
                         }}
-                        className="mt-1 accent-indigo-600"
+                        className="mt-1"
+                        style={
+                          tema
+                            ? { accentColor: tema.cor_primaria }
+                            : { accentColor: "#4f46e5" }
+                        }
                       />
                       <div className="min-w-0">
                         <p className="text-sm font-semibold text-gray-900 flex items-center gap-1.5">
-                          <UserRound className="h-4 w-4 text-indigo-600" />
+                          <UserRound
+                            className="h-4 w-4"
+                            style={
+                              tema
+                                ? { color: tema.cor_primaria }
+                                : { color: "#4f46e5" }
+                            }
+                          />
                           <span className="truncate">{seller.nome}</span>
                         </p>
                         <div className="mt-1 space-y-0.5">
@@ -559,7 +653,15 @@ function Cart({
               type="button"
               onClick={handleConfirmCheckout}
               disabled={loadingSellers}
-              className="px-4 py-2 text-sm font-semibold text-white bg-indigo-600 rounded-xl hover:bg-indigo-700 disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
+              className={`px-4 py-2 text-sm font-semibold rounded-xl disabled:opacity-60 disabled:cursor-not-allowed transition-colors ${!tema ? "text-white bg-indigo-600 hover:bg-indigo-700" : "hover:opacity-90"}`}
+              style={
+                tema
+                  ? {
+                      backgroundColor: tema.cor_primaria,
+                      color: tema.botao_texto_cor,
+                    }
+                  : undefined
+              }
             >
               Próximo →
             </button>
@@ -590,24 +692,74 @@ function Cart({
             <button
               type="button"
               onClick={handleFinishSaleSuccess}
-              className="px-6 py-2.5 bg-indigo-600 text-white font-semibold rounded-xl hover:bg-indigo-700 transition-colors"
+              className={`px-6 py-2.5 font-semibold rounded-xl transition-colors ${!tema ? "bg-indigo-600 text-white hover:bg-indigo-700" : "hover:opacity-90"}`}
+              style={
+                tema
+                  ? {
+                      backgroundColor: tema.cor_primaria,
+                      color: tema.botao_texto_cor,
+                    }
+                  : undefined
+              }
             >
               Fechar
             </button>
           </div>
         ) : (
           <div className="space-y-5">
-            <div className="rounded-xl border border-indigo-100 bg-indigo-50/70 px-3 py-2.5 flex items-center gap-2">
-              <UserRound className="h-4 w-4 text-indigo-600 flex-shrink-0" />
+            <div
+              className="rounded-xl border px-3 py-2.5 flex items-center gap-2"
+              style={
+                tema
+                  ? {
+                      borderColor: tema.cor_primaria + "30",
+                      backgroundColor: tema.cor_primaria + "10",
+                    }
+                  : {
+                      borderColor: "#e0e7ff",
+                      backgroundColor: "rgba(238,242,255,0.7)",
+                    }
+              }
+            >
+              <UserRound
+                className="h-4 w-4 flex-shrink-0"
+                style={
+                  tema ? { color: tema.cor_primaria } : { color: "#4f46e5" }
+                }
+              />
               <div className="min-w-0">
-                <p className="text-xs text-indigo-700">Vendendo para</p>
-                <p className="text-sm font-semibold text-indigo-900 truncate">
+                <p
+                  className="text-xs"
+                  style={
+                    tema ? { color: tema.cor_secundaria } : { color: "#4338ca" }
+                  }
+                >
+                  Vendendo para
+                </p>
+                <p
+                  className="text-sm font-semibold truncate"
+                  style={
+                    tema ? { color: tema.cor_primaria } : { color: "#312e81" }
+                  }
+                >
                   {selectedSeller?.nome || manualSellerName || "—"}
                 </p>
               </div>
               <div className="ml-auto text-right flex-shrink-0">
-                <p className="text-xs text-indigo-700">Total</p>
-                <p className="text-sm font-bold text-indigo-900">
+                <p
+                  className="text-xs"
+                  style={
+                    tema ? { color: tema.cor_secundaria } : { color: "#4338ca" }
+                  }
+                >
+                  Total
+                </p>
+                <p
+                  className="text-sm font-bold"
+                  style={
+                    tema ? { color: tema.cor_primaria } : { color: "#312e81" }
+                  }
+                >
                   {formatBRL(total)}
                 </p>
               </div>
@@ -665,7 +817,10 @@ function Cart({
                     setMessagePristine(true);
                     setEditableMessage(generatedMessage);
                   }}
-                  className="text-xs text-indigo-600 hover:text-indigo-800 flex items-center gap-1 transition-colors"
+                  className="text-xs flex items-center gap-1 transition-colors hover:opacity-80"
+                  style={
+                    tema ? { color: tema.cor_primaria } : { color: "#4f46e5" }
+                  }
                   title="Restaurar mensagem padrão"
                 >
                   <Edit3 className="h-3 w-3" />

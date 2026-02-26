@@ -7,7 +7,7 @@ import Footer from "../components/Footer";
 import ProductDetailModal from "../components/ProductDetailModal";
 import { fetchProdutos, fetchAllDepartamentos } from "../lib/supabase";
 import { useCartStore } from "../store/cartStore";
-import type { CatalogProduct, Departamento } from "../types";
+import type { CatalogProduct, CatalogoTema, Departamento } from "../types";
 import { normalizeProduto } from "../types";
 import type { StoreSettings } from "../lib/supabase";
 
@@ -15,9 +15,10 @@ const PRODUCTS_PER_PAGE = 20;
 
 interface HomeProps {
   storeSettings: StoreSettings;
+  tema?: CatalogoTema | null;
 }
 
-const Home: React.FC<HomeProps> = ({ storeSettings }) => {
+const Home: React.FC<HomeProps> = ({ storeSettings, tema }) => {
   const [produtos, setProdutos] = useState<CatalogProduct[]>([]);
   const [departamentos, setDepartamentos] = useState<Departamento[]>([]);
   const [loading, setLoading] = useState(true);
@@ -111,7 +112,13 @@ const Home: React.FC<HomeProps> = ({ storeSettings }) => {
     updateQuantity(productId, qty);
 
   return (
-    <div className="flex flex-col min-h-screen overflow-x-hidden bg-gray-50">
+    <div
+      className="flex flex-col min-h-screen overflow-x-hidden"
+      style={{
+        backgroundColor: tema?.pagina_bg_cor || "#f9fafb",
+        fontFamily: tema ? `${tema.fonte_familia}, sans-serif` : undefined,
+      }}
+    >
       <Header
         storeName={storeSettings.nome_loja}
         searchTerm={searchTerm}
@@ -119,6 +126,7 @@ const Home: React.FC<HomeProps> = ({ storeSettings }) => {
         cartCount={count()}
         onCartClick={() => setIsCartOpen(true)}
         onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
+        tema={tema}
       />
 
       <main className="flex-1 py-8">
@@ -136,6 +144,7 @@ const Home: React.FC<HomeProps> = ({ storeSettings }) => {
             onSortChange={setSortBy}
             isOpen={isSidebarOpen}
             onClose={() => setIsSidebarOpen(false)}
+            tema={tema}
           />
 
           <div className="min-h-[400px]">
@@ -175,6 +184,7 @@ const Home: React.FC<HomeProps> = ({ storeSettings }) => {
                 products={filteredProducts}
                 onAddToCart={handleAddToCart}
                 onProductClick={setSelectedProduct}
+                tema={tema}
               />
             )}
 
@@ -190,7 +200,15 @@ const Home: React.FC<HomeProps> = ({ storeSettings }) => {
                         selectedCategory,
                       )
                     }
-                    className="px-4 py-2 text-sm font-medium bg-white text-violet-600 border border-violet-200 rounded-lg hover:bg-violet-50 transition-colors focus:outline-none focus:ring-2 focus:ring-violet-400"
+                    className={`px-4 py-2 text-sm font-medium bg-white border rounded-lg hover:opacity-80 transition-colors focus:outline-none focus:ring-2 ${!tema ? "text-violet-600 border-violet-200 hover:bg-violet-50 focus:ring-violet-400" : ""}`}
+                    style={
+                      tema
+                        ? {
+                            color: tema.cor_primaria,
+                            borderColor: tema.cor_primaria + "40",
+                          }
+                        : undefined
+                    }
                   >
                     ‹ Anterior
                   </button>
@@ -208,7 +226,15 @@ const Home: React.FC<HomeProps> = ({ storeSettings }) => {
                         selectedCategory,
                       )
                     }
-                    className="px-4 py-2 text-sm font-medium bg-white text-violet-600 border border-violet-200 rounded-lg hover:bg-violet-50 transition-colors focus:outline-none focus:ring-2 focus:ring-violet-400"
+                    className={`px-4 py-2 text-sm font-medium bg-white border rounded-lg hover:opacity-80 transition-colors focus:outline-none focus:ring-2 ${!tema ? "text-violet-600 border-violet-200 hover:bg-violet-50 focus:ring-violet-400" : ""}`}
+                    style={
+                      tema
+                        ? {
+                            color: tema.cor_primaria,
+                            borderColor: tema.cor_primaria + "40",
+                          }
+                        : undefined
+                    }
                   >
                     Próxima ›
                   </button>
@@ -219,7 +245,7 @@ const Home: React.FC<HomeProps> = ({ storeSettings }) => {
         </div>
       </main>
 
-      <Footer storeSettings={storeSettings} />
+      <Footer storeSettings={storeSettings} tema={tema} />
 
       <Cart
         isOpen={isCartOpen}
@@ -229,6 +255,7 @@ const Home: React.FC<HomeProps> = ({ storeSettings }) => {
         onRemoveItem={handleRemoveFromCart}
         onClearCart={clearCart}
         total={total()}
+        tema={tema}
       />
 
       {selectedProduct && (
@@ -236,6 +263,7 @@ const Home: React.FC<HomeProps> = ({ storeSettings }) => {
           product={selectedProduct}
           onClose={() => setSelectedProduct(null)}
           onAddToCart={handleAddToCart}
+          tema={tema}
         />
       )}
     </div>

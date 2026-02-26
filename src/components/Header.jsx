@@ -19,6 +19,7 @@ function Header({
   cartCount,
   onCartClick,
   onToggleSidebar,
+  tema,
 }) {
   const { user, logout } = useAuthStore();
   const navigate = useNavigate();
@@ -34,7 +35,17 @@ function Header({
   };
 
   return (
-    <header className="bg-gradient-to-r from-indigo-600 to-purple-700 text-white shadow-lg sticky top-0 z-50">
+    <header
+      className={`shadow-lg sticky top-0 z-50 ${!tema ? "bg-gradient-to-r from-indigo-600 to-purple-700 text-white" : ""}`}
+      style={
+        tema
+          ? {
+              background: `linear-gradient(to right, ${tema.header_bg_de}, ${tema.header_bg_para})`,
+              color: tema.header_texto_cor,
+            }
+          : undefined
+      }
+    >
       <div className="max-w-7xl mx-auto px-4 py-3 flex items-center gap-3">
         <button
           onClick={onToggleSidebar}

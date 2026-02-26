@@ -31,6 +31,12 @@ const ICON_MAP = {
   acessorios: FaBriefcase,
 };
 
+const hexToRgb = (hex = "#000000") => {
+  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  if (!result) return "0, 0, 0";
+  return `${parseInt(result[1], 16)}, ${parseInt(result[2], 16)}, ${parseInt(result[3], 16)}`;
+};
+
 const getIcon = (id = "", name = "") => {
   if (id === "all") return FaStore;
   const key = name.toLowerCase();
@@ -57,6 +63,7 @@ function FilterSidebar({
   onSortChange,
   isOpen,
   onClose,
+  tema,
 }) {
   const resolvedCategories =
     categoriesProp && categoriesProp.length > 0
@@ -92,6 +99,15 @@ function FilterSidebar({
       <aside
         className={`filter-sidebar ${isOpen ? "open" : ""}`}
         aria-label="Painel de filtros"
+        style={
+          tema
+            ? {
+                "--primary-color": tema.cor_primaria,
+                "--secondary-color": tema.cor_secundaria,
+                "--primary-color-rgb": hexToRgb(tema.cor_primaria),
+              }
+            : undefined
+        }
       >
         <div className="sidebar-header">
           <h2 className="sidebar-title">Filtros</h2>

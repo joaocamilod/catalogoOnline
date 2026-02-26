@@ -9,7 +9,7 @@ const formatBRL = (value) =>
 const PLACEHOLDER =
   "https://cdn.pixabay.com/photo/2019/04/16/10/35/box-4131401_1280.png";
 
-function ProductCard({ product, onAddToCart, onProductClick }) {
+function ProductCard({ product, onAddToCart, onProductClick, tema }) {
   const [isAdding, setIsAdding] = useState(false);
   const [showSecondImage, setShowSecondImage] = useState(false);
   const hoverTimerRef = useRef(null);
@@ -94,14 +94,19 @@ function ProductCard({ product, onAddToCart, onProductClick }) {
         }
       }}
       aria-label={`Ver detalhes de ${product.name}`}
-      className="
-        bg-white rounded-xl shadow-sm border border-gray-100
-        hover:shadow-xl hover:-translate-y-1.5 hover:border-violet-300
+      className={`
+        bg-white shadow-sm border border-gray-100
+        hover:shadow-xl hover:-translate-y-1.5
         transition-all duration-200
         overflow-hidden flex flex-col
         cursor-pointer group
-        focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400 focus-visible:ring-offset-2
-      "
+        focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2
+        ${!tema ? "rounded-xl hover:border-violet-300 focus-visible:ring-violet-400" : ""}
+      `}
+      style={tema ? {
+        borderRadius: tema.card_borda_raio,
+        '--tw-shadow': tema.card_sombra === 'none' ? 'none' : undefined,
+      } : undefined}
     >
       <div className="relative w-full aspect-[4/3] overflow-hidden bg-gray-50">
         <img
@@ -189,7 +194,10 @@ function ProductCard({ product, onAddToCart, onProductClick }) {
                   {formatBRL(originalPrice)}
                 </p>
               )}
-              <span className="text-xl font-extrabold text-violet-600">
+              <span
+                className={`text-xl font-extrabold ${!tema ? "text-violet-600" : ""}`}
+                style={tema ? { color: tema.cor_primaria } : undefined}
+              >
                 {formatBRL(product.price)}
               </span>
               {hasCustomPricing && (
@@ -212,17 +220,24 @@ function ProductCard({ product, onAddToCart, onProductClick }) {
             aria-label={`Adicionar ${product.name} ao carrinho`}
             className={`
               w-full flex items-center justify-center gap-2
-              py-2.5 rounded-lg font-semibold text-sm
+              py-2.5 font-semibold text-sm
               transition-all duration-200
-              focus:outline-none focus:ring-2 focus:ring-violet-500 focus:ring-offset-2
+              focus:outline-none focus:ring-2 focus:ring-offset-2
               ${
                 outOfStock
-                  ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                  ? "bg-gray-100 text-gray-400 cursor-not-allowed rounded-lg"
                   : isAdding
-                    ? "bg-green-500 text-white scale-95"
-                    : "bg-gradient-to-r from-violet-600 to-indigo-600 text-white hover:-translate-y-0.5 hover:shadow-md active:scale-95"
+                    ? "bg-green-500 text-white scale-95 rounded-lg"
+                    : !tema
+                      ? "bg-gradient-to-r from-violet-600 to-indigo-600 text-white hover:-translate-y-0.5 hover:shadow-md active:scale-95 rounded-lg focus:ring-violet-500"
+                      : "hover:-translate-y-0.5 hover:shadow-md active:scale-95"
               }
             `}
+            style={tema && !outOfStock && !isAdding ? {
+              background: `linear-gradient(to right, ${tema.botao_bg_de}, ${tema.botao_bg_para})`,
+              color: tema.botao_texto_cor,
+              borderRadius: tema.botao_borda_raio,
+            } : undefined}
           >
             {isAdding ? (
               <>
