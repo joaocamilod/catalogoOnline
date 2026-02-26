@@ -4,6 +4,7 @@ import ProductGrid from "../components/ProductGrid";
 import FilterSidebar from "../components/FilterSidebar";
 import Cart from "../components/Cart";
 import Footer from "../components/Footer";
+import ProductDetailModal from "../components/ProductDetailModal";
 import { fetchProdutos, fetchAllDepartamentos } from "../lib/supabase";
 import { useCartStore } from "../store/cartStore";
 import type { CatalogProduct, Departamento } from "../types";
@@ -30,6 +31,9 @@ const Home: React.FC<HomeProps> = ({ storeSettings }) => {
   const [sortBy, setSortBy] = useState("name");
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState<CatalogProduct | null>(
+    null,
+  );
   const {
     items,
     addItem,
@@ -170,6 +174,7 @@ const Home: React.FC<HomeProps> = ({ storeSettings }) => {
               <ProductGrid
                 products={filteredProducts}
                 onAddToCart={handleAddToCart}
+                onProductClick={setSelectedProduct}
               />
             )}
 
@@ -225,6 +230,14 @@ const Home: React.FC<HomeProps> = ({ storeSettings }) => {
         onClearCart={clearCart}
         total={total()}
       />
+
+      {selectedProduct && (
+        <ProductDetailModal
+          product={selectedProduct}
+          onClose={() => setSelectedProduct(null)}
+          onAddToCart={handleAddToCart}
+        />
+      )}
     </div>
   );
 };

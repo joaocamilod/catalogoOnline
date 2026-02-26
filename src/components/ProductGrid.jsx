@@ -1,7 +1,7 @@
 import { FaSearch } from "react-icons/fa";
 import ProductCard from "./ProductCard";
 
-function ProductGrid({ products, onAddToCart }) {
+function ProductGrid({ products, onAddToCart, onProductClick }) {
   if (products.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-20 px-6 bg-white rounded-xl shadow-sm text-center border border-gray-100">
@@ -22,7 +22,7 @@ function ProductGrid({ products, onAddToCart }) {
     <div
       className="
         grid gap-5
-        grid-cols-1
+        grid-cols-2
         sm:grid-cols-2
         md:grid-cols-3
         lg:grid-cols-4
@@ -35,6 +35,7 @@ function ProductGrid({ products, onAddToCart }) {
           key={product.id}
           product={product}
           onAddToCart={onAddToCart}
+          onProductClick={onProductClick}
         />
       ))}
     </div>
