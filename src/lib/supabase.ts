@@ -333,6 +333,26 @@ export async function createProduto(produto: {
   ativo?: boolean;
   exibircatalogo?: boolean;
   departamento_id?: string;
+  exibir_frete_gratis?: boolean;
+  frete_gratis_valor_minimo?: number | null;
+  frete_gratis_texto?: string | null;
+  exibir_compra_segura?: boolean;
+  compra_segura_texto?: string | null;
+  exibir_criptografia_ssl?: boolean;
+  criptografia_ssl_texto?: string | null;
+  exibir_devolucao_gratis?: boolean;
+  devolucao_dias?: number | null;
+  devolucao_texto?: string | null;
+  exibir_guia_tamanhos?: boolean;
+  guia_tamanhos_link?: string | null;
+  guia_tamanhos_texto?: string | null;
+  preco_original?: number | null;
+  desconto_percentual?: number | null;
+  preco_pix?: number | null;
+  desconto_pix_percentual?: number | null;
+  parcelas_quantidade?: number | null;
+  total_cartao?: number | null;
+  texto_adicional_preco?: string | null;
 }) {
   const { data, error } = await supabase
     .from("produtos")
@@ -359,6 +379,26 @@ export async function updateProduto(
     ativo?: boolean;
     exibircatalogo?: boolean;
     departamento_id?: string;
+    exibir_frete_gratis?: boolean;
+    frete_gratis_valor_minimo?: number | null;
+    frete_gratis_texto?: string | null;
+    exibir_compra_segura?: boolean;
+    compra_segura_texto?: string | null;
+    exibir_criptografia_ssl?: boolean;
+    criptografia_ssl_texto?: string | null;
+    exibir_devolucao_gratis?: boolean;
+    devolucao_dias?: number | null;
+    devolucao_texto?: string | null;
+    exibir_guia_tamanhos?: boolean;
+    guia_tamanhos_link?: string | null;
+    guia_tamanhos_texto?: string | null;
+    preco_original?: number | null;
+    desconto_percentual?: number | null;
+    preco_pix?: number | null;
+    desconto_pix_percentual?: number | null;
+    parcelas_quantidade?: number | null;
+    total_cartao?: number | null;
+    texto_adicional_preco?: string | null;
   },
 ) {
   const { data, error } = await supabase

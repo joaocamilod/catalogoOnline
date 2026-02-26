@@ -13,6 +13,14 @@ import {
   Settings,
   Upload,
   CheckCircle,
+  Truck,
+  ShieldCheck,
+  RotateCcw,
+  Ruler,
+  Lock,
+  CircleHelp,
+  RefreshCcw,
+  PlusCircle,
 } from "lucide-react";
 import {
   fetchTodosProdutos,
@@ -107,6 +115,185 @@ const ProductForm: React.FC<ProductFormProps> = ({
     preco?: string;
     estoque?: string;
   }>({});
+  const [activeTab, setActiveTab] = useState<"basico" | "vitrine">("basico");
+
+  const [exibirFreteGratis, setExibirFreteGratis] = useState(
+    initial?.exibir_frete_gratis ?? false,
+  );
+  const [freteGratisValorMinimo, setFreteGratisValorMinimo] = useState(
+    initial?.frete_gratis_valor_minimo !== null &&
+      initial?.frete_gratis_valor_minimo !== undefined
+      ? formatPriceFromNumber(initial.frete_gratis_valor_minimo)
+      : "",
+  );
+  const [freteGratisTexto, setFreteGratisTexto] = useState(
+    initial?.frete_gratis_texto ?? "",
+  );
+  const [exibirCompraSegura, setExibirCompraSegura] = useState(
+    initial?.exibir_compra_segura ?? false,
+  );
+  const [compraSeguraTexto, setCompraSeguraTexto] = useState(
+    initial?.compra_segura_texto ?? "",
+  );
+  const [exibirCriptografiaSsl, setExibirCriptografiaSsl] = useState(
+    initial?.exibir_criptografia_ssl ?? false,
+  );
+  const [criptografiaSslTexto, setCriptografiaSslTexto] = useState(
+    initial?.criptografia_ssl_texto ?? "",
+  );
+  const [exibirDevolucaoGratis, setExibirDevolucaoGratis] = useState(
+    initial?.exibir_devolucao_gratis ?? false,
+  );
+  const [devolucaoDias, setDevolucaoDias] = useState(
+    initial?.devolucao_dias?.toString() ?? "",
+  );
+  const [devolucaoTexto, setDevolucaoTexto] = useState(
+    initial?.devolucao_texto ?? "",
+  );
+  const [exibirGuiaTamanhos, setExibirGuiaTamanhos] = useState(
+    initial?.exibir_guia_tamanhos ?? false,
+  );
+  const [guiaTamanhosLink, setGuiaTamanhosLink] = useState(
+    initial?.guia_tamanhos_link ?? "",
+  );
+  const [guiaTamanhosTexto, setGuiaTamanhosTexto] = useState(
+    initial?.guia_tamanhos_texto ?? "",
+  );
+  const [precoOriginal, setPrecoOriginal] = useState(
+    initial?.preco_original !== null && initial?.preco_original !== undefined
+      ? formatPriceFromNumber(initial.preco_original)
+      : "",
+  );
+  const [descontoPercentual, setDescontoPercentual] = useState(
+    initial?.desconto_percentual !== null &&
+      initial?.desconto_percentual !== undefined
+      ? initial.desconto_percentual.toString()
+      : "",
+  );
+  const [precoPix, setPrecoPix] = useState(
+    initial?.preco_pix !== null && initial?.preco_pix !== undefined
+      ? formatPriceFromNumber(initial.preco_pix)
+      : "",
+  );
+  const [descontoPixPercentual, setDescontoPixPercentual] = useState(
+    initial?.desconto_pix_percentual !== null &&
+      initial?.desconto_pix_percentual !== undefined
+      ? initial.desconto_pix_percentual.toString()
+      : "",
+  );
+  const [parcelasQuantidade, setParcelasQuantidade] = useState(
+    initial?.parcelas_quantidade?.toString() ?? "",
+  );
+  const [totalCartao, setTotalCartao] = useState(
+    initial?.total_cartao !== null && initial?.total_cartao !== undefined
+      ? formatPriceFromNumber(initial.total_cartao)
+      : "",
+  );
+  const [textoAdicionalPreco, setTextoAdicionalPreco] = useState(
+    initial?.texto_adicional_preco ?? "",
+  );
+  const [autoPreview, setAutoPreview] = useState(true);
+  const [previewSnapshot, setPreviewSnapshot] = useState<null | {
+    precoOriginalNum: number | null;
+    precoPixNum: number | null;
+    precoComDesconto: number;
+    precoBase: number;
+    parcelasQtdNum: number | null;
+    valorParcelaNum: number | null;
+    totalCartaoNum: number | null;
+    descontoPixPctNum: number;
+    hasDescontoPercentual: boolean;
+    hasDescontoPixPercentual: boolean;
+  }>(null);
+  const [customBadges, setCustomBadges] = useState<
+    { id: string; enabled: boolean; titulo: string; texto: string }[]
+  >([]);
+
+  const parseOptionalMoney = (value: string) => {
+    const n = parsePriceToNumber(value);
+    return Number.isNaN(n) ? null : n;
+  };
+
+  const parseOptionalPercent = (value: string) => {
+    if (!value.trim()) return null;
+    const n = Number(value.replace(",", "."));
+    return Number.isFinite(n) ? n : null;
+  };
+
+  const precoBase = parseOptionalMoney(preco) ?? 0;
+  const precoOriginalNum = parseOptionalMoney(precoOriginal);
+  const hasDescontoPercentual = descontoPercentual.trim() !== "";
+  const descontoPctNum = hasDescontoPercentual
+    ? Math.min(Math.max(parseOptionalPercent(descontoPercentual) ?? 0, 0), 100)
+    : null;
+  const precoComDesconto = precoOriginalNum
+    ? precoOriginalNum * (1 - (descontoPctNum ?? 0) / 100)
+    : precoBase;
+  const hasDescontoPixPercentual = descontoPixPercentual.trim() !== "";
+  const descontoPixPctNum = Math.min(
+    Math.max(parseOptionalPercent(descontoPixPercentual) ?? 0, 0),
+    100,
+  );
+  const precoPixNum =
+    parseOptionalMoney(precoPix) ??
+    (hasDescontoPixPercentual
+      ? precoComDesconto * (1 - descontoPixPctNum / 100)
+      : null);
+  const parcelasQtdNum = parcelasQuantidade.trim()
+    ? Number(parcelasQuantidade) || 1
+    : null;
+  const totalCartaoNum = parseOptionalMoney(totalCartao) ?? null;
+  const valorParcelaNum =
+    parcelasQtdNum && totalCartaoNum ? totalCartaoNum / parcelasQtdNum : null;
+
+  const pixMaiorQueOriginal =
+    precoOriginalNum !== null &&
+    precoPixNum !== null &&
+    precoPixNum > precoOriginalNum;
+
+  useEffect(() => {
+    if (!autoPreview) return;
+    const t = window.setTimeout(() => {
+      setPreviewSnapshot({
+        precoOriginalNum,
+        precoPixNum,
+        precoComDesconto,
+        precoBase,
+        parcelasQtdNum,
+        valorParcelaNum,
+        totalCartaoNum,
+        descontoPixPctNum,
+        hasDescontoPercentual,
+        hasDescontoPixPercentual,
+      });
+    }, 220);
+    return () => window.clearTimeout(t);
+  }, [
+    autoPreview,
+    precoOriginalNum,
+    precoPixNum,
+    precoComDesconto,
+    precoBase,
+    parcelasQtdNum,
+    valorParcelaNum,
+    totalCartaoNum,
+    descontoPixPctNum,
+    hasDescontoPercentual,
+    hasDescontoPixPercentual,
+  ]);
+
+  const previewData = previewSnapshot ?? {
+    precoOriginalNum,
+    precoPixNum,
+    precoComDesconto,
+    precoBase,
+    parcelasQtdNum,
+    valorParcelaNum,
+    totalCartaoNum,
+    descontoPixPctNum,
+    hasDescontoPercentual,
+    hasDescontoPixPercentual,
+  };
 
   const validateRequiredFields = () => {
     const nextErrors: { descricao?: string; preco?: string; estoque?: string } =
@@ -195,6 +382,30 @@ const ProductForm: React.FC<ProductFormProps> = ({
             ativo,
             exibircatalogo,
             departamento_id: departamentoId || undefined,
+            exibir_frete_gratis: exibirFreteGratis,
+            frete_gratis_valor_minimo: parseOptionalMoney(
+              freteGratisValorMinimo,
+            ),
+            frete_gratis_texto: freteGratisTexto.trim() || null,
+            exibir_compra_segura: exibirCompraSegura,
+            compra_segura_texto: compraSeguraTexto.trim() || null,
+            exibir_criptografia_ssl: exibirCriptografiaSsl,
+            criptografia_ssl_texto: criptografiaSslTexto.trim() || null,
+            exibir_devolucao_gratis: exibirDevolucaoGratis,
+            devolucao_dias: Number(devolucaoDias) || null,
+            devolucao_texto: devolucaoTexto.trim() || null,
+            exibir_guia_tamanhos: exibirGuiaTamanhos,
+            guia_tamanhos_link: guiaTamanhosLink.trim() || null,
+            guia_tamanhos_texto: guiaTamanhosTexto.trim() || null,
+            preco_original: parseOptionalMoney(precoOriginal),
+            desconto_percentual: hasDescontoPercentual ? descontoPctNum : null,
+            preco_pix: precoPix.trim() ? parseOptionalMoney(precoPix) : null,
+            desconto_pix_percentual: hasDescontoPixPercentual
+              ? descontoPixPctNum
+              : null,
+            parcelas_quantidade: parcelasQtdNum,
+            total_cartao: parseOptionalMoney(totalCartao),
+            texto_adicional_preco: textoAdicionalPreco.trim() || null,
           },
           newFiles,
           removedIds,
@@ -202,240 +413,868 @@ const ProductForm: React.FC<ProductFormProps> = ({
       }}
       className="space-y-4"
     >
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1.5">
-          Nome do Produto *
-        </label>
-        <input
-          type="text"
-          value={descricao}
-          onChange={(e) => {
-            setDescricao(e.target.value);
-            if (fieldErrors.descricao) {
-              setFieldErrors((prev) => ({ ...prev, descricao: undefined }));
-            }
-          }}
-          className={`w-full px-3 py-2.5 border rounded-xl transition-all ${
-            fieldErrors.descricao
-              ? "border-red-500 focus:ring-2 focus:ring-red-400 focus:border-red-500"
-              : "border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-          }`}
-          placeholder="Nome do produto"
-          autoFocus
-        />
-        {fieldErrors.descricao && (
-          <p className="mt-1 text-xs text-red-600">{fieldErrors.descricao}</p>
-        )}
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1.5">
-          Descrição
-        </label>
-        <textarea
-          value={infadicional}
-          onChange={(e) => setInfoadicional(e.target.value)}
-          className="w-full px-3 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all resize-none"
-          placeholder="Detalhes, características…"
-          rows={3}
-        />
-      </div>
-
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1.5">
-            Preço (R$) *
-          </label>
-          <input
-            type="text"
-            inputMode="numeric"
-            value={preco}
-            onChange={(e) => {
-              setPreco(formatPriceInput(e.target.value));
-              if (fieldErrors.preco) {
-                setFieldErrors((prev) => ({ ...prev, preco: undefined }));
-              }
-            }}
-            className={`w-full px-3 py-2.5 border rounded-xl transition-all ${
-              fieldErrors.preco
-                ? "border-red-500 focus:ring-2 focus:ring-red-400 focus:border-red-500"
-                : "border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-            }`}
-            placeholder="0,00"
-            maxLength={14}
-          />
-          {fieldErrors.preco && (
-            <p className="mt-1 text-xs text-red-600">{fieldErrors.preco}</p>
-          )}
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1.5">
-            Estoque *
-          </label>
-          <input
-            type="number"
-            value={estoque}
-            onChange={(e) => {
-              setEstoque(e.target.value);
-              if (fieldErrors.estoque) {
-                setFieldErrors((prev) => ({ ...prev, estoque: undefined }));
-              }
-            }}
-            className={`w-full px-3 py-2.5 border rounded-xl transition-all ${
-              fieldErrors.estoque
-                ? "border-red-500 focus:ring-2 focus:ring-red-400 focus:border-red-500"
-                : "border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-            }`}
-            placeholder="0"
-            min="0"
-          />
-          {fieldErrors.estoque && (
-            <p className="mt-1 text-xs text-red-600">{fieldErrors.estoque}</p>
-          )}
-        </div>
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1.5">
-          Departamento
-        </label>
+      <div className="flex rounded-xl bg-gray-100 p-1">
         <button
           type="button"
-          onClick={openDepartmentModal}
-          className="w-full px-3 py-2.5 border border-gray-300 rounded-xl hover:border-indigo-400 focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all bg-white text-left flex items-center justify-between"
+          onClick={() => setActiveTab("basico")}
+          className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+            activeTab === "basico"
+              ? "bg-white text-indigo-700 shadow-sm"
+              : "text-gray-600 hover:text-gray-900"
+          }`}
         >
-          <span
-            className={selectedDepartment ? "text-gray-900" : "text-gray-500"}
-          >
-            {selectedDepartment?.descricao ?? "Selecionar departamento"}
-          </span>
-          <Search className="h-4 w-4 text-gray-400" />
+          Dados Básicos
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab("vitrine")}
+          className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+            activeTab === "vitrine"
+              ? "bg-white text-indigo-700 shadow-sm"
+              : "text-gray-600 hover:text-gray-900"
+          }`}
+        >
+          Vitrine & Preços
         </button>
       </div>
 
-      <div className="grid grid-cols-3 gap-4">
-        {[
-          { label: "Destaque", value: destaque, set: setDestaque },
-          { label: "Ativo", value: ativo, set: setAtivo },
-          {
-            label: "No catálogo",
-            value: exibircatalogo,
-            set: setExibircatalogo,
-          },
-        ].map(({ label, value, set }) => (
-          <div key={label} className="flex flex-col items-center gap-1.5">
+      {activeTab === "basico" && (
+        <>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">
+              Nome do Produto *
+            </label>
+            <input
+              type="text"
+              value={descricao}
+              onChange={(e) => {
+                setDescricao(e.target.value);
+                if (fieldErrors.descricao) {
+                  setFieldErrors((prev) => ({ ...prev, descricao: undefined }));
+                }
+              }}
+              className={`w-full px-3 py-2.5 border rounded-xl transition-all ${
+                fieldErrors.descricao
+                  ? "border-red-500 focus:ring-2 focus:ring-red-400 focus:border-red-500"
+                  : "border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              }`}
+              placeholder="Nome do produto"
+              autoFocus
+            />
+            {fieldErrors.descricao && (
+              <p className="mt-1 text-xs text-red-600">
+                {fieldErrors.descricao}
+              </p>
+            )}
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">
+              Descrição
+            </label>
+            <textarea
+              value={infadicional}
+              onChange={(e) => setInfoadicional(e.target.value)}
+              className="w-full px-3 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all resize-none"
+              placeholder="Detalhes, características…"
+              rows={3}
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                Preço (R$) *
+              </label>
+              <input
+                type="text"
+                inputMode="numeric"
+                value={preco}
+                onChange={(e) => {
+                  setPreco(formatPriceInput(e.target.value));
+                  if (fieldErrors.preco) {
+                    setFieldErrors((prev) => ({ ...prev, preco: undefined }));
+                  }
+                }}
+                className={`w-full px-3 py-2.5 border rounded-xl transition-all ${
+                  fieldErrors.preco
+                    ? "border-red-500 focus:ring-2 focus:ring-red-400 focus:border-red-500"
+                    : "border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                }`}
+                placeholder="0,00"
+                maxLength={14}
+              />
+              {fieldErrors.preco && (
+                <p className="mt-1 text-xs text-red-600">{fieldErrors.preco}</p>
+              )}
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                Estoque *
+              </label>
+              <input
+                type="number"
+                value={estoque}
+                onChange={(e) => {
+                  setEstoque(e.target.value);
+                  if (fieldErrors.estoque) {
+                    setFieldErrors((prev) => ({ ...prev, estoque: undefined }));
+                  }
+                }}
+                className={`w-full px-3 py-2.5 border rounded-xl transition-all ${
+                  fieldErrors.estoque
+                    ? "border-red-500 focus:ring-2 focus:ring-red-400 focus:border-red-500"
+                    : "border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                }`}
+                placeholder="0"
+                min="0"
+              />
+              {fieldErrors.estoque && (
+                <p className="mt-1 text-xs text-red-600">
+                  {fieldErrors.estoque}
+                </p>
+              )}
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">
+              Departamento
+            </label>
             <button
               type="button"
-              onClick={() => set((v: boolean) => !v)}
-              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                value ? "bg-indigo-600" : "bg-gray-300"
-              }`}
+              onClick={openDepartmentModal}
+              className="w-full px-3 py-2.5 border border-gray-300 rounded-xl hover:border-indigo-400 focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all bg-white text-left flex items-center justify-between"
             >
               <span
-                className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
-                  value ? "translate-x-6" : "translate-x-1"
-                }`}
-              />
+                className={
+                  selectedDepartment ? "text-gray-900" : "text-gray-500"
+                }
+              >
+                {selectedDepartment?.descricao ?? "Selecionar departamento"}
+              </span>
+              <Search className="h-4 w-4 text-gray-400" />
             </button>
-            <span className="text-xs text-gray-600">{label}</span>
           </div>
-        ))}
-      </div>
 
-      <div>
-        <div className="flex items-center justify-between mb-2">
-          <label className="block text-sm font-medium text-gray-700">
-            Imagens
-          </label>
-          <span className="text-xs text-gray-500">
-            {existingImages.length + newPreviews.length} selecionada(s)
-          </span>
-        </div>
-
-        {existingImages.length > 0 && (
-          <div className="mb-4">
-            <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">
-              Imagens atuais
-            </p>
-            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2">
-              {existingImages.map((img) => (
-                <div key={img.id} className="relative group">
-                  <img
-                    src={img.url}
-                    alt=""
-                    onClick={() => setPreviewImageUrl(img.url)}
-                    className={`w-full aspect-square object-cover rounded-xl border-2 cursor-zoom-in ${
-                      img.isimagemdestaque
-                        ? "border-indigo-500"
-                        : "border-gray-200"
+          <div className="grid grid-cols-3 gap-4">
+            {[
+              { label: "Destaque", value: destaque, set: setDestaque },
+              { label: "Ativo", value: ativo, set: setAtivo },
+              {
+                label: "No catálogo",
+                value: exibircatalogo,
+                set: setExibircatalogo,
+              },
+            ].map(({ label, value, set }) => (
+              <div key={label} className="flex flex-col items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => set((v: boolean) => !v)}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                    value ? "bg-indigo-600" : "bg-gray-300"
+                  }`}
+                >
+                  <span
+                    className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
+                      value ? "translate-x-6" : "translate-x-1"
                     }`}
                   />
-                  {img.isimagemdestaque && (
-                    <div className="absolute top-1 left-1 px-1.5 py-0.5 rounded bg-indigo-600/90 text-white text-[10px] font-semibold">
-                      Destaque
+                </button>
+                <span className="text-xs text-gray-600">{label}</span>
+              </div>
+            ))}
+          </div>
+
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <label className="block text-sm font-medium text-gray-700">
+                Imagens
+              </label>
+              <span className="text-xs text-gray-500">
+                {existingImages.length + newPreviews.length} selecionada(s)
+              </span>
+            </div>
+
+            {existingImages.length > 0 && (
+              <div className="mb-4">
+                <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">
+                  Imagens atuais
+                </p>
+                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2">
+                  {existingImages.map((img) => (
+                    <div key={img.id} className="relative group">
+                      <img
+                        src={img.url}
+                        alt=""
+                        onClick={() => setPreviewImageUrl(img.url)}
+                        className={`w-full aspect-square object-cover rounded-xl border-2 cursor-zoom-in ${
+                          img.isimagemdestaque
+                            ? "border-indigo-500"
+                            : "border-gray-200"
+                        }`}
+                      />
+                      {img.isimagemdestaque && (
+                        <div className="absolute top-1 left-1 px-1.5 py-0.5 rounded bg-indigo-600/90 text-white text-[10px] font-semibold">
+                          Destaque
+                        </div>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => removeExistingImage(img)}
+                        className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
                     </div>
-                  )}
-                  <button
-                    type="button"
-                    onClick={() => removeExistingImage(img)}
-                    className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                  >
-                    <X className="h-3 w-3" />
-                  </button>
+                  ))}
                 </div>
-              ))}
-            </div>
-          </div>
-        )}
+              </div>
+            )}
 
-        {newPreviews.length > 0 && (
-          <div className="mb-4">
-            <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">
-              Novas imagens
+            {newPreviews.length > 0 && (
+              <div className="mb-4">
+                <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">
+                  Novas imagens
+                </p>
+                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2">
+                  {newPreviews.map((url, i) => (
+                    <div key={i} className="relative group">
+                      <img
+                        src={url}
+                        alt=""
+                        onClick={() => setPreviewImageUrl(url)}
+                        className="w-full aspect-square object-cover rounded-xl border-2 border-dashed border-indigo-300 cursor-zoom-in"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => removeNewFile(i)}
+                        className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {existingImages.length === 0 && newPreviews.length === 0 && (
+              <div className="rounded-xl border border-dashed border-gray-300 bg-gray-50 px-3 py-4 text-sm text-gray-500">
+                Nenhuma imagem adicionada ainda.
+              </div>
+            )}
+
+            <label className="flex items-center gap-2 px-4 py-2.5 border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:border-indigo-400 hover:bg-indigo-50 transition-all text-sm text-gray-600">
+              <ImagePlus className="h-5 w-5 text-indigo-400" />
+              Adicionar imagens
+              <input
+                type="file"
+                accept="image/*"
+                multiple
+                onChange={handleFileChange}
+                className="hidden"
+              />
+            </label>
+            <p className="text-xs text-gray-400 mt-1.5">
+              JPEG, PNG, WebP — máx. 5 MB por arquivo
             </p>
-            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2">
-              {newPreviews.map((url, i) => (
-                <div key={i} className="relative group">
-                  <img
-                    src={url}
-                    alt=""
-                    onClick={() => setPreviewImageUrl(url)}
-                    className="w-full aspect-square object-cover rounded-xl border-2 border-dashed border-indigo-300 cursor-zoom-in"
-                  />
+          </div>
+        </>
+      )}
+
+      {activeTab === "vitrine" && (
+        <div className="space-y-5">
+          <div className="rounded-2xl border border-violet-100 bg-gradient-to-r from-violet-50 to-indigo-50 px-5 py-4">
+            <h3 className="text-xl font-bold text-gray-900">
+              Configurações da Vitrine para o Cliente
+            </h3>
+            <p className="text-sm text-gray-600 mt-1">
+              Tudo que o cliente verá no card e no modal full-screen
+            </p>
+          </div>
+
+          <div className="rounded-2xl border border-gray-200 bg-white shadow-sm p-4 sm:p-5">
+            <div className="flex items-center justify-between mb-4">
+              <h4 className="text-base font-semibold text-gray-900">
+                1) Badges da Vitrine
+              </h4>
+              <span className="text-xs text-gray-400">Opcional</span>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div className="rounded-xl border border-gray-200 p-3 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-900">
+                      Mostrar Frete Grátis
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      Valor mínimo em reais
+                    </p>
+                  </div>
                   <button
                     type="button"
-                    onClick={() => removeNewFile(i)}
-                    className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                    role="switch"
+                    aria-checked={exibirFreteGratis}
+                    onClick={() => setExibirFreteGratis((v) => !v)}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${exibirFreteGratis ? "bg-emerald-500" : "bg-gray-300"}`}
                   >
-                    <X className="h-3 w-3" />
+                    <span
+                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${exibirFreteGratis ? "translate-x-6" : "translate-x-1"}`}
+                    />
                   </button>
                 </div>
-              ))}
+                <div className="grid grid-cols-2 gap-2">
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    maxLength={14}
+                    value={freteGratisValorMinimo}
+                    onChange={(e) =>
+                      setFreteGratisValorMinimo(
+                        formatPriceInput(e.target.value),
+                      )
+                    }
+                    placeholder="Acima de R$"
+                    className="px-3 py-2.5 border border-gray-300 rounded-xl"
+                  />
+                  <input
+                    type="text"
+                    maxLength={80}
+                    value={freteGratisTexto}
+                    onChange={(e) => setFreteGratisTexto(e.target.value)}
+                    placeholder="Texto personalizado"
+                    className="px-3 py-2.5 border border-gray-300 rounded-xl"
+                  />
+                </div>
+              </div>
+
+              <div className="rounded-xl border border-gray-200 p-3 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-900">
+                      Mostrar Compra Segura
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      Mensagem de confiança
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={exibirCompraSegura}
+                    onClick={() => setExibirCompraSegura((v) => !v)}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${exibirCompraSegura ? "bg-emerald-500" : "bg-gray-300"}`}
+                  >
+                    <span
+                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${exibirCompraSegura ? "translate-x-6" : "translate-x-1"}`}
+                    />
+                  </button>
+                </div>
+                <input
+                  type="text"
+                  maxLength={100}
+                  value={compraSeguraTexto}
+                  onChange={(e) => setCompraSeguraTexto(e.target.value)}
+                  placeholder="Compra Segura com Criptografia SSL"
+                  className="px-3 py-2.5 border border-gray-300 rounded-xl w-full"
+                />
+              </div>
+
+              <div className="rounded-xl border border-gray-200 p-3 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-900">
+                      Mostrar Devolução Grátis
+                    </p>
+                    <p className="text-xs text-gray-500">Prazo em dias</p>
+                  </div>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={exibirDevolucaoGratis}
+                    onClick={() => setExibirDevolucaoGratis((v) => !v)}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${exibirDevolucaoGratis ? "bg-emerald-500" : "bg-gray-300"}`}
+                  >
+                    <span
+                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${exibirDevolucaoGratis ? "translate-x-6" : "translate-x-1"}`}
+                    />
+                  </button>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <input
+                    type="number"
+                    min="0"
+                    max="365"
+                    value={devolucaoDias}
+                    onChange={(e) => setDevolucaoDias(e.target.value)}
+                    placeholder="Dias"
+                    className="px-3 py-2.5 border border-gray-300 rounded-xl"
+                  />
+                  <input
+                    type="text"
+                    maxLength={80}
+                    value={devolucaoTexto}
+                    onChange={(e) => setDevolucaoTexto(e.target.value)}
+                    placeholder="Texto de devolução"
+                    className="px-3 py-2.5 border border-gray-300 rounded-xl"
+                  />
+                </div>
+              </div>
+
+              <div className="rounded-xl border border-gray-200 p-3 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-900">
+                      Mostrar Guia de Tamanhos
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      Link e texto exibido
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={exibirGuiaTamanhos}
+                    onClick={() => setExibirGuiaTamanhos((v) => !v)}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${exibirGuiaTamanhos ? "bg-emerald-500" : "bg-gray-300"}`}
+                  >
+                    <span
+                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${exibirGuiaTamanhos ? "translate-x-6" : "translate-x-1"}`}
+                    />
+                  </button>
+                </div>
+                <input
+                  type="url"
+                  maxLength={220}
+                  value={guiaTamanhosLink}
+                  onChange={(e) => setGuiaTamanhosLink(e.target.value)}
+                  placeholder="https://..."
+                  className="px-3 py-2.5 border border-gray-300 rounded-xl w-full"
+                />
+                <input
+                  type="text"
+                  maxLength={50}
+                  value={guiaTamanhosTexto}
+                  onChange={(e) => setGuiaTamanhosTexto(e.target.value)}
+                  placeholder='Texto (ex: "Guia de tamanhos")'
+                  className="px-3 py-2.5 border border-gray-300 rounded-xl w-full"
+                />
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() =>
+                setCustomBadges((prev) => [
+                  ...prev,
+                  {
+                    id: crypto.randomUUID(),
+                    enabled: true,
+                    titulo: "Badge personalizado",
+                    texto: "",
+                  },
+                ])
+              }
+              className="mt-4 inline-flex items-center gap-2 text-sm font-medium text-violet-700 hover:text-violet-900"
+            >
+              <PlusCircle className="h-4 w-4" />+ Adicionar badge personalizado
+            </button>
+            {customBadges.length > 0 && (
+              <div className="mt-3 space-y-2">
+                {customBadges.map((badge) => (
+                  <div
+                    key={badge.id}
+                    className="rounded-lg border border-gray-200 p-2 flex gap-2"
+                  >
+                    <input
+                      type="text"
+                      value={badge.titulo}
+                      maxLength={40}
+                      onChange={(e) =>
+                        setCustomBadges((prev) =>
+                          prev.map((b) =>
+                            b.id === badge.id
+                              ? { ...b, titulo: e.target.value }
+                              : b,
+                          ),
+                        )
+                      }
+                      className="px-3 py-2 border border-gray-300 rounded-lg flex-1"
+                    />
+                    <input
+                      type="text"
+                      value={badge.texto}
+                      maxLength={70}
+                      onChange={(e) =>
+                        setCustomBadges((prev) =>
+                          prev.map((b) =>
+                            b.id === badge.id
+                              ? { ...b, texto: e.target.value }
+                              : b,
+                          ),
+                        )
+                      }
+                      placeholder="Texto"
+                      className="px-3 py-2 border border-gray-300 rounded-lg flex-1"
+                    />
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="rounded-2xl border border-gray-200 bg-gradient-to-br from-white to-gray-50 shadow-sm p-4 sm:p-5">
+            <h4 className="text-base font-semibold text-gray-900 mb-4">
+              2) Calculadora de Preços Inteligente
+            </h4>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <div className="space-y-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <div>
+                    <label className="text-xs font-medium text-gray-600 mb-1 block">
+                      Preço de tabela (R$)
+                    </label>
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      maxLength={14}
+                      value={precoOriginal}
+                      onChange={(e) =>
+                        setPrecoOriginal(formatPriceInput(e.target.value))
+                      }
+                      className="w-full px-3 py-2.5 border border-gray-300 rounded-xl"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-gray-600 mb-1 block">
+                      Desconto da loja (%)
+                    </label>
+                    <input
+                      type="text"
+                      inputMode="decimal"
+                      maxLength={6}
+                      value={descontoPercentual}
+                      onChange={(e) =>
+                        setDescontoPercentual(
+                          e.target.value.replace(/[^0-9,]/g, ""),
+                        )
+                      }
+                      className="w-full px-3 py-2.5 border border-gray-300 rounded-xl"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-gray-600 mb-1 block">
+                      Preço no Pix (R$)
+                    </label>
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      maxLength={14}
+                      value={precoPix}
+                      onChange={(e) =>
+                        setPrecoPix(formatPriceInput(e.target.value))
+                      }
+                      className="w-full px-3 py-2.5 border border-gray-300 rounded-xl"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-gray-600 mb-1 block">
+                      % desconto Pix
+                    </label>
+                    <input
+                      type="text"
+                      inputMode="decimal"
+                      maxLength={6}
+                      value={descontoPixPercentual}
+                      onChange={(e) =>
+                        setDescontoPixPercentual(
+                          e.target.value.replace(/[^0-9,]/g, ""),
+                        )
+                      }
+                      className="w-full px-3 py-2.5 border border-gray-300 rounded-xl"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-gray-600 mb-1 block">
+                      Parcelamento
+                    </label>
+                    <select
+                      value={parcelasQuantidade}
+                      onChange={(e) => setParcelasQuantidade(e.target.value)}
+                      className="w-full px-3 py-2.5 border border-gray-300 rounded-xl"
+                    >
+                      <option value="">Sem parcelamento</option>
+                      {[3, 6, 9, 10, 12].map((n) => (
+                        <option key={n} value={n}>
+                          {n}x
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-gray-600 mb-1 block">
+                      Total no cartão (R$)
+                    </label>
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      maxLength={14}
+                      value={totalCartao}
+                      onChange={(e) =>
+                        setTotalCartao(formatPriceInput(e.target.value))
+                      }
+                      className="w-full px-3 py-2.5 border border-gray-300 rounded-xl"
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <div>
+                    <label className="text-xs font-medium text-gray-600 mb-1 block">
+                      Valor da parcela (auto)
+                    </label>
+                    <input
+                      readOnly
+                      value={
+                        valorParcelaNum
+                          ? formatPriceFromNumber(valorParcelaNum)
+                          : ""
+                      }
+                      className="w-full px-3 py-2.5 border border-gray-200 rounded-xl bg-gray-50 text-gray-600"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-gray-600 mb-1 block">
+                      Texto adicional
+                    </label>
+                    <input
+                      type="text"
+                      maxLength={80}
+                      value={textoAdicionalPreco}
+                      onChange={(e) => setTextoAdicionalPreco(e.target.value)}
+                      placeholder="Ex: 5% de desconto à vista"
+                      className="w-full px-3 py-2.5 border border-gray-300 rounded-xl"
+                    />
+                  </div>
+                </div>
+                {pixMaiorQueOriginal && (
+                  <p className="text-xs text-red-600 font-medium">
+                    O preço no Pix não pode ser maior que o preço de tabela.
+                  </p>
+                )}
+              </div>
+
+              <div className="rounded-xl border border-gray-200 bg-white p-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <CircleHelp className="h-4 w-4 text-gray-400" />
+                  <p className="text-sm font-semibold text-gray-800">
+                    Como vai aparecer no modal do cliente
+                  </p>
+                </div>
+                <div className="space-y-1">
+                  {previewData.precoOriginalNum ? (
+                    <p className="text-sm text-gray-400 line-through">
+                      R$ {formatPriceFromNumber(previewData.precoOriginalNum)}
+                    </p>
+                  ) : null}
+                  <p className="text-3xl font-extrabold text-gray-900 leading-none">
+                    R${" "}
+                    {formatPriceFromNumber(
+                      previewData.precoPixNum ||
+                        previewData.precoComDesconto ||
+                        previewData.precoBase,
+                    )}
+                    {(previewData.precoPixNum ||
+                      previewData.hasDescontoPixPercentual) && (
+                      <span className="text-sm text-green-600 ml-2">
+                        no Pix
+                      </span>
+                    )}
+                  </p>
+                  {textoAdicionalPreco && (
+                    <p className="text-xs text-green-700 font-semibold">
+                      {textoAdicionalPreco}
+                    </p>
+                  )}
+                  {previewData.parcelasQtdNum && previewData.valorParcelaNum ? (
+                    <p className="text-sm text-gray-700">
+                      ou {previewData.parcelasQtdNum}x de R${" "}
+                      {formatPriceFromNumber(previewData.valorParcelaNum)} sem
+                      juros
+                    </p>
+                  ) : null}
+                  {previewData.totalCartaoNum ? (
+                    <p className="text-xs text-gray-500">
+                      Total no cartão: R${" "}
+                      {formatPriceFromNumber(previewData.totalCartaoNum)}
+                    </p>
+                  ) : null}
+                </div>
+              </div>
             </div>
           </div>
-        )}
 
-        {existingImages.length === 0 && newPreviews.length === 0 && (
-          <div className="rounded-xl border border-dashed border-gray-300 bg-gray-50 px-3 py-4 text-sm text-gray-500">
-            Nenhuma imagem adicionada ainda.
+          <div className="rounded-2xl border border-gray-200 bg-white shadow-sm p-4 sm:p-5">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+              <h4 className="text-base font-semibold text-gray-900">
+                3) Visualização em Tempo Real
+              </h4>
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() =>
+                    setPreviewSnapshot({
+                      precoOriginalNum,
+                      precoPixNum,
+                      precoComDesconto,
+                      precoBase,
+                      parcelasQtdNum,
+                      valorParcelaNum,
+                      totalCartaoNum,
+                      descontoPixPctNum,
+                      hasDescontoPercentual,
+                      hasDescontoPixPercentual,
+                    })
+                  }
+                  className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-gray-300 text-sm text-gray-700 hover:bg-gray-50"
+                >
+                  <RefreshCcw className="h-4 w-4" />
+                  Atualizar previews
+                </button>
+                <label className="inline-flex items-center gap-2 text-sm text-gray-700">
+                  <input
+                    type="checkbox"
+                    checked={autoPreview}
+                    onChange={(e) => setAutoPreview(e.target.checked)}
+                  />
+                  Atualizar automaticamente
+                </label>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+              <div className="rounded-xl border border-gray-200 p-4 bg-gray-50">
+                <p className="text-xs font-semibold text-gray-500 uppercase mb-3">
+                  Preview do Card do Catálogo
+                </p>
+                <div className="max-w-[320px] bg-white rounded-xl border border-gray-200 p-3 shadow-sm">
+                  <p className="font-semibold text-gray-900 line-clamp-2">
+                    {descricao || "Nome do produto"}
+                  </p>
+                  <p className="text-xs text-gray-500 mt-1 line-clamp-2">
+                    {infadicional || "Descrição do produto..."}
+                  </p>
+                  <div className="mt-3">
+                    {previewData.precoOriginalNum ? (
+                      <p className="text-xs text-gray-400 line-through">
+                        R$ {formatPriceFromNumber(previewData.precoOriginalNum)}
+                      </p>
+                    ) : null}
+                    <p className="text-xl font-extrabold text-violet-700">
+                      R$ {formatPriceFromNumber(previewData.precoBase)}
+                    </p>
+                    {(previewData.precoPixNum ||
+                      previewData.hasDescontoPixPercentual) && (
+                      <p className="text-xs text-green-600 font-semibold">
+                        R${" "}
+                        {formatPriceFromNumber(
+                          previewData.precoPixNum ||
+                            previewData.precoComDesconto,
+                        )}{" "}
+                        no Pix
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-xl border border-gray-200 p-4 bg-gray-50">
+                <p className="text-xs font-semibold text-gray-500 uppercase mb-3">
+                  Preview do Modal Full-Screen
+                </p>
+                <div className="bg-white rounded-xl border border-gray-200 p-4 space-y-3 min-h-[260px]">
+                  <p className="text-lg font-bold text-gray-900 line-clamp-2">
+                    {descricao || "Nome do produto"}
+                  </p>
+                  <div className="space-y-1">
+                    {previewData.precoOriginalNum ? (
+                      <p className="text-sm text-gray-400 line-through">
+                        R$ {formatPriceFromNumber(previewData.precoOriginalNum)}
+                      </p>
+                    ) : null}
+                    <p className="text-3xl font-extrabold text-gray-900">
+                      R${" "}
+                      {formatPriceFromNumber(
+                        previewData.precoPixNum ||
+                          previewData.precoComDesconto ||
+                          previewData.precoBase,
+                      )}
+                      {(previewData.precoPixNum ||
+                        previewData.hasDescontoPixPercentual) && (
+                        <span className="text-sm text-green-600 ml-2">
+                          no Pix
+                        </span>
+                      )}
+                    </p>
+                    {textoAdicionalPreco && (
+                      <p className="text-xs text-green-700 font-semibold">
+                        {textoAdicionalPreco}
+                      </p>
+                    )}
+                    {previewData.parcelasQtdNum &&
+                    previewData.valorParcelaNum ? (
+                      <p className="text-sm text-gray-700">
+                        ou {previewData.parcelasQtdNum}x de R${" "}
+                        {formatPriceFromNumber(previewData.valorParcelaNum)} sem
+                        juros
+                      </p>
+                    ) : null}
+                    {previewData.totalCartaoNum ? (
+                      <p className="text-xs text-gray-500">
+                        Total no cartão: R${" "}
+                        {formatPriceFromNumber(previewData.totalCartaoNum)}
+                      </p>
+                    ) : null}
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {exibirFreteGratis && (
+                      <span className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-lg bg-green-50 text-green-700 border border-green-100">
+                        <Truck className="h-3.5 w-3.5" />
+                        {freteGratisTexto || "Frete Grátis"}
+                      </span>
+                    )}
+                    {exibirCompraSegura && (
+                      <span className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-lg bg-blue-50 text-blue-700 border border-blue-100">
+                        <ShieldCheck className="h-3.5 w-3.5" />
+                        {compraSeguraTexto || "Compra Segura"}
+                      </span>
+                    )}
+                    {exibirCriptografiaSsl && (
+                      <span className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-lg bg-indigo-50 text-indigo-700 border border-indigo-100">
+                        <Lock className="h-3.5 w-3.5" />
+                        {criptografiaSslTexto || "Criptografia SSL"}
+                      </span>
+                    )}
+                    {exibirDevolucaoGratis && (
+                      <span className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-lg bg-violet-50 text-violet-700 border border-violet-100">
+                        <RotateCcw className="h-3.5 w-3.5" />
+                        {devolucaoTexto || "Devolução Grátis"}
+                      </span>
+                    )}
+                    {exibirGuiaTamanhos && (
+                      <span className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-lg bg-amber-50 text-amber-700 border border-amber-100">
+                        <Ruler className="h-3.5 w-3.5" />
+                        {guiaTamanhosTexto || "Guia de tamanhos"}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
-        )}
-
-        <label className="flex items-center gap-2 px-4 py-2.5 border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:border-indigo-400 hover:bg-indigo-50 transition-all text-sm text-gray-600">
-          <ImagePlus className="h-5 w-5 text-indigo-400" />
-          Adicionar imagens
-          <input
-            type="file"
-            accept="image/*"
-            multiple
-            onChange={handleFileChange}
-            className="hidden"
-          />
-        </label>
-        <p className="text-xs text-gray-400 mt-1.5">
-          JPEG, PNG, WebP — máx. 5 MB por arquivo
-        </p>
-      </div>
+        </div>
+      )}
 
       <div className="flex justify-end gap-3 pt-2 border-t border-gray-100">
         <button
@@ -758,7 +1597,6 @@ const ProductManager: React.FC = () => {
         />
       )}
 
-      {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 bg-indigo-100 rounded-xl flex items-center justify-center">
@@ -883,17 +1721,17 @@ const ProductManager: React.FC = () => {
                       <td className="px-4 py-3 text-sm text-gray-600">
                         {p.quantidademinima}
                       </td>
-                    <td className="px-4 py-3 min-w-[150px]">
-                      <div className="flex flex-col items-start gap-1.5">
+                      <td className="px-4 py-3 min-w-[150px]">
+                        <div className="flex flex-col items-start gap-1.5">
                           <span
-                          className={`inline-flex items-center whitespace-nowrap px-2.5 py-0.5 rounded-full text-xs font-medium ${p.ativo ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}
+                            className={`inline-flex items-center whitespace-nowrap px-2.5 py-0.5 rounded-full text-xs font-medium ${p.ativo ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}
                           >
                             {p.ativo ? "Ativo" : "Inativo"}
                           </span>
                           <button
-                          type="button"
+                            type="button"
                             onClick={() => handleToggleCatalog(p)}
-                          className={`inline-flex items-center whitespace-nowrap px-2.5 py-0.5 rounded-full text-xs font-medium cursor-pointer transition-colors ${p.exibircatalogo ? "bg-blue-100 text-blue-700 hover:bg-blue-200" : "bg-gray-100 text-gray-500 hover:bg-gray-200"}`}
+                            className={`inline-flex items-center whitespace-nowrap px-2.5 py-0.5 rounded-full text-xs font-medium cursor-pointer transition-colors ${p.exibircatalogo ? "bg-blue-100 text-blue-700 hover:bg-blue-200" : "bg-gray-100 text-gray-500 hover:bg-gray-200"}`}
                             title="Clique para alternar visibilidade no catálogo"
                           >
                             {p.exibircatalogo ? "No catálogo" : "Oculto"}
@@ -1005,7 +1843,7 @@ const ProductManager: React.FC = () => {
           setEditing(null);
         }}
         title={editing ? "Editar Produto" : "Novo Produto"}
-        maxWidth="max-w-2xl"
+        maxWidth="max-w-5xl"
       >
         <ProductForm
           initial={editing ?? undefined}

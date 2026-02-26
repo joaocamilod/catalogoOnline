@@ -11,6 +11,11 @@ import {
   Plus,
   Tag,
   ArrowLeft,
+  Truck,
+  ShieldCheck,
+  RotateCcw,
+  Ruler,
+  Lock,
 } from "lucide-react";
 
 const formatBRL = (v) =>
@@ -22,9 +27,6 @@ const PLACEHOLDER =
   "https://cdn.pixabay.com/photo/2019/04/16/10/35/box-4131401_1280.png";
 
 const SIZES = ["P", "M", "G", "GG", "GGG"]; // mock por enquanto
-
-const pseudoReviews = (id = "") =>
-  (((id.charCodeAt(0) ?? 65) * 3 + (id.charCodeAt(1) ?? 66) * 7) % 180) + 40;
 
 export default function ProductDetailModal({ product, onClose, onAddToCart }) {
   const [imgIdx, setImgIdx] = useState(0);
@@ -101,9 +103,34 @@ export default function ProductDetailModal({ product, onClose, onAddToCart }) {
   if (!product) return null;
 
   const outOfStock = product.stock === 0;
-
-  const pixPrice = product.price * 0.95;
-  const installment = product.price / 12;
+  const originalPrice = Number(product.preco_original ?? 0) || 0;
+  const discountPercent = Number(product.desconto_percentual ?? 0) || 0;
+  const cardTotal = Number(product.total_cartao ?? product.price ?? 0) || 0;
+  const pixDiscountPercent = Number(product.desconto_pix_percentual ?? 0) || 0;
+  const hasPixPriceConfigured = Number(product.preco_pix ?? 0) > 0;
+  const hasCardTotalConfigured = Number(product.total_cartao ?? 0) > 0;
+  const hasInstallmentsConfigured =
+    Number(product.parcelas_quantidade ?? 0) > 0;
+  const hasPricingDetails =
+    originalPrice > 0 ||
+    discountPercent > 0 ||
+    hasPixPriceConfigured ||
+    pixDiscountPercent > 0 ||
+    hasCardTotalConfigured ||
+    hasInstallmentsConfigured ||
+    Boolean(product.texto_adicional_preco);
+  const pixPrice =
+    Number(product.preco_pix ?? 0) ||
+    (pixDiscountPercent > 0 ? cardTotal * (1 - pixDiscountPercent / 100) : 0);
+  const installmentCount = Number(product.parcelas_quantidade ?? 0) || 0;
+  const installment =
+    installmentCount > 0 ? cardTotal / installmentCount : cardTotal;
+  const additionalPriceText = product.texto_adicional_preco || "";
+  const freteTexto =
+    product.frete_gratis_texto ||
+    (product.frete_gratis_valor_minimo
+      ? `Frete Grátis acima de ${formatBRL(product.frete_gratis_valor_minimo)}`
+      : "Frete Grátis");
 
   const stockMax = Math.max(product.stock ?? 0, 50);
   const stockPct = Math.min(100, ((product.stock ?? 0) / stockMax) * 100);
@@ -348,38 +375,102 @@ export default function ProductDetailModal({ product, onClose, onAddToCart }) {
               </div>
 
               <div className="bg-gradient-to-br from-gray-50 to-gray-100/60 rounded-2xl p-5 space-y-2.5 border border-gray-100">
-                <div className="flex items-baseline gap-2">
-                  <Zap className="h-5 w-5 text-green-500 flex-shrink-0 self-center" />
-                  <span className="text-4xl font-extrabold text-gray-900 tracking-tight leading-none">
-                    {formatBRL(pixPrice)}
-                  </span>
-                  <span className="text-base font-bold text-green-600">
-                    no Pix
-                  </span>
-                </div>
-                <p className="text-xs text-green-700 bg-green-50 border border-green-100 rounded-xl px-3 py-1.5 inline-flex items-center gap-1.5 font-semibold">
-                  <Check className="h-3.5 w-3.5" />
-                  5% de desconto à vista
-                </p>
-
-                <div className="border-t border-gray-200 pt-3">
+                {hasPricingDetails && originalPrice > 0 && (
                   <div className="flex items-center gap-2">
-                    <CreditCard className="h-4 w-4 text-gray-400 flex-shrink-0" />
-                    <span className="text-sm text-gray-600">
-                      ou{" "}
-                      <strong className="text-gray-900 text-base">
-                        12× de {formatBRL(installment)}
-                      </strong>{" "}
-                      <span className="text-green-600 font-semibold">
-                        sem juros
-                      </span>
+                    <span className="text-sm text-gray-400 line-through">
+                      {formatBRL(originalPrice)}
                     </span>
+                    {discountPercent > 0 && (
+                      <span className="text-xs bg-red-500 text-white font-bold px-2 py-0.5 rounded-full">
+                        -{discountPercent.toFixed(0)}%
+                      </span>
+                    )}
                   </div>
-                  <p className="text-xs text-gray-400 ml-6 mt-0.5">
-                    Total no cartão: {formatBRL(product.price)}
-                  </p>
-                </div>
+                )}
+                {hasPricingDetails ? (
+                  <>
+                    <div className="flex items-baseline gap-2">
+                      <Zap className="h-5 w-5 text-green-500 flex-shrink-0 self-center" />
+                      <span className="text-4xl font-extrabold text-gray-900 tracking-tight leading-none">
+                        {formatBRL(pixPrice || cardTotal || product.price)}
+                      </span>
+                      <span className="text-base font-bold text-green-600">
+                        no Pix
+                      </span>
+                    </div>
+                    {(additionalPriceText || pixDiscountPercent > 0) && (
+                      <p className="text-xs text-green-700 bg-green-50 border border-green-100 rounded-xl px-3 py-1.5 inline-flex items-center gap-1.5 font-semibold">
+                        <Check className="h-3.5 w-3.5" />
+                        {additionalPriceText ||
+                          `${pixDiscountPercent.toFixed(0)}% de desconto à vista`}
+                      </p>
+                    )}
+
+                    {(installmentCount > 0 || hasCardTotalConfigured) && (
+                      <div className="border-t border-gray-200 pt-3">
+                        {installmentCount > 0 && (
+                          <div className="flex items-center gap-2">
+                            <CreditCard className="h-4 w-4 text-gray-400 flex-shrink-0" />
+                            <span className="text-sm text-gray-600">
+                              ou{" "}
+                              <strong className="text-gray-900 text-base">
+                                {installmentCount}× de {formatBRL(installment)}
+                              </strong>{" "}
+                              <span className="text-green-600 font-semibold">
+                                sem juros
+                              </span>
+                            </span>
+                          </div>
+                        )}
+                        {hasCardTotalConfigured && (
+                          <p className="text-xs text-gray-400 ml-6 mt-0.5">
+                            Total no cartão: {formatBRL(cardTotal)}
+                          </p>
+                        )}
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <div className="text-4xl font-extrabold text-gray-900 tracking-tight leading-none">
+                    {formatBRL(product.price)}
+                  </div>
+                )}
               </div>
+
+              {(product.exibir_frete_gratis ||
+                product.exibir_compra_segura ||
+                product.exibir_criptografia_ssl ||
+                product.exibir_devolucao_gratis) && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {product.exibir_frete_gratis && (
+                    <span className="inline-flex items-center gap-1.5 rounded-xl bg-green-50 text-green-700 border border-green-100 px-3 py-2 text-xs font-semibold">
+                      <Truck className="h-3.5 w-3.5" />
+                      {freteTexto}
+                    </span>
+                  )}
+                  {product.exibir_compra_segura && (
+                    <span className="inline-flex items-center gap-1.5 rounded-xl bg-blue-50 text-blue-700 border border-blue-100 px-3 py-2 text-xs font-semibold">
+                      <ShieldCheck className="h-3.5 w-3.5" />
+                      {product.compra_segura_texto || "Compra Segura"}
+                    </span>
+                  )}
+                  {product.exibir_criptografia_ssl && (
+                    <span className="inline-flex items-center gap-1.5 rounded-xl bg-indigo-50 text-indigo-700 border border-indigo-100 px-3 py-2 text-xs font-semibold">
+                      <Lock className="h-3.5 w-3.5" />
+                      {product.criptografia_ssl_texto || "Criptografia SSL"}
+                    </span>
+                  )}
+                  {product.exibir_devolucao_gratis && (
+                    <span className="inline-flex items-center gap-1.5 rounded-xl bg-violet-50 text-violet-700 border border-violet-100 px-3 py-2 text-xs font-semibold">
+                      <RotateCcw className="h-3.5 w-3.5" />
+                      {product.devolucao_texto || "Devolução Grátis"}
+                      {product.devolucao_dias
+                        ? ` em até ${product.devolucao_dias} dias`
+                        : ""}
+                    </span>
+                  )}
+                </div>
+              )}
 
               <div>
                 <div className="flex items-center justify-between mb-3">
@@ -391,6 +482,24 @@ export default function ProductDetailModal({ product, onClose, onAddToCart }) {
                       </span>
                     )}
                   </span>
+                  {product.exibir_guia_tamanhos && (
+                    <a
+                      href={product.guia_tamanhos_link || "#"}
+                      target={product.guia_tamanhos_link ? "_blank" : undefined}
+                      rel={
+                        product.guia_tamanhos_link
+                          ? "noopener noreferrer"
+                          : undefined
+                      }
+                      className="inline-flex items-center gap-1 text-xs text-violet-600 hover:text-violet-800 underline"
+                      onClick={(e) => {
+                        if (!product.guia_tamanhos_link) e.preventDefault();
+                      }}
+                    >
+                      <Ruler className="h-3.5 w-3.5" />
+                      {product.guia_tamanhos_texto || "Guia de tamanhos"}
+                    </a>
+                  )}
                 </div>
                 <div className="flex gap-2.5 flex-wrap">
                   {SIZES.map((size) => (

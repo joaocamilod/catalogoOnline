@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { FaStar, FaShoppingCart, FaCheck, FaEye } from "react-icons/fa";
 
 const formatBRL = (value) =>
@@ -11,6 +11,8 @@ const PLACEHOLDER =
 
 function ProductCard({ product, onAddToCart, onProductClick }) {
   const [isAdding, setIsAdding] = useState(false);
+  const [showSecondImage, setShowSecondImage] = useState(false);
+  const hoverTimerRef = useRef(null);
 
   const handleAddToCart = (e) => {
     e.stopPropagation();
@@ -26,10 +28,63 @@ function ProductCard({ product, onAddToCart, onProductClick }) {
   const outOfStock = product.stock === 0;
   const lowStock = product.stock > 0 && product.stock < 10;
   const rating = product.rating ?? 5;
+  const orderedImages = [...(product.imagens ?? [])].sort((a, b) => {
+    const ta = a.created_at ? new Date(a.created_at).getTime() : 0;
+    const tb = b.created_at ? new Date(b.created_at).getTime() : 0;
+    return ta - tb;
+  });
+  const firstImage = orderedImages[0]?.url || product.image || PLACEHOLDER;
+  const secondImage = orderedImages[1]?.url || null;
+  const displayedImage =
+    showSecondImage && secondImage ? secondImage : firstImage;
+
+  useEffect(() => {
+    return () => {
+      if (hoverTimerRef.current) {
+        clearTimeout(hoverTimerRef.current);
+      }
+    };
+  }, []);
+
+  const handleShowSecondImage = () => {
+    if (!secondImage) return;
+    if (hoverTimerRef.current) clearTimeout(hoverTimerRef.current);
+    hoverTimerRef.current = setTimeout(() => {
+      setShowSecondImage(true);
+    }, 180);
+  };
+
+  const handleHideSecondImage = () => {
+    if (hoverTimerRef.current) clearTimeout(hoverTimerRef.current);
+    setShowSecondImage(false);
+  };
+  const originalPrice = Number(product.preco_original ?? 0) || 0;
+  const discountPct = Number(product.desconto_percentual ?? 0) || 0;
+  const hasCustomPricing =
+    originalPrice > 0 ||
+    discountPct > 0 ||
+    Number(product.preco_pix ?? 0) > 0 ||
+    Number(product.desconto_pix_percentual ?? 0) > 0 ||
+    Number(product.total_cartao ?? 0) > 0 ||
+    Number(product.parcelas_quantidade ?? 0) > 0;
+  const pixPrice =
+    Number(product.preco_pix ?? 0) ||
+    (Number(product.desconto_pix_percentual ?? 0) > 0
+      ? product.price * (1 - Number(product.desconto_pix_percentual ?? 0) / 100)
+      : product.price);
 
   return (
     <article
       onClick={handleCardClick}
+      onMouseEnter={handleShowSecondImage}
+      onMouseLeave={handleHideSecondImage}
+      onFocus={handleShowSecondImage}
+      onBlur={handleHideSecondImage}
+      onTouchStart={handleShowSecondImage}
+      onTouchEnd={() => {
+        if (!secondImage) return;
+        setTimeout(() => setShowSecondImage(false), 500);
+      }}
       role="button"
       tabIndex={0}
       onKeyDown={(e) => {
@@ -50,12 +105,12 @@ function ProductCard({ product, onAddToCart, onProductClick }) {
     >
       <div className="relative w-full aspect-[4/3] overflow-hidden bg-gray-50">
         <img
-          src={product.image || PLACEHOLDER}
+          src={displayedImage}
           alt={product.name}
           loading="lazy"
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
           onError={(e) => {
-            e.currentTarget.src = PLACEHOLDER;
+            e.currentTarget.src = firstImage || PLACEHOLDER;
           }}
         />
 
@@ -79,6 +134,11 @@ function ProductCard({ product, onAddToCart, onProductClick }) {
         {product.featured && !lowStock && !outOfStock && (
           <span className="absolute top-2 right-2 bg-violet-500 text-white text-xs font-semibold px-2.5 py-1 rounded-full uppercase tracking-wide shadow-sm">
             Destaque
+          </span>
+        )}
+        {discountPct > 0 && (
+          <span className="absolute top-2 left-2 bg-red-500 text-white text-xs font-semibold px-2 py-1 rounded-full shadow-sm">
+            -{discountPct.toFixed(0)}%
           </span>
         )}
         {product.category && (
@@ -124,12 +184,19 @@ function ProductCard({ product, onAddToCart, onProductClick }) {
         <div className="mt-auto pt-3 border-t border-gray-100">
           <div className="flex items-end justify-between mb-3">
             <div>
+              {originalPrice > 0 && (
+                <p className="text-xs text-gray-400 line-through">
+                  {formatBRL(originalPrice)}
+                </p>
+              )}
               <span className="text-xl font-extrabold text-violet-600">
                 {formatBRL(product.price)}
               </span>
-              <p className="text-xs text-green-600 font-medium">
-                {formatBRL(product.price * 0.95)} no Pix
-              </p>
+              {hasCustomPricing && (
+                <p className="text-xs text-green-600 font-medium">
+                  {formatBRL(pixPrice)} no Pix
+                </p>
+              )}
             </div>
             <span className="text-xs text-gray-400">
               {product.stock > 0
