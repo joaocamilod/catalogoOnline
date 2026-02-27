@@ -490,8 +490,6 @@ export default function ProductDetailModal({
                   )}
                 </div>
               )}
-              // TODO VARIAÇÕES DE PRODUTO (TAMANHO, COR, ETC) - SEPARAR EM
-              COMPONENTE PRÓPRIO?
               {/* <div>
                 <div className="flex items-center justify-between mb-3">
                   <span className="text-sm font-bold text-gray-800">
