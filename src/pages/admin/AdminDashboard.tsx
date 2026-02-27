@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { useAuthStore } from "../../store/authStore";
 import { signOut } from "../../lib/supabase";
+import AdminGlobalNotifier from "../../components/AdminGlobalNotifier";
 
 const navigation = [
   { name: "Produtos", href: "/admin/produtos", icon: Package },
@@ -48,6 +49,7 @@ const AdminDashboard: React.FC = () => {
 
   return (
     <div className="flex h-screen bg-gray-50">
+      <AdminGlobalNotifier />
       <aside className="hidden md:flex flex-col w-64 bg-white border-r border-gray-200">
         <div className="flex items-center gap-3 px-6 py-5 border-b border-gray-100">
           <div className="w-9 h-9 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center shadow">

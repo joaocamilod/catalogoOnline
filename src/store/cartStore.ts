@@ -2,6 +2,12 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type { CartItem, CatalogProduct } from "../types";
 
+const getMaxStock = (product: CatalogProduct) => {
+  const stock = Number(product.stock);
+  if (!Number.isFinite(stock)) return Number.POSITIVE_INFINITY;
+  return Math.max(0, Math.floor(stock));
+};
+
 interface CartState {
   items: CartItem[];
   addItem: (product: CatalogProduct) => void;
@@ -19,12 +25,17 @@ export const useCartStore = create<CartState>()(
 
       addItem: (product) =>
         set((state) => {
+          const maxStock = getMaxStock(product);
+          if (maxStock <= 0) return state;
+
           const existing = state.items.find((i) => i.product.id === product.id);
           if (existing) {
+            const nextQuantity = Math.min(existing.quantity + 1, maxStock);
+            if (nextQuantity === existing.quantity) return state;
             return {
               items: state.items.map((i) =>
                 i.product.id === product.id
-                  ? { ...i, quantity: i.quantity + 1 }
+                  ? { ...i, quantity: nextQuantity }
                   : i,
               ),
             };
@@ -39,15 +50,16 @@ export const useCartStore = create<CartState>()(
 
       updateQuantity: (productId, quantity) =>
         set((state) => {
-          if (quantity <= 0) {
-            return {
-              items: state.items.filter((i) => i.product.id !== productId),
-            };
-          }
           return {
-            items: state.items.map((i) =>
-              i.product.id === productId ? { ...i, quantity } : i,
-            ),
+            items: state.items
+              .map((i) => {
+                if (i.product.id !== productId) return i;
+                const maxStock = getMaxStock(i.product);
+                const clampedQuantity = Math.min(quantity, maxStock);
+                if (clampedQuantity <= 0) return null;
+                return { ...i, quantity: clampedQuantity };
+              })
+              .filter(Boolean) as CartItem[],
           };
         }),
 

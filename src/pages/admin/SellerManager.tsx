@@ -18,6 +18,7 @@ import {
 import Toast from "../../components/Toast";
 import Dialog from "../../components/Dialog";
 import ConfirmDeleteDialog from "../../components/ConfirmDeleteDialog";
+import { notifyAdmin } from "../../components/AdminGlobalNotifier";
 import type { Vendedor } from "../../types";
 
 interface SellerFormProps {
@@ -120,7 +121,7 @@ const SellerForm: React.FC<SellerFormProps> = ({
 
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1.5">
-          WhatsApp / Telefone
+          WhatsApp / Telefone *
         </label>
         <input
           type="text"
@@ -295,7 +296,7 @@ const SellerManager: React.FC = () => {
           data.email,
           data.ativo,
         );
-        setToast({ msg: "Vendedor atualizado!", type: "success" });
+        notifyAdmin({ message: "Vendedor atualizado com sucesso." });
       } else {
         await createVendedor(
           data.nome,
@@ -303,13 +304,13 @@ const SellerManager: React.FC = () => {
           data.email,
           data.ativo,
         );
-        setToast({ msg: "Vendedor criado!", type: "success" });
+        notifyAdmin({ message: "Vendedor criado com sucesso." });
       }
       setIsDialogOpen(false);
       setEditing(null);
       await load(currentPage, debouncedSearch);
     } catch {
-      setToast({ msg: "Erro ao salvar vendedor.", type: "error" });
+      notifyAdmin({ message: "Erro ao salvar vendedor.", type: "error" });
     } finally {
       setSaving(false);
     }

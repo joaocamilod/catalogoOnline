@@ -42,6 +42,7 @@ import {
 import type { CatalogoTema } from "../../types";
 import { TEMA_PADRAO } from "../../types";
 import ConfirmDeleteDialog from "../../components/ConfirmDeleteDialog";
+import { notifyAdmin } from "../../components/AdminGlobalNotifier";
 
 const FONTES_DISPONIVEIS = [
   "Inter",
@@ -854,6 +855,7 @@ const ThemeManager: React.FC = () => {
   const [draft, setDraft] = useState(TEMA_PADRAO);
   const [isSaving, setIsSaving] = useState(false);
   const [deviceView, setDeviceView] = useState<DeviceView>("desktop");
+  const [themeNameError, setThemeNameError] = useState("");
 
   const [deletingTheme, setDeletingTheme] = useState<CatalogoTema | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -890,12 +892,14 @@ const ThemeManager: React.FC = () => {
   const openNew = () => {
     setEditingTema(null);
     setDraft({ ...TEMA_PADRAO });
+    setThemeNameError("");
     setIsEditing(true);
   };
 
   const openEdit = (tema: CatalogoTema) => {
     setEditingTema(tema);
     setDraft({ ...tema });
+    setThemeNameError("");
     setIsEditing(true);
   };
 
@@ -910,23 +914,27 @@ const ThemeManager: React.FC = () => {
 
   const handleSave = async () => {
     if (!draft.nome.trim()) {
-      showFeedback("error", "Informe um nome para o tema.");
+      setThemeNameError("Nome do tema é obrigatório.");
       return;
     }
+    setThemeNameError("");
     setIsSaving(true);
     try {
       const { id, created_at, updated_at, ...payload } = draft as any;
       if (editingTema) {
         await updateTema(editingTema.id, payload);
-        showFeedback("success", "Tema atualizado com sucesso!");
+        notifyAdmin({ message: "Tema atualizado com sucesso." });
       } else {
         await createTema(payload);
-        showFeedback("success", "Tema criado com sucesso!");
+        notifyAdmin({ message: "Tema criado com sucesso." });
       }
       closeEditor();
       loadTemas(page, debouncedSearch);
     } catch (e: any) {
-      showFeedback("error", e?.message || "Erro ao salvar tema.");
+      notifyAdmin({
+        message: e?.message || "Erro ao salvar tema.",
+        type: "error",
+      });
     } finally {
       setIsSaving(false);
     }
@@ -1067,12 +1075,22 @@ const ThemeManager: React.FC = () => {
                 <input
                   type="text"
                   value={draft.nome}
-                  onChange={(e) => updateDraft("nome", e.target.value)}
-                  className="w-full px-3 py-2.5 rounded-xl border border-gray-200 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 focus:bg-white text-sm transition-colors"
+                  onChange={(e) => {
+                    updateDraft("nome", e.target.value);
+                    if (themeNameError) setThemeNameError("");
+                  }}
+                  className={`w-full px-3 py-2.5 rounded-xl border bg-gray-50 focus:outline-none focus:ring-2 focus:bg-white text-sm transition-colors ${
+                    themeNameError
+                      ? "border-red-500 focus:ring-red-400 focus:border-red-500"
+                      : "border-gray-200 focus:ring-indigo-400 focus:border-indigo-400"
+                  }`}
                   placeholder="Ex.: Tema Verão 2026"
                   maxLength={80}
                   aria-label="Nome do tema"
                 />
+                {themeNameError && (
+                  <p className="mt-1 text-xs text-red-600">{themeNameError}</p>
+                )}
               </div>
               <SelectField
                 label="Fonte"

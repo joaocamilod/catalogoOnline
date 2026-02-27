@@ -268,8 +268,14 @@ function Cart({
                                 item.quantity + 1,
                               )
                             }
+                            disabled={
+                              Number.isFinite(Number(item.product.stock))
+                                ? item.quantity >=
+                                  Math.max(0, Number(item.product.stock))
+                                : false
+                            }
                             aria-label={`Aumentar quantidade de ${item.product.name}`}
-                            className="w-7 h-7 rounded-lg border-2 border-gray-200 bg-white text-gray-600 hover:border-indigo-500 hover:text-indigo-600 flex items-center justify-center transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:ring-offset-1"
+                            className="w-7 h-7 rounded-lg border-2 border-gray-200 bg-white text-gray-600 hover:border-indigo-500 hover:text-indigo-600 flex items-center justify-center transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:ring-offset-1 disabled:opacity-30 disabled:cursor-not-allowed"
                           >
                             <Plus className="h-3 w-3" />
                           </button>

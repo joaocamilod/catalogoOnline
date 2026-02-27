@@ -5,11 +5,13 @@ import {
   Pencil,
   Plus,
   Search,
+  Settings,
   Trash2,
   X,
 } from "lucide-react";
 import Dialog from "../../components/Dialog";
 import ConfirmDeleteDialog from "../../components/ConfirmDeleteDialog";
+import { notifyAdmin } from "../../components/AdminGlobalNotifier";
 import Toast from "../../components/Toast";
 import {
   createMarca,
@@ -33,18 +35,22 @@ const BrandForm: React.FC<FormProps> = ({
   onCancel,
 }) => {
   const [nome, setNome] = useState(initial?.nome ?? "");
-  const [error, setError] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<{ nome?: string }>({});
 
   return (
     <form
       className="space-y-4"
       onSubmit={(e) => {
         e.preventDefault();
+        const nextErrors: { nome?: string } = {};
         if (!nome.trim()) {
-          setError("Informe o nome da marca.");
+          nextErrors.nome = "Nome da marca é obrigatório.";
+        }
+        if (Object.keys(nextErrors).length > 0) {
+          setFieldErrors(nextErrors);
           return;
         }
-        setError("");
+        setFieldErrors({});
         onSubmit({ nome });
       }}
     >
@@ -57,14 +63,22 @@ const BrandForm: React.FC<FormProps> = ({
           value={nome}
           onChange={(e) => {
             setNome(e.target.value);
-            if (error) setError("");
+            if (fieldErrors.nome) {
+              setFieldErrors((prev) => ({ ...prev, nome: undefined }));
+            }
           }}
-          className="w-full px-3 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+          className={`w-full px-3 py-2.5 border rounded-xl transition-all ${
+            fieldErrors.nome
+              ? "border-red-500 focus:ring-2 focus:ring-red-400 focus:border-red-500"
+              : "border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+          }`}
           placeholder="Nome da marca"
           autoFocus
         />
+        {fieldErrors.nome && (
+          <p className="mt-1 text-xs text-red-600">{fieldErrors.nome}</p>
+        )}
       </div>
-      {error && <p className="text-xs text-red-600">{error}</p>}
       <div className="flex justify-end gap-3 pt-2">
         <button
           type="button"
@@ -95,6 +109,10 @@ const BrandManager: React.FC = () => {
   const [editing, setEditing] = useState<Marca | null>(null);
   const [deletingBrand, setDeletingBrand] = useState<Marca | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [openActionMenuId, setOpenActionMenuId] = useState<string | null>(null);
+  const [actionMenuOpenUpId, setActionMenuOpenUpId] = useState<string | null>(
+    null,
+  );
   const [toast, setToast] = useState<{
     msg: string;
     type: "success" | "error";
@@ -121,21 +139,36 @@ const BrandManager: React.FC = () => {
     load();
   }, [load]);
 
+  useEffect(() => {
+    if (!openActionMenuId) return;
+
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (!target.closest("[data-action-menu]")) {
+        setOpenActionMenuId(null);
+        setActionMenuOpenUpId(null);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [openActionMenuId]);
+
   const handleSave = async (data: { nome: string }) => {
     setSaving(true);
     try {
       if (editing) {
         await updateMarca(editing.id, data.nome);
-        setToast({ msg: "Marca atualizada!", type: "success" });
+        notifyAdmin({ message: "Marca atualizada com sucesso." });
       } else {
         await createMarca(data.nome);
-        setToast({ msg: "Marca criada!", type: "success" });
+        notifyAdmin({ message: "Marca criada com sucesso." });
       }
       setIsDialogOpen(false);
       setEditing(null);
       await load();
     } catch {
-      setToast({ msg: "Erro ao salvar marca.", type: "error" });
+      notifyAdmin({ message: "Erro ao salvar marca.", type: "error" });
     } finally {
       setSaving(false);
     }
@@ -232,39 +265,86 @@ const BrandManager: React.FC = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
-              {brands.map((item) => (
-                <tr
-                  key={item.id}
-                  className="hover:bg-gray-50 transition-colors"
-                >
-                  <td className="px-6 py-4 text-sm text-gray-900 font-medium">
-                    {item.nome}
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="flex justify-end gap-2">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setEditing(item);
-                          setIsDialogOpen(true);
-                        }}
-                        className="p-2 text-gray-600 hover:text-indigo-700 hover:bg-indigo-50 rounded-lg transition-colors"
-                        title="Editar"
+              {brands.map((item) => {
+                const shouldOpenUp = actionMenuOpenUpId === item.id;
+                return (
+                  <tr
+                    key={item.id}
+                    className="hover:bg-gray-50 transition-colors"
+                  >
+                    <td className="px-6 py-4 text-sm text-gray-900 font-medium">
+                      {item.nome}
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      <div
+                        className="relative inline-block text-left"
+                        data-action-menu
                       >
-                        <Pencil className="h-4 w-4" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setDeletingBrand(item)}
-                        className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                        title="Excluir"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
+                        <button
+                          type="button"
+                          onClick={(event) => {
+                            const buttonRect =
+                              event.currentTarget.getBoundingClientRect();
+                            const estimatedMenuHeight = 96;
+                            const openUp =
+                              window.innerHeight - buttonRect.bottom <
+                              estimatedMenuHeight;
+
+                            setOpenActionMenuId((prev) => {
+                              if (prev === item.id) {
+                                setActionMenuOpenUpId(null);
+                                return null;
+                              }
+                              setActionMenuOpenUpId(openUp ? item.id : null);
+                              return item.id;
+                            });
+                          }}
+                          className="p-2 text-gray-600 hover:text-indigo-700 hover:bg-indigo-50 rounded-lg transition-colors"
+                          title="Ações"
+                        >
+                          <Settings className="h-4 w-4" />
+                        </button>
+
+                        {openActionMenuId === item.id && (
+                          <div
+                            className={`absolute right-0 w-36 bg-white border border-gray-200 rounded-xl shadow-lg z-20 overflow-hidden animate-fadeIn ${
+                              shouldOpenUp
+                                ? "bottom-full mb-2 origin-bottom-right"
+                                : "top-full mt-2 origin-top-right"
+                            }`}
+                          >
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setOpenActionMenuId(null);
+                                setActionMenuOpenUpId(null);
+                                setEditing(item);
+                                setIsDialogOpen(true);
+                              }}
+                              className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-indigo-50 hover:text-indigo-700 transition-colors"
+                            >
+                              <Pencil className="h-4 w-4" />
+                              Editar
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setOpenActionMenuId(null);
+                                setActionMenuOpenUpId(null);
+                                setDeletingBrand(item);
+                              }}
+                              className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                              Excluir
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         )}

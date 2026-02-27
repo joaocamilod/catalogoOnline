@@ -39,6 +39,7 @@ import {
 import Toast from "../../components/Toast";
 import Dialog from "../../components/Dialog";
 import ConfirmDeleteDialog from "../../components/ConfirmDeleteDialog";
+import { notifyAdmin } from "../../components/AdminGlobalNotifier";
 import type {
   Produto,
   Departamento,
@@ -1609,11 +1610,11 @@ const ProductManager: React.FC = () => {
       if (editing) {
         await updateProduto(editing.id, data);
         produtoId = editing.id;
-        setToast({ msg: "Produto atualizado!", type: "success" });
+        notifyAdmin({ message: "Produto atualizado com sucesso." });
       } else {
         const novo = await createProduto(data as any);
         produtoId = novo.id;
-        setToast({ msg: "Produto criado!", type: "success" });
+        notifyAdmin({ message: "Produto criado com sucesso." });
       }
 
       for (const file of newFiles) {
@@ -1635,8 +1636,8 @@ const ProductManager: React.FC = () => {
       setEditing(null);
       await load(currentPage, debouncedSearch);
     } catch (e: any) {
-      setToast({
-        msg: `Erro: ${e.message ?? "Falha ao salvar"}`,
+      notifyAdmin({
+        message: `Erro ao salvar produto: ${e.message ?? "falha inesperada."}`,
         type: "error",
       });
     } finally {

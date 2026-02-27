@@ -18,6 +18,7 @@ import {
 import Toast from "../../components/Toast";
 import Dialog from "../../components/Dialog";
 import ConfirmDeleteDialog from "../../components/ConfirmDeleteDialog";
+import { notifyAdmin } from "../../components/AdminGlobalNotifier";
 import type { Departamento } from "../../types";
 interface DepartmentFormProps {
   initial?: Partial<Departamento>;
@@ -195,16 +196,16 @@ const DepartmentManager: React.FC = () => {
     try {
       if (editing) {
         await updateDepartamento(editing.id, data.descricao, data.ativo);
-        setToast({ msg: "Departamento atualizado!", type: "success" });
+        notifyAdmin({ message: "Departamento atualizado com sucesso." });
       } else {
         await createDepartamento(data.descricao, data.ativo);
-        setToast({ msg: "Departamento criado!", type: "success" });
+        notifyAdmin({ message: "Departamento criado com sucesso." });
       }
       setIsDialogOpen(false);
       setEditing(null);
       await load(currentPage, debouncedSearch);
     } catch (e: any) {
-      setToast({ msg: "Erro ao salvar departamento.", type: "error" });
+      notifyAdmin({ message: "Erro ao salvar departamento.", type: "error" });
     } finally {
       setSaving(false);
     }

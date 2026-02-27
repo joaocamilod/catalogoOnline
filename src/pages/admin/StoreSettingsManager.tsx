@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { updateStoreSettings, type StoreSettings } from "../../lib/supabase";
+import { notifyAdmin } from "../../components/AdminGlobalNotifier";
 
 interface StoreSettingsManagerProps {
   storeSettings: StoreSettings;
@@ -13,6 +14,10 @@ const StoreSettingsManager: React.FC<StoreSettingsManagerProps> = ({
   const [draftSettings, setDraftSettings] = useState(storeSettings);
   const [isSavingSettings, setIsSavingSettings] = useState(false);
   const [settingsFeedback, setSettingsFeedback] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<{
+    nome_loja?: string;
+    footer_descricao?: string;
+  }>({});
 
   useEffect(() => {
     setDraftSettings(storeSettings);
@@ -23,6 +28,23 @@ const StoreSettingsManager: React.FC<StoreSettingsManagerProps> = ({
   ) => {
     event.preventDefault();
     setSettingsFeedback(null);
+
+    const nextErrors: {
+      nome_loja?: string;
+      footer_descricao?: string;
+    } = {};
+    if (!draftSettings.nome_loja.trim()) {
+      nextErrors.nome_loja = "Nome da loja é obrigatório.";
+    }
+    if (!draftSettings.footer_descricao.trim()) {
+      nextErrors.footer_descricao = "Descrição é obrigatória.";
+    }
+    if (Object.keys(nextErrors).length > 0) {
+      setFieldErrors(nextErrors);
+      return;
+    }
+
+    setFieldErrors({});
     setIsSavingSettings(true);
 
     try {
@@ -30,10 +52,19 @@ const StoreSettingsManager: React.FC<StoreSettingsManagerProps> = ({
       onStoreSettingsChange(updatedSettings);
       setDraftSettings(updatedSettings);
       setSettingsFeedback("Configurações da loja atualizadas com sucesso.");
+      notifyAdmin({
+        message: "Configurações da loja atualizadas com sucesso.",
+        type: "success",
+      });
     } catch (error: any) {
       setSettingsFeedback(
         error?.message || "Nao foi possivel salvar as configurações da loja.",
       );
+      notifyAdmin({
+        message:
+          error?.message || "Não foi possível salvar as configurações da loja.",
+        type: "error",
+      });
     } finally {
       setIsSavingSettings(false);
     }
@@ -54,22 +85,32 @@ const StoreSettingsManager: React.FC<StoreSettingsManagerProps> = ({
             htmlFor="nome-loja"
             className="block text-sm font-medium text-gray-700 mb-1"
           >
-            Nome da loja
+            Nome da loja *
           </label>
           <input
             id="nome-loja"
             type="text"
             value={draftSettings.nome_loja}
-            onChange={(e) =>
+            onChange={(e) => {
               setDraftSettings((prev) => ({
                 ...prev,
                 nome_loja: e.target.value,
-              }))
-            }
+              }));
+              if (fieldErrors.nome_loja) {
+                setFieldErrors((prev) => ({ ...prev, nome_loja: undefined }));
+              }
+            }}
             placeholder="Ex.: Loja do Joao"
-            className="w-full px-3 py-2.5 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+            className={`w-full px-3 py-2.5 rounded-xl border transition-all ${
+              fieldErrors.nome_loja
+                ? "border-red-500 focus:outline-none focus:ring-2 focus:ring-red-400 focus:border-red-500"
+                : "border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+            }`}
             maxLength={80}
           />
+          {fieldErrors.nome_loja && (
+            <p className="mt-1 text-xs text-red-600">{fieldErrors.nome_loja}</p>
+          )}
         </div>
 
         <div>
@@ -77,22 +118,37 @@ const StoreSettingsManager: React.FC<StoreSettingsManagerProps> = ({
             htmlFor="footer-descricao"
             className="block text-sm font-medium text-gray-700 mb-1"
           >
-            Descrição
+            Descrição *
           </label>
           <textarea
             id="footer-descricao"
             value={draftSettings.footer_descricao}
-            onChange={(e) =>
+            onChange={(e) => {
               setDraftSettings((prev) => ({
                 ...prev,
                 footer_descricao: e.target.value,
-              }))
-            }
+              }));
+              if (fieldErrors.footer_descricao) {
+                setFieldErrors((prev) => ({
+                  ...prev,
+                  footer_descricao: undefined,
+                }));
+              }
+            }}
             placeholder="Texto principal exibido no footer"
-            className="w-full px-3 py-2.5 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+            className={`w-full px-3 py-2.5 rounded-xl border transition-all ${
+              fieldErrors.footer_descricao
+                ? "border-red-500 focus:outline-none focus:ring-2 focus:ring-red-400 focus:border-red-500"
+                : "border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+            }`}
             rows={3}
             maxLength={350}
           />
+          {fieldErrors.footer_descricao && (
+            <p className="mt-1 text-xs text-red-600">
+              {fieldErrors.footer_descricao}
+            </p>
+          )}
         </div>
 
         <div>
