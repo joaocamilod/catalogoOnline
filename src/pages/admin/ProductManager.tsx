@@ -1617,20 +1617,20 @@ const ProductManager: React.FC = () => {
         notifyAdmin({ message: "Produto criado com sucesso." });
       }
 
-      for (const file of newFiles) {
-        const url = await uploadImagemProduto(file, produtoId);
-        await addImagemProduto(produtoId, url, false);
-      }
+      await Promise.all(
+        newFiles.map(async (file) => {
+          const url = await uploadImagemProduto(file, produtoId);
+          await addImagemProduto(produtoId, url, false);
+        }),
+      );
 
-      for (const imgId of removedImageIds) {
-        await deleteImagemProduto(imgId);
-        const img = editing?.imagens?.find((i) => i.id === imgId);
-        if (img?.url) await deleteImagemStorage(img.url).catch(() => {});
-      }
-
-      if (newFiles.length > 0 && !editing?.imagens?.length) {
-        const { produtos } = await fetchTodosProdutos(1, 1, "");
-      }
+      await Promise.all(
+        removedImageIds.map(async (imgId) => {
+          await deleteImagemProduto(imgId);
+          const img = editing?.imagens?.find((i) => i.id === imgId);
+          if (img?.url) await deleteImagemStorage(img.url).catch(() => {});
+        }),
+      );
 
       setIsDialogOpen(false);
       setEditing(null);

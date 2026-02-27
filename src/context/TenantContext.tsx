@@ -24,6 +24,8 @@ const TenantContext = createContext<TenantContextValue>({
   notFound: false,
 });
 
+const TENANT_CACHE_PREFIX = "tenant:slug:";
+
 function extractSlugFromPath(pathname: string): string | null {
   const parts = pathname.split("/").filter(Boolean);
   if (parts.length === 0) return null;
@@ -70,11 +72,31 @@ export const TenantProvider: React.FC<{ children: React.ReactNode }> = ({
       setLoading(true);
       setNotFound(false);
       try {
+        const cacheKey = `${TENANT_CACHE_PREFIX}${slug}`;
+        const cached =
+          typeof window !== "undefined" ? sessionStorage.getItem(cacheKey) : null;
+        if (cached) {
+          const parsed = JSON.parse(cached) as { id: string; nome: string };
+          if (active) {
+            setTenantId(parsed.id);
+            setNome(parsed.nome);
+            setTenantContext(parsed.id);
+            setLoading(false);
+            return;
+          }
+        }
+
         const loja = await fetchLojaBySlug(slug);
         if (!active) return;
         setTenantId(loja.id);
         setNome(loja.nome);
         setTenantContext(loja.id);
+        if (typeof window !== "undefined") {
+          sessionStorage.setItem(
+            cacheKey,
+            JSON.stringify({ id: loja.id, nome: loja.nome }),
+          );
+        }
       } catch (_error) {
         if (!active) return;
         setTenantId(null);

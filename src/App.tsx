@@ -161,6 +161,30 @@ function App() {
     let mounted = true;
     setLoading(true);
 
+    const hydrateUser = async (authUser: any) => {
+      const profile = await fetchProfile(authUser.id);
+      const metadataTenantId =
+        (authUser.user_metadata?.tenant_id as string | undefined) ?? null;
+      const tenantId = profile.tenant_id ?? metadataTenantId;
+      let tenantSlug: string | null = null;
+      if (tenantId) {
+        try {
+          tenantSlug = (await fetchLojaById(tenantId)).slug;
+        } catch (_) {
+          tenantSlug = null;
+        }
+      }
+
+      setUser({
+        id: profile.id,
+        email: profile.email,
+        name: profile.name,
+        role: profile.role,
+        tenant_id: tenantId,
+        tenant_slug: tenantSlug,
+      });
+    };
+
     const applySession = async () => {
       try {
         const session = await getSession();
@@ -170,28 +194,8 @@ function App() {
           return;
         }
 
-        const profile = await fetchProfile(authUser.id);
-        const metadataTenantId =
-          (authUser.user_metadata?.tenant_id as string | undefined) ?? null;
-        const tenantId = profile.tenant_id ?? metadataTenantId;
-        let tenantSlug: string | null = null;
-        if (tenantId) {
-          try {
-            tenantSlug = (await fetchLojaById(tenantId)).slug;
-          } catch (_) {
-            tenantSlug = null;
-          }
-        }
-
         if (mounted) {
-          setUser({
-            id: profile.id,
-            email: profile.email,
-            name: profile.name,
-            role: profile.role,
-            tenant_id: tenantId,
-            tenant_slug: tenantSlug,
-          });
+          await hydrateUser(authUser);
         }
       } catch (_err) {
         if (mounted) logout();
@@ -204,34 +208,19 @@ function App() {
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!mounted) return;
+
+      // Evita flood de requests em cada refresh do token.
+      if (event === "TOKEN_REFRESHED") return;
+
       if (!session?.user) {
         logout();
         return;
       }
 
       try {
-        const profile = await fetchProfile(session.user.id);
-        const metadataTenantId =
-          (session.user.user_metadata?.tenant_id as string | undefined) ?? null;
-        const tenantId = profile.tenant_id ?? metadataTenantId;
-        let tenantSlug: string | null = null;
-        if (tenantId) {
-          try {
-            tenantSlug = (await fetchLojaById(tenantId)).slug;
-          } catch (_) {
-            tenantSlug = null;
-          }
-        }
-        setUser({
-          id: profile.id,
-          email: profile.email,
-          name: profile.name,
-          role: profile.role,
-          tenant_id: tenantId,
-          tenant_slug: tenantSlug,
-        });
+        await hydrateUser(session.user);
       } catch (_err) {
         logout();
       }

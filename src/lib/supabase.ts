@@ -714,7 +714,7 @@ export async function fetchProdutos(
       marca:marcas(id, nome),
       imagens:imagens_produto(*)
     `,
-      { count: "exact" },
+      { count: "planned" },
     )
     .eq("tenant_id", tenantId)
     .eq("ativo", true)
@@ -769,7 +769,7 @@ export async function fetchTodosProdutos(page = 1, limit = 20, search = "") {
       marca:marcas(id, nome),
       imagens:imagens_produto(*)
     `,
-      { count: "exact" },
+      { count: "planned" },
     )
     .eq("tenant_id", tenantId)
     .order("descricao", { ascending: true })
