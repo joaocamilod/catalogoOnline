@@ -1,10 +1,13 @@
 import { useEffect, useRef, useState } from "react";
-import { FaStar, FaShoppingCart, FaCheck, FaEye } from "react-icons/fa";
+import { FaShoppingCart, FaCheck, FaEye } from "react-icons/fa";
 
-const formatBRL = (value) =>
-  new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(
-    Number.isFinite(Number(value)) ? Number(value) : 0,
-  );
+const formatPrice = (value) => {
+  const amount = Number.isFinite(Number(value)) ? Number(value) : 0;
+  return `R$ ${amount.toLocaleString("pt-BR", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`;
+};
 
 const PLACEHOLDER =
   "https://cdn.pixabay.com/photo/2019/04/16/10/35/box-4131401_1280.png";
@@ -27,7 +30,6 @@ function ProductCard({ product, onAddToCart, onProductClick, tema }) {
 
   const outOfStock = product.stock === 0;
   const lowStock = product.stock > 0 && product.stock < 10;
-  const rating = product.rating ?? 5;
   const orderedImages = [...(product.imagens ?? [])].sort((a, b) => {
     const ta = a.created_at ? new Date(a.created_at).getTime() : 0;
     const tb = b.created_at ? new Date(b.created_at).getTime() : 0;
@@ -72,6 +74,9 @@ function ProductCard({ product, onAddToCart, onProductClick, tema }) {
     (Number(product.desconto_pix_percentual ?? 0) > 0
       ? product.price * (1 - Number(product.desconto_pix_percentual ?? 0) / 100)
       : product.price);
+  const stockLabel =
+    product.stock > 0 ? `${product.stock} em estoque` : "Indisponível";
+  const descriptionText = product.description?.trim() || "Sem descrição.";
 
   return (
     <article
@@ -98,7 +103,7 @@ function ProductCard({ product, onAddToCart, onProductClick, tema }) {
         bg-white shadow-sm border border-gray-100
         hover:shadow-xl hover:-translate-y-1.5
         transition-all duration-200
-        overflow-hidden flex flex-col
+        overflow-hidden flex flex-col h-full
         cursor-pointer group
         focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2
         ${!tema ? "rounded-xl hover:border-violet-300 focus-visible:ring-violet-400" : ""}
@@ -151,70 +156,46 @@ function ProductCard({ product, onAddToCart, onProductClick, tema }) {
           </span>
         )}
         {product.category && (
-          <span className="absolute bottom-2 left-2 bg-black/40 text-white text-xs px-2 py-0.5 rounded-full backdrop-blur-sm">
+          <span className="absolute bottom-2 left-2 bg-violet-100 text-violet-700 text-xs font-semibold px-2.5 py-1 rounded-full border border-violet-200">
             {product.category}
           </span>
         )}
       </div>
 
       <div className="flex-1 flex flex-col p-4">
-        <h3 className="text-sm md:text-base font-semibold text-gray-900 line-clamp-2 mb-1 leading-snug group-hover:text-violet-700 transition-colors">
+        <h3 className="text-sm md:text-base font-semibold text-gray-900 line-clamp-3 min-h-[3.9rem] mb-2 leading-snug break-words group-hover:text-violet-700 transition-colors">
           {product.name}
         </h3>
 
-        {product.description ? (
-          <p className="text-xs text-gray-500 line-clamp-2 mb-3 leading-relaxed">
-            {product.description}
+        <div className="flex flex-col gap-0.5 mb-3">
+          {originalPrice > 0 && (
+            <p className="text-xs text-gray-400 line-through">
+              {formatPrice(originalPrice)}
+            </p>
+          )}
+          <span
+            className={`text-xl font-extrabold leading-tight ${!tema ? "text-violet-600" : ""}`}
+            style={tema ? { color: tema.cor_primaria } : undefined}
+          >
+            {formatPrice(product.price)}
+          </span>
+          <p
+            className={`text-xs font-medium ${
+              hasCustomPricing ? "text-green-600" : "text-gray-500"
+            }`}
+          >
+            {formatPrice(pixPrice)} no Pix
           </p>
-        ) : (
-          <div className="mb-3" />
-        )}
-
-        <div
-          className="flex items-center gap-1.5 mb-4"
-          role="img"
-          aria-label={`Avaliação ${rating.toFixed(1)} de 5`}
-        >
-          <div className="flex gap-0.5" aria-hidden="true">
-            {Array.from({ length: 5 }).map((_, i) => (
-              <FaStar
-                key={i}
-                className={`text-xs ${
-                  i < Math.floor(rating) ? "text-amber-400" : "text-gray-200"
-                }`}
-              />
-            ))}
-          </div>
-          <span className="text-xs text-gray-400 font-medium">
-            {rating.toFixed(1)}
+          <span className="text-xs text-gray-400" aria-live="polite">
+            {stockLabel}
           </span>
         </div>
 
-        <div className="mt-auto pt-3 border-t border-gray-100">
-          <div className="flex flex-col gap-0.5 mb-3">
-            {originalPrice > 0 && (
-              <p className="text-xs text-gray-400 line-through">
-                {formatBRL(originalPrice)}
-              </p>
-            )}
-            <span
-              className={`text-xl font-extrabold leading-tight ${!tema ? "text-violet-600" : ""}`}
-              style={tema ? { color: tema.cor_primaria } : undefined}
-            >
-              {formatBRL(product.price)}
-            </span>
-            {hasCustomPricing && (
-              <p className="text-xs text-green-600 font-medium">
-                {formatBRL(pixPrice)} no Pix
-              </p>
-            )}
-            <span className="text-xs text-gray-400">
-              {product.stock > 0
-                ? `${product.stock} em estoque`
-                : "Indisponível"}
-            </span>
-          </div>
+        <p className="text-xs text-gray-500 line-clamp-3 min-h-[3.4rem] mb-3 leading-relaxed">
+          {descriptionText}
+        </p>
 
+        <div className="mt-auto pt-2 border-t border-gray-100">
           <button
             type="button"
             onClick={handleAddToCart}

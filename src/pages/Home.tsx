@@ -32,7 +32,9 @@ interface HomeProps {
 const Home: React.FC<HomeProps> = ({ storeSettings, tema }) => {
   const [produtos, setProdutos] = useState<CatalogProduct[]>([]);
   const [departamentos, setDepartamentos] = useState<Departamento[]>([]);
-  const [subdepartamentos, setSubdepartamentos] = useState<Subdepartamento[]>([]);
+  const [subdepartamentos, setSubdepartamentos] = useState<Subdepartamento[]>(
+    [],
+  );
   const [marcas, setMarcas] = useState<Marca[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -41,7 +43,9 @@ const Home: React.FC<HomeProps> = ({ storeSettings, tema }) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
-  const [selectedSubdepartments, setSelectedSubdepartments] = useState<string[]>([]);
+  const [selectedSubdepartments, setSelectedSubdepartments] = useState<
+    string[]
+  >([]);
   const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 50000]);
   const [sortBy, setSortBy] = useState("name");
@@ -121,7 +125,9 @@ const Home: React.FC<HomeProps> = ({ storeSettings, tema }) => {
       );
     }
     if (selectedBrands.length > 0) {
-      list = list.filter((p) => p.marca_id && selectedBrands.includes(p.marca_id));
+      list = list.filter(
+        (p) => p.marca_id && selectedBrands.includes(p.marca_id),
+      );
     }
     list.sort((a, b) => {
       if (sortBy === "price-asc") return a.price - b.price;
@@ -157,6 +163,11 @@ const Home: React.FC<HomeProps> = ({ storeSettings, tema }) => {
   }, [sidebarSubdepartments]);
 
   const handleAddToCart = (product: CatalogProduct) => addItem(product);
+  const handleBuyNow = (product: CatalogProduct, quantity: number) => {
+    for (let i = 0; i < quantity; i++) addItem(product);
+    setSelectedProduct(null);
+    setIsCartOpen(true);
+  };
   const handleRemoveFromCart = (productId: string) => removeItem(productId);
   const handleUpdateQuantity = (productId: string, qty: number) =>
     updateQuantity(productId, qty);
@@ -211,9 +222,13 @@ const Home: React.FC<HomeProps> = ({ storeSettings, tema }) => {
               </h2>
 
               {loading ? (
-                <span className="text-xs sm:text-sm text-gray-400 flex-shrink-0">Carregando…</span>
+                <span className="text-xs sm:text-sm text-gray-400 flex-shrink-0">
+                  Carregando…
+                </span>
               ) : error ? (
-                <span className="text-xs sm:text-sm text-red-500 flex-shrink-0">{error}</span>
+                <span className="text-xs sm:text-sm text-red-500 flex-shrink-0">
+                  {error}
+                </span>
               ) : (
                 <span className="text-xs sm:text-sm text-gray-500 flex-shrink-0 text-right">
                   {filteredProducts.length}{" "}
@@ -320,6 +335,7 @@ const Home: React.FC<HomeProps> = ({ storeSettings, tema }) => {
           product={selectedProduct}
           onClose={() => setSelectedProduct(null)}
           onAddToCart={handleAddToCart}
+          onBuyNow={handleBuyNow}
           tema={tema}
         />
       )}

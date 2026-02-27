@@ -14,7 +14,6 @@ import {
   Truck,
   ShieldCheck,
   RotateCcw,
-  Ruler,
   Lock,
 } from "lucide-react";
 
@@ -26,18 +25,19 @@ const formatBRL = (v) =>
 const PLACEHOLDER =
   "https://cdn.pixabay.com/photo/2019/04/16/10/35/box-4131401_1280.png";
 
-const SIZES = ["P", "M", "G", "GG", "GGG"]; // mock por enquanto
+// const SIZES = ["P", "M", "G", "GG", "GGG"]; // mock por enquanto
 
 export default function ProductDetailModal({
   product,
   onClose,
   onAddToCart,
+  onBuyNow,
   tema,
 }) {
   const [imgIdx, setImgIdx] = useState(0);
-  const [selectedSize, setSelectedSize] = useState(null);
   const [qty, setQty] = useState(1);
   const [adding, setAdding] = useState(false);
+  const [buyingNow, setBuyingNow] = useState(false);
   const [added, setAdded] = useState(false);
   const [visible, setVisible] = useState(false);
   const touchStartY = useRef(null);
@@ -83,7 +83,7 @@ export default function ProductDetailModal({
   const nextImg = () => setImgIdx((i) => (i + 1) % images.length);
 
   const handleAdd = () => {
-    if (adding || added || outOfStock) return;
+    if (adding || buyingNow || added || outOfStock) return;
     setAdding(true);
     for (let i = 0; i < qty; i++) onAddToCart(product);
     setTimeout(() => {
@@ -94,6 +94,22 @@ export default function ProductDetailModal({
         handleClose();
       }, 1000);
     }, 500);
+  };
+
+  const handleBuyNow = () => {
+    if (adding || buyingNow || added || outOfStock) return;
+    setBuyingNow(true);
+
+    if (onBuyNow) {
+      onBuyNow(product, qty);
+    } else {
+      for (let i = 0; i < qty; i++) onAddToCart(product);
+    }
+
+    setTimeout(() => {
+      setBuyingNow(false);
+      handleClose();
+    }, 250);
   };
 
   const onTouchStart = (e) => {
@@ -378,7 +394,6 @@ export default function ProductDetailModal({
                   {product.name}
                 </h1>
               </div>
-
               <div className="bg-gradient-to-br from-gray-50 to-gray-100/60 rounded-2xl p-5 space-y-2.5 border border-gray-100">
                 {hasPricingDetails && originalPrice > 0 && (
                   <div className="flex items-center gap-2">
@@ -441,7 +456,6 @@ export default function ProductDetailModal({
                   </div>
                 )}
               </div>
-
               {(product.exibir_frete_gratis ||
                 product.exibir_compra_segura ||
                 product.exibir_criptografia_ssl ||
@@ -476,8 +490,9 @@ export default function ProductDetailModal({
                   )}
                 </div>
               )}
-
-              <div>
+              // TODO VARIAÇÕES DE PRODUTO (TAMANHO, COR, ETC) - SEPARAR EM
+              COMPONENTE PRÓPRIO?
+              {/* <div>
                 <div className="flex items-center justify-between mb-3">
                   <span className="text-sm font-bold text-gray-800">
                     Tamanho
@@ -528,8 +543,7 @@ export default function ProductDetailModal({
                     </button>
                   ))}
                 </div>
-              </div>
-
+              </div> */}
               <div className="flex items-center gap-4">
                 <span className="text-sm font-bold text-gray-800">
                   Quantidade:
@@ -558,7 +572,6 @@ export default function ProductDetailModal({
                   </button>
                 </div>
               </div>
-
               <div>
                 <p className={`text-xs font-bold mb-2 ${stockLabelColor}`}>
                   {stockLabel}
@@ -570,10 +583,46 @@ export default function ProductDetailModal({
                   />
                 </div>
               </div>
-
+              <button
+                onClick={handleBuyNow}
+                disabled={outOfStock || adding || buyingNow}
+                className={`
+                  w-full flex items-center justify-center gap-3
+                  py-4 sm:py-5 font-extrabold text-base sm:text-lg
+                  transition-all duration-200 shadow-sm rounded-2xl border-2
+                  focus:outline-none focus:ring-2 focus:ring-offset-2
+                  ${
+                    outOfStock
+                      ? "bg-gray-200 text-gray-400 border-gray-200 cursor-not-allowed"
+                      : !tema
+                        ? "bg-white text-violet-600 border-violet-600 hover:bg-violet-50 hover:shadow-xl hover:-translate-y-0.5 active:scale-95 focus:ring-violet-500"
+                        : "bg-white hover:shadow-xl hover:-translate-y-0.5 active:scale-95"
+                  }
+                `}
+                style={
+                  tema && !outOfStock
+                    ? {
+                        color: tema.botao_bg_de,
+                        borderColor: tema.botao_bg_de,
+                        borderRadius: tema.botao_borda_raio,
+                      }
+                    : undefined
+                }
+              >
+                {buyingNow ? (
+                  <>
+                    <div className="w-5 h-5 border-2 border-white/40 border-t-white rounded-full animate-spin" />{" "}
+                    Redirecionando...
+                  </>
+                ) : (
+                  <>
+                    <CreditCard className="h-5 w-5" /> Comprar Agora
+                  </>
+                )}
+              </button>
               <button
                 onClick={handleAdd}
-                disabled={outOfStock || adding}
+                disabled={outOfStock || adding || buyingNow}
                 className={`
                   w-full flex items-center justify-center gap-3
                   py-4 sm:py-5 font-extrabold text-base sm:text-lg
@@ -617,7 +666,6 @@ export default function ProductDetailModal({
                   </>
                 )}
               </button>
-
               {product.description && (
                 <div className="border-t border-gray-100 pt-5">
                   <h3 className="text-sm font-bold text-gray-800 mb-2 uppercase tracking-wide">
@@ -628,7 +676,6 @@ export default function ProductDetailModal({
                   </p>
                 </div>
               )}
-
               <div className="h-2 sm:h-6" />
             </div>
           </div>

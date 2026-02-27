@@ -26,6 +26,7 @@ function ProductGrid({ products, onAddToCart, onProductClick, tema }) {
         sm:grid-cols-2
         md:grid-cols-3
         lg:grid-cols-4
+        xl:grid-cols-5
         animate-fadeIn
       "
       aria-label={`${products.length} produto${products.length !== 1 ? "s" : ""} encontrado${products.length !== 1 ? "s" : ""}`}
