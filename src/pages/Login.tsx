@@ -1,18 +1,15 @@
 import React, { useState } from "react";
-import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { LogIn, Mail, Lock, ArrowLeft, ShoppingBag } from "lucide-react";
 import { signIn, fetchProfile, fetchLojaById } from "../lib/supabase";
 import { useAuthStore } from "../store/authStore";
 
 const Login: React.FC = () => {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
   const { setUser } = useAuthStore();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [formData, setFormData] = useState({ email: "", password: "" });
-  const slugFromQuery = searchParams.get("slug");
-
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
     setError(null);
@@ -50,7 +47,7 @@ const Login: React.FC = () => {
           tenant_slug: tenantSlug,
         });
 
-        const targetSlug = slugFromQuery || tenantSlug;
+        const targetSlug = tenantSlug;
         if (profile.role === "admin") {
           if (targetSlug) {
             navigate(`/admin/${targetSlug}/produtos`);
@@ -81,7 +78,7 @@ const Login: React.FC = () => {
 
       <div className="w-full max-w-md">
         <button
-          onClick={() => navigate(slugFromQuery ? `/${slugFromQuery}` : "/")}
+          onClick={() => navigate("/")}
           className="mb-6 flex items-center text-gray-500 hover:text-gray-800 transition-colors text-sm"
         >
           <ArrowLeft className="h-4 w-4 mr-1" />

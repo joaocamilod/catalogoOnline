@@ -133,7 +133,13 @@ function Header({
                     </div>
                     {user.role === "admin" && (
                       <Link
-                        to={slug ? `/admin/${slug}/produtos` : "/login"}
+                        to={
+                          slug
+                            ? `/admin/${slug}/produtos`
+                            : user.tenant_slug
+                              ? `/admin/${user.tenant_slug}/produtos`
+                              : "/login"
+                        }
                         onClick={() => setIsUserMenuOpen(false)}
                         className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-indigo-50 hover:text-indigo-700 transition-colors"
                       >
@@ -155,7 +161,7 @@ function Header({
             </div>
           ) : (
             <Link
-              to={slug ? `/login?slug=${slug}` : "/login"}
+              to="/login"
               className="flex items-center gap-2 px-4 py-2 bg-white text-indigo-700 rounded-full text-sm font-semibold hover:bg-indigo-50 transition-colors shadow-sm"
             >
               <User className="h-4 w-4" />

@@ -47,7 +47,7 @@ const NewStore: React.FC = () => {
       setOkMessage(
         "Loja e administrador criados com sucesso. Faça login no painel.",
       );
-      navigate(`/login?slug=${payload.slug}`);
+      navigate("/login");
     } catch (e: any) {
       setError(e?.message || "Erro ao criar loja.");
     } finally {

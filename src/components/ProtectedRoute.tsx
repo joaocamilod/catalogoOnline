@@ -24,8 +24,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   }
 
   if (!user) {
-    const to = slug ? `/login?slug=${slug}` : "/login";
-    return <Navigate to={to} replace />;
+    return <Navigate to="/login" replace />;
   }
 
   if (requiredRole && user.role !== requiredRole) {
