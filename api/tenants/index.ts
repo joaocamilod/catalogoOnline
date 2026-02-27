@@ -38,8 +38,8 @@ export default async function handler(req: any, res: any) {
     return res.status(400).json({ error: lojaError?.message || "Erro ao criar loja" });
   }
 
-  const { data: createdUser, error: userError } = await supabase.auth.admin.createUser(
-    {
+  const { data: createdUser, error: userError } =
+    await supabase.auth.admin.createUser({
       email: normalizedEmail,
       password,
       email_confirm: true,
@@ -48,11 +48,38 @@ export default async function handler(req: any, res: any) {
         tenant_id: loja.id,
         role: "admin",
       },
-    },
-  );
+    });
 
-  if (userError || !createdUser?.user) {
-    // rollback para não deixar loja órfã
+  let adminUser = createdUser?.user ?? null;
+
+  if (userError && userError.message.includes("already been registered")) {
+    // O e-mail já existe no Auth: reutiliza o usuário existente.
+    const { data: usersData, error: listError } = await supabase.auth.admin.listUsers(
+      {
+        page: 1,
+        perPage: 1000,
+      },
+    );
+    if (listError) {
+      await supabase.from("lojas").delete().eq("id", loja.id);
+      return res.status(400).json({
+        error: "E-mail já cadastrado no Auth, mas falhou ao localizar usuário.",
+      });
+    }
+
+    adminUser =
+      usersData.users.find(
+        (user) => user.email?.toLowerCase() === normalizedEmail,
+      ) ?? null;
+
+    if (!adminUser) {
+      await supabase.from("lojas").delete().eq("id", loja.id);
+      return res.status(400).json({
+        error:
+          "E-mail já cadastrado no Auth, mas usuário não foi localizado. Tente outro e-mail.",
+      });
+    }
+  } else if (userError || !adminUser) {
     await supabase.from("lojas").delete().eq("id", loja.id);
     return res
       .status(400)
@@ -61,7 +88,7 @@ export default async function handler(req: any, res: any) {
 
   const { error: profileError } = await supabase.from("profiles").upsert(
     {
-      id: createdUser.user.id,
+      id: adminUser.id,
       email: normalizedEmail,
       name: "Administrador",
       role: "admin",
@@ -80,6 +107,6 @@ export default async function handler(req: any, res: any) {
     id: loja.id,
     slug: loja.slug,
     nome: loja.nome,
-    adminUserId: createdUser.user.id,
+    adminUserId: adminUser.id,
   });
 }
