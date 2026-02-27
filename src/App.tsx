@@ -208,10 +208,9 @@ function App() {
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, session) => {
+    } = supabase.auth.onAuthStateChange((event, session) => {
       if (!mounted) return;
 
-      // Evita flood de requests em cada refresh do token.
       if (event === "TOKEN_REFRESHED") return;
 
       if (!session?.user) {
@@ -219,11 +218,14 @@ function App() {
         return;
       }
 
-      try {
-        await hydrateUser(session.user);
-      } catch (_err) {
-        logout();
-      }
+      Promise.resolve().then(async () => {
+        if (!mounted) return;
+        try {
+          await hydrateUser(session.user);
+        } catch (_err) {
+          if (mounted) logout();
+        }
+      });
     });
 
     return () => {

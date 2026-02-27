@@ -9,9 +9,46 @@ if (!supabaseUrl || !supabaseAnonKey) {
   );
 }
 
+const _lockHeld = new Set<string>();
+const _lockQueue = new Map<string, Array<() => void>>();
+
+function inMemoryLock<R>(
+  name: string,
+  _acquireTimeout: number,
+  fn: () => Promise<R>,
+): Promise<R> {
+  return new Promise<R>((resolve, reject) => {
+    const tryRun = () => {
+      if (_lockHeld.has(name)) {
+        if (!_lockQueue.has(name)) _lockQueue.set(name, []);
+        _lockQueue.get(name)!.push(tryRun);
+        return;
+      }
+      _lockHeld.add(name);
+      fn()
+        .then(resolve, reject)
+        .finally(() => {
+          _lockHeld.delete(name);
+          const next = _lockQueue.get(name)?.shift();
+          if (next) {
+            next();
+          } else {
+            _lockQueue.delete(name);
+          }
+        });
+    };
+    tryRun();
+  });
+}
+
 export const supabase = createClient(
   supabaseUrl || "https://placeholder.supabase.co",
   supabaseAnonKey || "placeholder-key",
+  {
+    auth: {
+      lock: inMemoryLock,
+    },
+  },
 );
 
 let activeTenantId: string | null = null;
