@@ -16,20 +16,70 @@ export default async function handler(req: any, res: any) {
     return res.status(405).json({ error: "Método não permitido" });
   }
 
-  const { slug, nome } = req.body || {};
-  if (!slug || !nome) {
-    return res.status(400).json({ error: "slug e nome são obrigatórios" });
+  const { slug, nome, adminEmail, adminPassword } = req.body || {};
+  if (!slug || !nome || !adminEmail || !adminPassword) {
+    return res.status(400).json({
+      error: "slug, nome, adminEmail e adminPassword são obrigatórios",
+    });
   }
 
-  const { data, error } = await supabase
+  const normalizedSlug = String(slug).toLowerCase().trim();
+  const normalizedName = String(nome).trim();
+  const normalizedEmail = String(adminEmail).trim().toLowerCase();
+  const password = String(adminPassword);
+
+  const { data: loja, error: lojaError } = await supabase
     .from("lojas")
-    .insert({ slug: String(slug).toLowerCase().trim(), nome: String(nome).trim() })
+    .insert({ slug: normalizedSlug, nome: normalizedName })
     .select("id, slug, nome")
     .single();
 
-  if (error) {
-    return res.status(400).json({ error: error.message });
+  if (lojaError || !loja) {
+    return res.status(400).json({ error: lojaError?.message || "Erro ao criar loja" });
   }
 
-  return res.status(201).json(data);
+  const { data: createdUser, error: userError } = await supabase.auth.admin.createUser(
+    {
+      email: normalizedEmail,
+      password,
+      email_confirm: true,
+      user_metadata: {
+        name: "Administrador",
+        tenant_id: loja.id,
+        role: "admin",
+      },
+    },
+  );
+
+  if (userError || !createdUser?.user) {
+    // rollback para não deixar loja órfã
+    await supabase.from("lojas").delete().eq("id", loja.id);
+    return res
+      .status(400)
+      .json({ error: userError?.message || "Erro ao criar usuário admin" });
+  }
+
+  const { error: profileError } = await supabase.from("profiles").upsert(
+    {
+      id: createdUser.user.id,
+      email: normalizedEmail,
+      name: "Administrador",
+      role: "admin",
+      tenant_id: loja.id,
+    },
+    { onConflict: "id" },
+  );
+
+  if (profileError) {
+    return res.status(500).json({
+      error: "Usuário criado, mas falhou ao criar profile. Verifique trigger/RLS.",
+    });
+  }
+
+  return res.status(201).json({
+    id: loja.id,
+    slug: loja.slug,
+    nome: loja.nome,
+    adminUserId: createdUser.user.id,
+  });
 }

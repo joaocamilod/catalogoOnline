@@ -1,6 +1,5 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { createLoja, signUp } from "../lib/supabase";
 
 const slugPattern = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
@@ -27,13 +26,28 @@ const NewStore: React.FC = () => {
 
     setLoading(true);
     try {
-      const loja = await createLoja({ nome, slug: normalizedSlug });
+      const response = await fetch("/api/tenants", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          slug: normalizedSlug,
+          nome,
+          adminEmail: emailAdmin,
+          adminPassword: senhaAdmin,
+        }),
+      });
 
-      await signUp(emailAdmin, senhaAdmin, "Administrador", loja.id, "admin");
+      const payload = await response.json();
+      if (!response.ok) {
+        throw new Error(
+          payload?.error || "Erro ao criar loja e administrador.",
+        );
+      }
+
       setOkMessage(
-        "Loja criada com sucesso. Confirme o e-mail do admin e entre no painel da loja.",
+        "Loja e administrador criados com sucesso. Faça login no painel.",
       );
-      navigate(`/admin/${loja.slug}`);
+      navigate(`/login?slug=${payload.slug}`);
     } catch (e: any) {
       setError(e?.message || "Erro ao criar loja.");
     } finally {
