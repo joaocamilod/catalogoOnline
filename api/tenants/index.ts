@@ -1,16 +1,23 @@
 import { createClient } from "@supabase/supabase-js";
 
-const env = ((globalThis as any).process?.env ?? {}) as Record<string, string | undefined>;
+const env = ((globalThis as any).process?.env ?? {}) as Record<
+  string,
+  string | undefined
+>;
 const supabaseUrl = env.VITE_SUPABASE_URL || env.SUPABASE_URL;
-const supabaseServiceKey =
-  env.SUPABASE_SERVICE_ROLE_KEY || env.VITE_SUPABASE_ANON_KEY;
+const supabaseServiceKey = env.SUPABASE_SERVICE_ROLE_KEY;
 
 export default async function handler(req: any, res: any) {
   if (!supabaseUrl || !supabaseServiceKey) {
-    return res.status(500).json({ error: "Supabase não configurado" });
+    return res.status(500).json({
+      error:
+        "Variável SUPABASE_SERVICE_ROLE_KEY não configurada no servidor. Configure-a nas variáveis de ambiente do Vercel.",
+    });
   }
 
-  const supabase = createClient(supabaseUrl, supabaseServiceKey);
+  const supabase = createClient(supabaseUrl, supabaseServiceKey, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
 
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Método não permitido" });
@@ -35,7 +42,9 @@ export default async function handler(req: any, res: any) {
     .single();
 
   if (lojaError || !loja) {
-    return res.status(400).json({ error: lojaError?.message || "Erro ao criar loja" });
+    return res
+      .status(400)
+      .json({ error: lojaError?.message || "Erro ao criar loja" });
   }
 
   const { data: createdUser, error: userError } =
@@ -53,13 +62,11 @@ export default async function handler(req: any, res: any) {
   let adminUser = createdUser?.user ?? null;
 
   if (userError && userError.message.includes("already been registered")) {
-    // O e-mail já existe no Auth: reutiliza o usuário existente.
-    const { data: usersData, error: listError } = await supabase.auth.admin.listUsers(
-      {
+    const { data: usersData, error: listError } =
+      await supabase.auth.admin.listUsers({
         page: 1,
         perPage: 1000,
-      },
-    );
+      });
     if (listError) {
       await supabase.from("lojas").delete().eq("id", loja.id);
       return res.status(400).json({
@@ -86,6 +93,10 @@ export default async function handler(req: any, res: any) {
       .json({ error: userError?.message || "Erro ao criar usuário admin" });
   }
 
+  await supabase.auth.admin.updateUserById(adminUser.id, {
+    email_confirm: true,
+  });
+
   const { error: profileError } = await supabase.from("profiles").upsert(
     {
       id: adminUser.id,
@@ -99,7 +110,8 @@ export default async function handler(req: any, res: any) {
 
   if (profileError) {
     return res.status(500).json({
-      error: "Usuário criado, mas falhou ao criar profile. Verifique trigger/RLS.",
+      error:
+        "Usuário criado, mas falhou ao criar profile. Verifique trigger/RLS.",
     });
   }
 

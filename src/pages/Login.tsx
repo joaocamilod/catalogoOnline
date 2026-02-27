@@ -63,7 +63,22 @@ const Login: React.FC = () => {
         }
       }
     } catch (_err: any) {
-      setError("E-mail ou senha incorretos. Verifique seus dados.");
+      const msg: string = _err?.message ?? "";
+      if (
+        msg.includes("Email not confirmed") ||
+        msg.includes("email_not_confirmed")
+      ) {
+        setError(
+          "E-mail não confirmado. Entre em contato com o administrador do sistema para ativar sua conta.",
+        );
+      } else if (
+        msg.includes("Invalid login credentials") ||
+        msg.includes("invalid_credentials")
+      ) {
+        setError("E-mail ou senha incorretos. Verifique seus dados.");
+      } else {
+        setError("Erro ao fazer login. Tente novamente.");
+      }
     } finally {
       setIsLoading(false);
     }
