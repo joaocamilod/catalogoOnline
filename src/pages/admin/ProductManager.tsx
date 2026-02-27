@@ -2022,7 +2022,7 @@ const ProductManager: React.FC = () => {
           setEditing(null);
         }}
         title={editing ? "Editar Produto" : "Novo Produto"}
-        maxWidth="max-w-5xl"
+        maxWidth="max-w-2xl"
         mobileFullscreen
       >
         <ProductForm
