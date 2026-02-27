@@ -103,18 +103,25 @@ $$;
 
 ALTER TABLE public.lojas ENABLE ROW LEVEL SECURITY;
 
+-- Evita recursão de políticas: função SECURITY DEFINER busca tenant do usuário.
+CREATE OR REPLACE FUNCTION public.current_tenant_id()
+RETURNS uuid
+LANGUAGE sql
+SECURITY DEFINER
+STABLE
+SET search_path = public
+AS $$
+  SELECT tenant_id
+  FROM public.profiles
+  WHERE id = auth.uid()
+  LIMIT 1;
+$$;
+
 DROP POLICY IF EXISTS "Leitura de lojas por tenant do usuário" ON public.lojas;
 CREATE POLICY "Leitura de lojas por tenant do usuário"
   ON public.lojas
   FOR SELECT
-  USING (
-    EXISTS (
-      SELECT 1
-      FROM public.profiles p
-      WHERE p.id = auth.uid()
-        AND p.tenant_id = lojas.id
-    )
-  );
+  USING (id = public.current_tenant_id());
 
 DROP POLICY IF EXISTS "Admin cria lojas" ON public.lojas;
 CREATE POLICY "Admin cria lojas"
@@ -127,24 +134,17 @@ CREATE POLICY "Leitura por tenant (profiles)"
   ON public.profiles
   FOR SELECT
   USING (
-    tenant_id = (
-      SELECT tenant_id FROM public.profiles WHERE id = auth.uid()
-    )
+    id = auth.uid()
+    OR (public.is_admin() AND tenant_id = public.current_tenant_id())
   );
 
 DROP POLICY IF EXISTS "Atualização por tenant (profiles)" ON public.profiles;
 CREATE POLICY "Atualização por tenant (profiles)"
   ON public.profiles
   FOR UPDATE
-  USING (
-    tenant_id = (
-      SELECT tenant_id FROM public.profiles WHERE id = auth.uid()
-    )
-  )
+  USING (id = auth.uid() OR (public.is_admin() AND tenant_id = public.current_tenant_id()))
   WITH CHECK (
-    tenant_id = (
-      SELECT tenant_id FROM public.profiles WHERE id = auth.uid()
-    )
+    id = auth.uid() OR (public.is_admin() AND tenant_id = public.current_tenant_id())
   );
 
 DROP POLICY IF EXISTS "Leitura pública de produtos no catálogo" ON public.produtos;
@@ -154,9 +154,7 @@ CREATE POLICY "tenant_select_produtos"
   ON public.produtos
   FOR SELECT
   USING (
-    tenant_id = (
-      SELECT tenant_id FROM public.profiles WHERE id = auth.uid()
-    )
+    tenant_id = public.current_tenant_id()
     OR (ativo = true AND exibircatalogo = true)
   );
 
@@ -164,9 +162,7 @@ CREATE POLICY "tenant_insert_produtos"
   ON public.produtos
   FOR INSERT
   WITH CHECK (
-    tenant_id = (
-      SELECT tenant_id FROM public.profiles WHERE id = auth.uid()
-    )
+    tenant_id = public.current_tenant_id()
     AND public.is_admin()
   );
 
@@ -174,15 +170,11 @@ CREATE POLICY "tenant_update_produtos"
   ON public.produtos
   FOR UPDATE
   USING (
-    tenant_id = (
-      SELECT tenant_id FROM public.profiles WHERE id = auth.uid()
-    )
+    tenant_id = public.current_tenant_id()
     AND public.is_admin()
   )
   WITH CHECK (
-    tenant_id = (
-      SELECT tenant_id FROM public.profiles WHERE id = auth.uid()
-    )
+    tenant_id = public.current_tenant_id()
     AND public.is_admin()
   );
 
@@ -190,8 +182,6 @@ CREATE POLICY "tenant_delete_produtos"
   ON public.produtos
   FOR DELETE
   USING (
-    tenant_id = (
-      SELECT tenant_id FROM public.profiles WHERE id = auth.uid()
-    )
+    tenant_id = public.current_tenant_id()
     AND public.is_admin()
   );

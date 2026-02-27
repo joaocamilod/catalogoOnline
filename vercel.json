@@ -10,6 +10,10 @@
       "has": [{ "type": "host", "value": "(?<slug>[^.]+)\\..+" }],
       "source": "/admin",
       "destination": "/admin/:slug"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
     }
   ]
 }
