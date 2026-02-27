@@ -57,6 +57,12 @@ function FilterSidebar({
   categories: categoriesProp,
   selectedCategory,
   onCategoryChange,
+  subdepartments = [],
+  selectedSubdepartments = [],
+  onSubdepartmentsChange = (_value) => {},
+  brands = [],
+  selectedBrands = [],
+  onBrandsChange = (_value) => {},
   priceRange,
   onPriceRangeChange,
   sortBy,
@@ -169,6 +175,75 @@ function FilterSidebar({
         </div>
 
         <div className="filter-section">
+          <h3 className="filter-title">Subdepartamentos</h3>
+          {subdepartments.length === 0 ? (
+            <p className="filter-empty-state">
+              Sem subdepartamentos para este filtro.
+            </p>
+          ) : (
+            <div className="checkbox-filter-list">
+              {subdepartments.map((item) => {
+                const checked = selectedSubdepartments.includes(item.id);
+                return (
+                  <label key={item.id} className="checkbox-filter-item">
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      onChange={() => {
+                        if (checked) {
+                          onSubdepartmentsChange(
+                            selectedSubdepartments.filter(
+                              (id) => id !== item.id,
+                            ),
+                          );
+                        } else {
+                          onSubdepartmentsChange([
+                            ...selectedSubdepartments,
+                            item.id,
+                          ]);
+                        }
+                      }}
+                    />
+                    <span>{item.nome}</span>
+                  </label>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        <div className="filter-section">
+          <h3 className="filter-title">Marcas</h3>
+          {brands.length === 0 ? (
+            <p className="filter-empty-state">Sem marcas cadastradas.</p>
+          ) : (
+            <div className="checkbox-filter-list">
+              {brands.map((item) => {
+                const checked = selectedBrands.includes(item.id);
+                return (
+                  <label key={item.id} className="checkbox-filter-item">
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      onChange={() => {
+                        if (checked) {
+                          onBrandsChange(
+                            selectedBrands.filter((id) => id !== item.id),
+                          );
+                        } else {
+                          onBrandsChange([...selectedBrands, item.id]);
+                        }
+                      }}
+                    />
+                    <span>{item.nome}</span>
+                  </label>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        <div className="filter-section">
           <h3 className="filter-title">Faixa de Preço</h3>
           <div className="price-range-inputs">
             <input
@@ -206,6 +281,8 @@ function FilterSidebar({
           className="reset-filters-btn"
           onClick={() => {
             onCategoryChange("all");
+            onSubdepartmentsChange([]);
+            onBrandsChange([]);
             onPriceRangeChange([0, 50000]);
             onSortChange("name");
           }}

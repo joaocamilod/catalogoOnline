@@ -16,6 +16,10 @@ const Register = lazy(() => import("./pages/Register"));
 const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard"));
 const ProductManager = lazy(() => import("./pages/admin/ProductManager"));
 const DepartmentManager = lazy(() => import("./pages/admin/DepartmentManager"));
+const SubdepartmentManager = lazy(
+  () => import("./pages/admin/SubdepartmentManager"),
+);
+const BrandManager = lazy(() => import("./pages/admin/BrandManager"));
 const SellerManager = lazy(() => import("./pages/admin/SellerManager"));
 const StoreSettingsManager = lazy(
   () => import("./pages/admin/StoreSettingsManager"),
@@ -109,6 +113,8 @@ function App() {
             <Route index element={<Navigate to="/admin/produtos" replace />} />
             <Route path="produtos" element={<ProductManager />} />
             <Route path="departamentos" element={<DepartmentManager />} />
+            <Route path="subdepartamentos" element={<SubdepartmentManager />} />
+            <Route path="marcas" element={<BrandManager />} />
             <Route path="vendedores" element={<SellerManager />} />
             <Route path="temas" element={<ThemeManager />} />
             <Route

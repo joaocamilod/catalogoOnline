@@ -283,6 +283,34 @@
   box-sizing: border-box;
 }
 
+.checkbox-filter-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.checkbox-filter-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  color: var(--text-primary);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 0.6rem 0.75rem;
+}
+
+.checkbox-filter-item input {
+  accent-color: var(--primary-color);
+}
+
+.filter-empty-state {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+}
+
 .reset-filters-btn {
   padding: 1rem;
   background: var(--bg-secondary);

@@ -121,6 +121,317 @@ export async function fetchAllDepartamentos() {
   return data ?? [];
 }
 
+export async function fetchDepartamentosComProdutos() {
+  const { data, error } = await supabase
+    .from("departamentos")
+    .select("id, descricao, ativo, produtos!inner(id)")
+    .eq("ativo", true)
+    .eq("produtos.ativo", true)
+    .eq("produtos.exibircatalogo", true)
+    .order("descricao", { ascending: true });
+
+  if (error) throw error;
+  const unique = new Map<string, { id: string; descricao: string; ativo: boolean }>();
+  for (const row of data ?? []) {
+    unique.set((row as any).id, {
+      id: (row as any).id,
+      descricao: (row as any).descricao,
+      ativo: (row as any).ativo ?? true,
+    });
+  }
+  return [...unique.values()];
+}
+
+async function attachDepartamentosToSubdepartamentos<
+  T extends { id: string; nome: string; created_at?: string },
+>(subdepartamentos: T[]) {
+  if (subdepartamentos.length === 0) {
+    return [] as Array<
+      T & {
+        departamento_ids: string[];
+        departamentos: { id: string; descricao: string; ativo: boolean }[];
+      }
+    >;
+  }
+
+  const ids = subdepartamentos.map((item) => item.id);
+  const { data: links, error } = await supabase
+    .from("subdepartamentos_departamentos")
+    .select("subdepartamento_id, departamento:departamentos(id, descricao, ativo)")
+    .in("subdepartamento_id", ids);
+
+  if (error) throw error;
+
+  const bySubdepId = new Map<
+    string,
+    {
+      departamento_ids: string[];
+      departamentos: { id: string; descricao: string; ativo: boolean }[];
+    }
+  >();
+
+  for (const link of links ?? []) {
+    const subId = (link as any).subdepartamento_id as string;
+    const dep = (link as any).departamento as {
+      id: string;
+      descricao: string;
+      ativo?: boolean;
+    } | null;
+    if (!dep) continue;
+
+    if (!bySubdepId.has(subId)) {
+      bySubdepId.set(subId, { departamento_ids: [], departamentos: [] });
+    }
+
+    bySubdepId.get(subId)!.departamento_ids.push(dep.id);
+    bySubdepId.get(subId)!.departamentos.push({
+      id: dep.id,
+      descricao: dep.descricao,
+      ativo: dep.ativo ?? true,
+    });
+  }
+
+  return subdepartamentos.map((item) => {
+    const rel = bySubdepId.get(item.id) ?? {
+      departamento_ids: [],
+      departamentos: [],
+    };
+    return { ...item, ...rel };
+  });
+}
+
+export async function fetchSubdepartamentos(
+  page = 1,
+  limit = 20,
+  search = "",
+  departamentoId = "",
+) {
+  let query = supabase
+    .from("subdepartamentos")
+    .select("*", { count: "exact" })
+    .order("nome", { ascending: true })
+    .range((page - 1) * limit, page * limit - 1);
+
+  if (search.trim()) {
+    query = query.ilike("nome", `%${search.trim()}%`);
+  }
+  if (departamentoId) {
+    const { data: links, error: linksError } = await supabase
+      .from("subdepartamentos_departamentos")
+      .select("subdepartamento_id")
+      .eq("departamento_id", departamentoId);
+    if (linksError) throw linksError;
+
+    const ids = [
+      ...new Set((links ?? []).map((item: any) => item.subdepartamento_id)),
+    ];
+    if (ids.length === 0) {
+      return { subdepartamentos: [], totalPages: 1 };
+    }
+    query = query.in("id", ids);
+  }
+
+  const { data, count, error } = await query;
+  if (error) throw error;
+  const enriched = await attachDepartamentosToSubdepartamentos(data ?? []);
+  return {
+    subdepartamentos: enriched,
+    totalPages: Math.ceil((count ?? 0) / limit),
+  };
+}
+
+export async function fetchAllSubdepartamentos(departamentoId = "") {
+  let query = supabase
+    .from("subdepartamentos")
+    .select("*")
+    .order("nome", { ascending: true });
+
+  if (departamentoId) {
+    const { data: links, error: linksError } = await supabase
+      .from("subdepartamentos_departamentos")
+      .select("subdepartamento_id")
+      .eq("departamento_id", departamentoId);
+    if (linksError) throw linksError;
+
+    const ids = [
+      ...new Set((links ?? []).map((item: any) => item.subdepartamento_id)),
+    ];
+    if (ids.length === 0) return [];
+    query = query.in("id", ids);
+  }
+
+  const { data, error } = await query;
+  if (error) throw error;
+  return attachDepartamentosToSubdepartamentos(data ?? []);
+}
+
+export async function fetchSubdepartamentosComProdutos() {
+  const { data, error } = await supabase
+    .from("subdepartamentos")
+    .select("id, nome, produtos!inner(id)")
+    .eq("produtos.ativo", true)
+    .eq("produtos.exibircatalogo", true)
+    .order("nome", { ascending: true });
+
+  if (error) throw error;
+  const unique = new Map<string, { id: string; nome: string }>();
+  for (const row of data ?? []) {
+    unique.set((row as any).id, {
+      id: (row as any).id,
+      nome: (row as any).nome,
+    });
+  }
+  const normalized = [...unique.values()];
+  return attachDepartamentosToSubdepartamentos(normalized);
+}
+
+export async function createSubdepartamento(
+  nome: string,
+  departamentoIds: string[],
+) {
+  const uniqueDepartamentoIds = [...new Set(departamentoIds.filter(Boolean))];
+  if (uniqueDepartamentoIds.length === 0) {
+    throw new Error("Informe ao menos um departamento.");
+  }
+
+  const { data, error } = await supabase
+    .from("subdepartamentos")
+    .insert({ nome: nome.trim() })
+    .select()
+    .single();
+  if (error) throw error;
+
+  const { error: linksError } = await supabase
+    .from("subdepartamentos_departamentos")
+    .insert(
+      uniqueDepartamentoIds.map((departamentoId) => ({
+        subdepartamento_id: data.id,
+        departamento_id: departamentoId,
+      })),
+    );
+  if (linksError) throw linksError;
+
+  return data;
+}
+
+export async function updateSubdepartamento(
+  id: string,
+  nome: string,
+  departamentoIds: string[],
+) {
+  const uniqueDepartamentoIds = [...new Set(departamentoIds.filter(Boolean))];
+  if (uniqueDepartamentoIds.length === 0) {
+    throw new Error("Informe ao menos um departamento.");
+  }
+
+  const { data, error } = await supabase
+    .from("subdepartamentos")
+    .update({ nome: nome.trim() })
+    .eq("id", id)
+    .select()
+    .single();
+  if (error) throw error;
+
+  const { error: deleteLinksError } = await supabase
+    .from("subdepartamentos_departamentos")
+    .delete()
+    .eq("subdepartamento_id", id);
+  if (deleteLinksError) throw deleteLinksError;
+
+  const { error: insertLinksError } = await supabase
+    .from("subdepartamentos_departamentos")
+    .insert(
+      uniqueDepartamentoIds.map((departamentoId) => ({
+        subdepartamento_id: id,
+        departamento_id: departamentoId,
+      })),
+    );
+  if (insertLinksError) throw insertLinksError;
+
+  return data;
+}
+
+export async function deleteSubdepartamento(id: string) {
+  const { error } = await supabase
+    .from("subdepartamentos")
+    .delete()
+    .eq("id", id);
+  if (error) throw error;
+}
+
+export async function fetchMarcas(page = 1, limit = 20, search = "") {
+  let query = supabase
+    .from("marcas")
+    .select("*", { count: "exact" })
+    .order("nome", { ascending: true })
+    .range((page - 1) * limit, page * limit - 1);
+
+  if (search.trim()) {
+    query = query.ilike("nome", `%${search.trim()}%`);
+  }
+
+  const { data, count, error } = await query;
+  if (error) throw error;
+  return {
+    marcas: data ?? [],
+    totalPages: Math.ceil((count ?? 0) / limit),
+  };
+}
+
+export async function fetchAllMarcas() {
+  const { data, error } = await supabase
+    .from("marcas")
+    .select("*")
+    .order("nome", { ascending: true });
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function fetchMarcasComProdutos() {
+  const { data, error } = await supabase
+    .from("marcas")
+    .select("id, nome, produtos!inner(id)")
+    .eq("produtos.ativo", true)
+    .eq("produtos.exibircatalogo", true)
+    .order("nome", { ascending: true });
+
+  if (error) throw error;
+  const unique = new Map<string, { id: string; nome: string }>();
+  for (const row of data ?? []) {
+    unique.set((row as any).id, {
+      id: (row as any).id,
+      nome: (row as any).nome,
+    });
+  }
+  return [...unique.values()];
+}
+
+export async function createMarca(nome: string) {
+  const { data, error } = await supabase
+    .from("marcas")
+    .insert({ nome: nome.trim() })
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+export async function updateMarca(id: string, nome: string) {
+  const { data, error } = await supabase
+    .from("marcas")
+    .update({ nome: nome.trim() })
+    .eq("id", id)
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+export async function deleteMarca(id: string) {
+  const { error } = await supabase.from("marcas").delete().eq("id", id);
+  if (error) throw error;
+}
+
 export async function createDepartamento(descricao: string, ativo: boolean) {
   const { data, error } = await supabase
     .from("departamentos")
@@ -258,6 +569,8 @@ export async function fetchProdutos(
       `
       *,
       departamento:departamentos(id, descricao),
+      subdepartamento:subdepartamentos(id, nome),
+      marca:marcas(id, nome),
       imagens:imagens_produto(*)
     `,
       { count: "exact" },
@@ -289,6 +602,8 @@ export async function fetchProdutoById(id: string) {
       `
       *,
       departamento:departamentos(id, descricao),
+      subdepartamento:subdepartamentos(id, nome),
+      marca:marcas(id, nome),
       imagens:imagens_produto(*)
     `,
     )
@@ -305,6 +620,8 @@ export async function fetchTodosProdutos(page = 1, limit = 20, search = "") {
       `
       *,
       departamento:departamentos(id, descricao),
+      subdepartamento:subdepartamentos(id, nome),
+      marca:marcas(id, nome),
       imagens:imagens_produto(*)
     `,
       { count: "exact" },
@@ -333,6 +650,8 @@ export async function createProduto(produto: {
   ativo?: boolean;
   exibircatalogo?: boolean;
   departamento_id?: string;
+  subdepartamento_id?: string;
+  marca_id?: string;
   exibir_frete_gratis?: boolean;
   frete_gratis_valor_minimo?: number | null;
   frete_gratis_texto?: string | null;
@@ -379,6 +698,8 @@ export async function updateProduto(
     ativo?: boolean;
     exibircatalogo?: boolean;
     departamento_id?: string;
+    subdepartamento_id?: string;
+    marca_id?: string;
     exibir_frete_gratis?: boolean;
     frete_gratis_valor_minimo?: number | null;
     frete_gratis_texto?: string | null;

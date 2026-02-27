@@ -5,9 +5,20 @@ import FilterSidebar from "../components/FilterSidebar";
 import Cart from "../components/Cart";
 import Footer from "../components/Footer";
 import ProductDetailModal from "../components/ProductDetailModal";
-import { fetchProdutos, fetchAllDepartamentos } from "../lib/supabase";
+import {
+  fetchProdutos,
+  fetchDepartamentosComProdutos,
+  fetchSubdepartamentosComProdutos,
+  fetchMarcasComProdutos,
+} from "../lib/supabase";
 import { useCartStore } from "../store/cartStore";
-import type { CatalogProduct, CatalogoTema, Departamento } from "../types";
+import type {
+  CatalogProduct,
+  CatalogoTema,
+  Departamento,
+  Subdepartamento,
+  Marca,
+} from "../types";
 import { normalizeProduto } from "../types";
 import type { StoreSettings } from "../lib/supabase";
 
@@ -21,6 +32,8 @@ interface HomeProps {
 const Home: React.FC<HomeProps> = ({ storeSettings, tema }) => {
   const [produtos, setProdutos] = useState<CatalogProduct[]>([]);
   const [departamentos, setDepartamentos] = useState<Departamento[]>([]);
+  const [subdepartamentos, setSubdepartamentos] = useState<Subdepartamento[]>([]);
+  const [marcas, setMarcas] = useState<Marca[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
@@ -28,6 +41,8 @@ const Home: React.FC<HomeProps> = ({ storeSettings, tema }) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
+  const [selectedSubdepartments, setSelectedSubdepartments] = useState<string[]>([]);
+  const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 50000]);
   const [sortBy, setSortBy] = useState("name");
   const [isCartOpen, setIsCartOpen] = useState(false);
@@ -77,8 +92,16 @@ const Home: React.FC<HomeProps> = ({ storeSettings, tema }) => {
   );
 
   useEffect(() => {
-    fetchAllDepartamentos()
-      .then(setDepartamentos)
+    Promise.all([
+      fetchDepartamentosComProdutos(),
+      fetchSubdepartamentosComProdutos(),
+      fetchMarcasComProdutos(),
+    ])
+      .then(([deps, subs, marcs]) => {
+        setDepartamentos(deps);
+        setSubdepartamentos(subs);
+        setMarcas(marcs);
+      })
       .catch(() => {});
   }, []);
 
@@ -90,13 +113,23 @@ const Home: React.FC<HomeProps> = ({ storeSettings, tema }) => {
     let list = produtos.filter(
       (p) => p.price >= priceRange[0] && p.price <= priceRange[1],
     );
+    if (selectedSubdepartments.length > 0) {
+      list = list.filter(
+        (p) =>
+          p.subdepartamento_id &&
+          selectedSubdepartments.includes(p.subdepartamento_id),
+      );
+    }
+    if (selectedBrands.length > 0) {
+      list = list.filter((p) => p.marca_id && selectedBrands.includes(p.marca_id));
+    }
     list.sort((a, b) => {
       if (sortBy === "price-asc") return a.price - b.price;
       if (sortBy === "price-desc") return b.price - a.price;
       return a.name.localeCompare(b.name);
     });
     return list;
-  }, [produtos, priceRange, sortBy]);
+  }, [produtos, priceRange, sortBy, selectedSubdepartments, selectedBrands]);
 
   const sidebarCategories = useMemo(
     () => [
@@ -105,6 +138,23 @@ const Home: React.FC<HomeProps> = ({ storeSettings, tema }) => {
     ],
     [departamentos],
   );
+
+  const sidebarSubdepartments = useMemo(
+    () =>
+      subdepartamentos.filter(
+        (sub) =>
+          selectedCategory === "all" ||
+          (sub.departamento_ids ?? []).includes(selectedCategory),
+      ),
+    [subdepartamentos, selectedCategory],
+  );
+
+  useEffect(() => {
+    const availableIds = new Set(sidebarSubdepartments.map((sub) => sub.id));
+    setSelectedSubdepartments((prev) =>
+      prev.filter((itemId) => availableIds.has(itemId)),
+    );
+  }, [sidebarSubdepartments]);
 
   const handleAddToCart = (product: CatalogProduct) => addItem(product);
   const handleRemoveFromCart = (productId: string) => removeItem(productId);
@@ -136,8 +186,15 @@ const Home: React.FC<HomeProps> = ({ storeSettings, tema }) => {
             selectedCategory={selectedCategory}
             onCategoryChange={(cat) => {
               setSelectedCategory(cat);
+              setSelectedSubdepartments([]);
               setCurrentPage(1);
             }}
+            subdepartments={sidebarSubdepartments}
+            selectedSubdepartments={selectedSubdepartments}
+            onSubdepartmentsChange={setSelectedSubdepartments}
+            brands={marcas}
+            selectedBrands={selectedBrands}
+            onBrandsChange={setSelectedBrands}
             priceRange={priceRange}
             onPriceRangeChange={setPriceRange}
             sortBy={sortBy}

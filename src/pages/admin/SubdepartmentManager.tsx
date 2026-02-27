@@ -1,0 +1,355 @@
+import React, { useCallback, useEffect, useState } from "react";
+import {
+  GitBranch,
+  Loader2,
+  Pencil,
+  Plus,
+  Search,
+  Trash2,
+  X,
+} from "lucide-react";
+import Dialog from "../../components/Dialog";
+import Toast from "../../components/Toast";
+import {
+  createSubdepartamento,
+  deleteSubdepartamento,
+  fetchAllDepartamentos,
+  fetchSubdepartamentos,
+  updateSubdepartamento,
+} from "../../lib/supabase";
+import type { Departamento, Subdepartamento } from "../../types";
+
+interface FormProps {
+  departments: Departamento[];
+  initial?: Partial<Subdepartamento>;
+  loading: boolean;
+  onSubmit: (data: { nome: string; departamento_ids: string[] }) => void;
+  onCancel: () => void;
+}
+
+const SubdepartmentForm: React.FC<FormProps> = ({
+  departments,
+  initial,
+  loading,
+  onSubmit,
+  onCancel,
+}) => {
+  const [nome, setNome] = useState(initial?.nome ?? "");
+  const [departamentoIds, setDepartamentoIds] = useState<string[]>(
+    initial?.departamento_ids ?? [],
+  );
+  const [error, setError] = useState("");
+
+  return (
+    <form
+      className="space-y-4"
+      onSubmit={(e) => {
+        e.preventDefault();
+        if (!nome.trim() || departamentoIds.length === 0) {
+          setError("Informe nome e ao menos um departamento.");
+          return;
+        }
+        setError("");
+        onSubmit({ nome, departamento_ids: departamentoIds });
+      }}
+    >
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1.5">
+          Nome *
+        </label>
+        <input
+          type="text"
+          value={nome}
+          onChange={(e) => {
+            setNome(e.target.value);
+            if (error) setError("");
+          }}
+          className="w-full px-3 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+          placeholder="Nome do subdepartamento"
+          autoFocus
+        />
+      </div>
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1.5">
+          Departamentos *
+        </label>
+        <div className="max-h-44 overflow-y-auto border border-gray-300 rounded-xl p-2 space-y-1.5">
+          {departments.map((dep) => (
+            <label
+              key={dep.id}
+              className="flex items-center gap-2 px-2 py-1 rounded-lg hover:bg-gray-50 cursor-pointer"
+            >
+              <input
+                type="checkbox"
+                checked={departamentoIds.includes(dep.id)}
+                onChange={() => {
+                  setDepartamentoIds((prev) =>
+                    prev.includes(dep.id)
+                      ? prev.filter((id) => id !== dep.id)
+                      : [...prev, dep.id],
+                  );
+                  if (error) setError("");
+                }}
+              />
+              <span className="text-sm text-gray-700">{dep.descricao}</span>
+            </label>
+          ))}
+        </div>
+      </div>
+      {error && <p className="text-xs text-red-600">{error}</p>}
+      <div className="flex justify-end gap-3 pt-2">
+        <button
+          type="button"
+          onClick={onCancel}
+          className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-xl hover:bg-gray-50 transition-colors"
+        >
+          Cancelar
+        </button>
+        <button
+          type="submit"
+          disabled={loading}
+          className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-xl hover:bg-indigo-700 disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
+        >
+          {loading ? "Salvando..." : "Salvar"}
+        </button>
+      </div>
+    </form>
+  );
+};
+
+const SubdepartmentManager: React.FC = () => {
+  const [subdepartments, setSubdepartments] = useState<Subdepartamento[]>([]);
+  const [departments, setDepartments] = useState<Departamento[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [editing, setEditing] = useState<Subdepartamento | null>(null);
+  const [toast, setToast] = useState<{
+    msg: string;
+    type: "success" | "error";
+  } | null>(null);
+
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(searchTerm), 300);
+    return () => clearTimeout(t);
+  }, [searchTerm]);
+
+  const formatDepartments = useCallback(
+    (item: Subdepartamento) => {
+      if (item.departamentos && item.departamentos.length > 0) {
+        return item.departamentos.map((dep) => dep.descricao).join(", ");
+      }
+      const fallback = (item.departamento_ids ?? [])
+        .map((depId) => departments.find((d) => d.id === depId)?.descricao)
+        .filter(Boolean);
+      return fallback.length > 0 ? fallback.join(", ") : "—";
+    },
+    [departments],
+  );
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const [{ subdepartamentos }, deps] = await Promise.all([
+        fetchSubdepartamentos(1, 300, debouncedSearch),
+        fetchAllDepartamentos(),
+      ]);
+      setSubdepartments(subdepartamentos);
+      setDepartments(deps);
+    } catch {
+      setToast({ msg: "Erro ao carregar subdepartamentos.", type: "error" });
+    } finally {
+      setLoading(false);
+    }
+  }, [debouncedSearch]);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  const handleSave = async (data: {
+    nome: string;
+    departamento_ids: string[];
+  }) => {
+    setSaving(true);
+    try {
+      if (editing) {
+        await updateSubdepartamento(
+          editing.id,
+          data.nome,
+          data.departamento_ids,
+        );
+        setToast({ msg: "Subdepartamento atualizado!", type: "success" });
+      } else {
+        await createSubdepartamento(data.nome, data.departamento_ids);
+        setToast({ msg: "Subdepartamento criado!", type: "success" });
+      }
+      setIsDialogOpen(false);
+      setEditing(null);
+      await load();
+    } catch {
+      setToast({ msg: "Erro ao salvar subdepartamento.", type: "error" });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDelete = async (item: Subdepartamento) => {
+    if (!window.confirm(`Excluir "${item.nome}"?`)) return;
+    setLoading(true);
+    try {
+      await deleteSubdepartamento(item.id);
+      setToast({ msg: "Subdepartamento excluído!", type: "success" });
+      await load();
+    } catch {
+      setToast({ msg: "Erro ao excluir subdepartamento.", type: "error" });
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      {toast && (
+        <Toast
+          message={toast.msg}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
+      )}
+
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 bg-indigo-100 rounded-xl flex items-center justify-center">
+            <GitBranch className="h-5 w-5 text-indigo-600" />
+          </div>
+          <h1 className="text-xl font-bold text-gray-900">
+            Gerenciar Subdepartamentos
+          </h1>
+        </div>
+
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          <div className="relative flex-1 sm:w-80">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Buscar subdepartamentos..."
+              className="w-full pl-9 pr-8 py-2.5 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+            />
+            {searchTerm && (
+              <button
+                type="button"
+                onClick={() => setSearchTerm("")}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              setEditing(null);
+              setIsDialogOpen(true);
+            }}
+            className="flex items-center gap-2 px-4 py-2.5 bg-indigo-600 text-white text-sm font-medium rounded-xl hover:bg-indigo-700 transition-colors shadow-sm"
+          >
+            <Plus className="h-4 w-4" />
+            <span className="hidden sm:inline">Novo</span>
+          </button>
+        </div>
+      </div>
+
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-x-auto">
+        {loading ? (
+          <div className="flex items-center justify-center py-16">
+            <Loader2 className="h-8 w-8 text-indigo-500 animate-spin" />
+          </div>
+        ) : subdepartments.length === 0 ? (
+          <p className="text-sm text-gray-500 text-center py-12">
+            Nenhum subdepartamento encontrado.
+          </p>
+        ) : (
+          <table className="min-w-full divide-y divide-gray-100">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                  Nome
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                  Departamentos
+                </th>
+                <th className="px-6 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                  Ações
+                </th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-50">
+              {subdepartments.map((item) => (
+                <tr
+                  key={item.id}
+                  className="hover:bg-gray-50 transition-colors"
+                >
+                  <td className="px-6 py-4 text-sm text-gray-900 font-medium">
+                    {item.nome}
+                  </td>
+                  <td className="px-6 py-4 text-sm text-gray-600">
+                    {formatDepartments(item)}
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="flex justify-end gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEditing(item);
+                          setIsDialogOpen(true);
+                        }}
+                        className="p-2 text-gray-600 hover:text-indigo-700 hover:bg-indigo-50 rounded-lg transition-colors"
+                        title="Editar"
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleDelete(item)}
+                        className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                        title="Excluir"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+
+      <Dialog
+        isOpen={isDialogOpen}
+        onClose={() => {
+          setIsDialogOpen(false);
+          setEditing(null);
+        }}
+        title={editing ? "Editar Subdepartamento" : "Novo Subdepartamento"}
+      >
+        <SubdepartmentForm
+          departments={departments}
+          initial={editing ?? undefined}
+          loading={saving}
+          onSubmit={handleSave}
+          onCancel={() => {
+            setIsDialogOpen(false);
+            setEditing(null);
+          }}
+        />
+      </Dialog>
+    </div>
+  );
+};
+
+export default SubdepartmentManager;

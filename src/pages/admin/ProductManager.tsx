@@ -25,6 +25,8 @@ import {
 import {
   fetchTodosProdutos,
   fetchAllDepartamentos,
+  fetchAllSubdepartamentos,
+  fetchAllMarcas,
   createProduto,
   updateProduto,
   deleteProduto,
@@ -36,11 +38,18 @@ import {
 } from "../../lib/supabase";
 import Toast from "../../components/Toast";
 import Dialog from "../../components/Dialog";
-import type { Produto, Departamento, ImagemProduto } from "../../types";
+import type {
+  Produto,
+  Departamento,
+  ImagemProduto,
+  Subdepartamento,
+  Marca,
+} from "../../types";
 
 interface ProductFormProps {
   initial?: Partial<Produto>;
   departments: Departamento[];
+  brands: Marca[];
   loading: boolean;
   onSubmit: (
     d: Partial<Produto>,
@@ -53,6 +62,7 @@ interface ProductFormProps {
 const ProductForm: React.FC<ProductFormProps> = ({
   initial,
   departments,
+  brands,
   loading,
   onSubmit,
   onCancel,
@@ -98,6 +108,10 @@ const ProductForm: React.FC<ProductFormProps> = ({
   const [departamentoId, setDepartamentoId] = useState(
     initial?.departamento_id ?? "",
   );
+  const [subdepartamentoId, setSubdepartamentoId] = useState(
+    initial?.subdepartamento_id ?? "",
+  );
+  const [marcaId, setMarcaId] = useState(initial?.marca_id ?? "");
   const [departmentSearch, setDepartmentSearch] = useState("");
   const [isDepartmentModalOpen, setIsDepartmentModalOpen] = useState(false);
   const [isDepartmentModalClosing, setIsDepartmentModalClosing] =
@@ -106,6 +120,9 @@ const ProductForm: React.FC<ProductFormProps> = ({
   const [existingImages, setExistingImages] = useState<ImagemProduto[]>(
     initial?.imagens ?? [],
   );
+  const [departmentSubdepartments, setDepartmentSubdepartments] = useState<
+    Subdepartamento[]
+  >([]);
   const [newFiles, setNewFiles] = useState<File[]>([]);
   const [newPreviews, setNewPreviews] = useState<string[]>([]);
   const [removedIds, setRemovedIds] = useState<string[]>([]);
@@ -363,9 +380,34 @@ const ProductForm: React.FC<ProductFormProps> = ({
   };
 
   const selectedDepartment = departments.find((d) => d.id === departamentoId);
+  const selectedSubdepartment = departmentSubdepartments.find(
+    (s) => s.id === subdepartamentoId,
+  );
   const filteredDepartments = departments.filter((d) =>
     d.descricao.toLowerCase().includes(departmentSearch.toLowerCase()),
   );
+  const filteredSubdepartments = departmentSubdepartments;
+
+  useEffect(() => {
+    if (!departamentoId) {
+      setDepartmentSubdepartments([]);
+      setSubdepartamentoId("");
+      return;
+    }
+    fetchAllSubdepartamentos(departamentoId)
+      .then(setDepartmentSubdepartments)
+      .catch(() => setDepartmentSubdepartments([]));
+  }, [departamentoId]);
+
+  useEffect(() => {
+    if (!subdepartamentoId) return;
+    const exists = filteredSubdepartments.some(
+      (item) => item.id === subdepartamentoId,
+    );
+    if (!exists) {
+      setSubdepartamentoId("");
+    }
+  }, [filteredSubdepartments, subdepartamentoId]);
 
   return (
     <form
@@ -382,6 +424,8 @@ const ProductForm: React.FC<ProductFormProps> = ({
             ativo,
             exibircatalogo,
             departamento_id: departamentoId || undefined,
+            subdepartamento_id: subdepartamentoId || undefined,
+            marca_id: marcaId || undefined,
             exibir_frete_gratis: exibirFreteGratis,
             frete_gratis_valor_minimo: parseOptionalMoney(
               freteGratisValorMinimo,
@@ -555,6 +599,53 @@ const ProductForm: React.FC<ProductFormProps> = ({
               </span>
               <Search className="h-4 w-4 text-gray-400" />
             </button>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                Subdepartamento
+              </label>
+              <select
+                value={subdepartamentoId}
+                onChange={(e) => setSubdepartamentoId(e.target.value)}
+                disabled={!departamentoId}
+                className="w-full px-3 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all disabled:bg-gray-100 disabled:text-gray-500"
+              >
+                <option value="">
+                  {!departamentoId
+                    ? "Selecione um departamento primeiro"
+                    : "Selecione um subdepartamento"}
+                </option>
+                {filteredSubdepartments.map((sub) => (
+                  <option key={sub.id} value={sub.id}>
+                    {sub.nome}
+                  </option>
+                ))}
+              </select>
+              {selectedSubdepartment && (
+                <p className="mt-1 text-xs text-gray-500">
+                  {selectedSubdepartment.nome}
+                </p>
+              )}
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                Marca
+              </label>
+              <select
+                value={marcaId}
+                onChange={(e) => setMarcaId(e.target.value)}
+                className="w-full px-3 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+              >
+                <option value="">Selecione uma marca</option>
+                {brands.map((brand) => (
+                  <option key={brand.id} value={brand.id}>
+                    {brand.nome}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
 
           <div className="grid grid-cols-3 gap-4">
@@ -1420,6 +1511,7 @@ const ProductForm: React.FC<ProductFormProps> = ({
 const ProductManager: React.FC = () => {
   const [products, setProducts] = useState<Produto[]>([]);
   const [departments, setDepartments] = useState<Departamento[]>([]);
+  const [brands, setBrands] = useState<Marca[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -1475,8 +1567,11 @@ const ProductManager: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    fetchAllDepartamentos()
-      .then(setDepartments)
+    Promise.all([fetchAllDepartamentos(), fetchAllMarcas()])
+      .then(([deps, marcs]) => {
+        setDepartments(deps);
+        setBrands(marcs);
+      })
       .catch(() => {});
   }, []);
 
@@ -1671,6 +1766,12 @@ const ProductManager: React.FC = () => {
                     Departamento
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">
+                    Subdepartamento
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">
+                    Marca
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">
                     Preço
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">
@@ -1711,6 +1812,12 @@ const ProductManager: React.FC = () => {
                       </td>
                       <td className="px-4 py-3 text-sm text-gray-600">
                         {(p.departamento as any)?.descricao ?? "—"}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-gray-600">
+                        {(p.subdepartamento as any)?.nome ?? "—"}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-gray-600">
+                        {(p.marca as any)?.nome ?? "—"}
                       </td>
                       <td className="px-4 py-3 text-sm font-medium text-gray-900">
                         {p.valorunitariocomercial.toLocaleString("pt-BR", {
@@ -1848,6 +1955,7 @@ const ProductManager: React.FC = () => {
         <ProductForm
           initial={editing ?? undefined}
           departments={departments}
+          brands={brands}
           loading={saving}
           onSubmit={handleSave}
           onCancel={() => {

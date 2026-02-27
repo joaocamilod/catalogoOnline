@@ -9,6 +9,8 @@ import {
   ShoppingBag,
   ChevronRight,
   Palette,
+  GitBranch,
+  BadgePercent,
 } from "lucide-react";
 import { useAuthStore } from "../../store/authStore";
 import { signOut } from "../../lib/supabase";
@@ -20,6 +22,12 @@ const navigation = [
     href: "/admin/departamentos",
     icon: LayoutDashboard,
   },
+  {
+    name: "Subdepartamentos",
+    href: "/admin/subdepartamentos",
+    icon: GitBranch,
+  },
+  { name: "Marcas", href: "/admin/marcas", icon: BadgePercent },
   { name: "Vendedores", href: "/admin/vendedores", icon: Users },
   { name: "Temas", href: "/admin/temas", icon: Palette },
   { name: "Configurações", href: "/admin/configuracoes", icon: Settings },

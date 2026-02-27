@@ -15,6 +15,20 @@ export interface Departamento {
   created_at?: string;
 }
 
+export interface Subdepartamento {
+  id: string;
+  nome: string;
+  departamento_ids?: string[];
+  departamentos?: Departamento[];
+  created_at?: string;
+}
+
+export interface Marca {
+  id: string;
+  nome: string;
+  created_at?: string;
+}
+
 export interface Vendedor {
   id: string;
   nome: string;
@@ -43,6 +57,10 @@ export interface Produto {
   exibircatalogo: boolean;
   departamento_id?: string;
   departamento?: Departamento;
+  subdepartamento_id?: string;
+  subdepartamento?: Subdepartamento;
+  marca_id?: string;
+  marca?: Marca;
   imagens?: ImagemProduto[];
   exibir_frete_gratis?: boolean;
   frete_gratis_valor_minimo?: number | null;
@@ -74,6 +92,10 @@ export interface CatalogProduct {
   price: number;
   category: string;
   departamento_id?: string;
+  subdepartamento_id?: string;
+  subdepartamento_nome?: string;
+  marca_id?: string;
+  marca_nome?: string;
   image: string;
   imagens: ImagemProduto[];
   stock: number;
@@ -169,6 +191,10 @@ export function normalizeProduto(p: Produto): CatalogProduct {
     price: p.valorunitariocomercial,
     category: p.departamento?.descricao ?? "",
     departamento_id: p.departamento_id,
+    subdepartamento_id: p.subdepartamento_id,
+    subdepartamento_nome: p.subdepartamento?.nome ?? "",
+    marca_id: p.marca_id,
+    marca_nome: p.marca?.nome ?? "",
     image: imagemPrincipal,
     imagens: imagensOrdenadas,
     stock: p.quantidademinima,
