@@ -12,6 +12,7 @@ import {
   ChevronDown,
   ChevronLeft,
   ChevronRight,
+  MoreVertical,
   Copy,
   Loader2,
   ShoppingBag,
@@ -859,6 +860,7 @@ const ThemeManager: React.FC = () => {
 
   const [deletingTheme, setDeletingTheme] = useState<CatalogoTema | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [openThemeMenuId, setOpenThemeMenuId] = useState<string | null>(null);
 
   useEffect(() => {
     const t = setTimeout(() => setDebouncedSearch(search), 350);
@@ -975,6 +977,18 @@ const ThemeManager: React.FC = () => {
     setDraft({ ...tema, id: "", nome: `${tema.nome} (Cópia)`, ativo: false });
     setIsEditing(true);
   };
+
+  useEffect(() => {
+    if (!openThemeMenuId) return;
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (!target.closest("[data-theme-actions-menu]")) {
+        setOpenThemeMenuId(null);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [openThemeMenuId]);
 
   const openFromTemplate = (
     tpl: Omit<CatalogoTema, "id" | "created_at" | "updated_at">,
@@ -1550,7 +1564,7 @@ const ThemeManager: React.FC = () => {
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4">
             {temas.map((tema) => (
               <div
                 key={tema.id}
@@ -1599,7 +1613,7 @@ const ThemeManager: React.FC = () => {
                     Fonte: {tema.fonte_familia}
                   </p>
 
-                  <div className="flex items-center gap-2 pt-1">
+                  <div className="hidden sm:flex items-center gap-2 pt-1">
                     <button
                       onClick={() => handleToggleAtivo(tema)}
                       className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-400 ${
@@ -1638,6 +1652,67 @@ const ThemeManager: React.FC = () => {
                     >
                       <Trash2 className="h-3.5 w-3.5" />
                     </button>
+                  </div>
+
+                  <div className="sm:hidden pt-1">
+                    <div className="relative" data-theme-actions-menu>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setOpenThemeMenuId((prev) =>
+                            prev === tema.id ? null : tema.id,
+                          )
+                        }
+                        className="ml-auto flex items-center justify-center w-11 h-11 rounded-xl border border-gray-200 text-gray-600"
+                        aria-label={`Ações do tema ${tema.nome}`}
+                      >
+                        <MoreVertical className="h-5 w-5" />
+                      </button>
+                      {openThemeMenuId === tema.id && (
+                        <div className="absolute right-0 mt-2 w-44 bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden z-20">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setOpenThemeMenuId(null);
+                              handleToggleAtivo(tema);
+                            }}
+                            className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                          >
+                            {tema.ativo ? "Desativar" : "Ativar"}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setOpenThemeMenuId(null);
+                              openEdit(tema);
+                            }}
+                            className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                          >
+                            Editar
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setOpenThemeMenuId(null);
+                              handleDuplicate(tema);
+                            }}
+                            className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                          >
+                            Duplicar
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setOpenThemeMenuId(null);
+                              setDeletingTheme(tema);
+                            }}
+                            className="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-red-50"
+                          >
+                            Excluir
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>

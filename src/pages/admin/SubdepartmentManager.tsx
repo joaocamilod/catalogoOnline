@@ -450,6 +450,7 @@ const SubdepartmentManager: React.FC = () => {
           setEditing(null);
         }}
         title={editing ? "Editar Subdepartamento" : "Novo Subdepartamento"}
+        mobileFullscreen
       >
         <SubdepartmentForm
           departments={departments}

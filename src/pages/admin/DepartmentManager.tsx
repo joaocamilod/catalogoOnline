@@ -460,6 +460,7 @@ const DepartmentManager: React.FC = () => {
           setEditing(null);
         }}
         title={editing ? "Editar Departamento" : "Novo Departamento"}
+        mobileFullscreen
       >
         <DepartmentForm
           initial={editing ?? undefined}

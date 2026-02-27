@@ -353,46 +353,48 @@ const SellerManager: React.FC = () => {
         />
       )}
 
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-indigo-100 rounded-xl flex items-center justify-center">
-            <Users className="h-5 w-5 text-indigo-600" />
-          </div>
-          <h1 className="text-xl font-bold text-gray-900">
-            Gerenciar Vendedores
-          </h1>
-        </div>
-
-        <div className="flex items-center gap-2 w-full sm:w-auto">
-          <div className="relative flex-1 sm:w-72">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-            <input
-              type="text"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Buscar vendedores..."
-              className="w-full pl-9 pr-8 py-2.5 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
-            />
-            {searchTerm && (
-              <button
-                onClick={() => setSearchTerm("")}
-                className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            )}
-            {loading && (
-              <Loader2 className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 animate-spin" />
-            )}
+      <div className="sticky top-0 z-10 bg-gray-50/95 backdrop-blur supports-[backdrop-filter]:bg-gray-50/80 -mx-3 sm:-mx-5 lg:mx-0 px-3 sm:px-5 lg:px-0 py-2">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-indigo-100 rounded-xl flex items-center justify-center">
+              <Users className="h-5 w-5 text-indigo-600" />
+            </div>
+            <h1 className="text-xl font-bold text-gray-900">
+              Gerenciar Vendedores
+            </h1>
           </div>
 
-          <button
-            onClick={openCreate}
-            className="flex items-center gap-2 px-4 py-2.5 bg-indigo-600 text-white text-sm font-medium rounded-xl hover:bg-indigo-700 transition-colors shadow-sm"
-          >
-            <Plus className="h-4 w-4" />
-            <span className="hidden sm:inline">Novo</span>
-          </button>
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            <div className="relative flex-1 sm:w-72">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Buscar vendedores..."
+                className="w-full pl-9 pr-8 py-2.5 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+              />
+              {searchTerm && (
+                <button
+                  onClick={() => setSearchTerm("")}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
+              {loading && (
+                <Loader2 className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 animate-spin" />
+              )}
+            </div>
+
+            <button
+              onClick={openCreate}
+              className="flex items-center gap-2 px-4 py-2.5 bg-indigo-600 text-white text-sm font-medium rounded-xl hover:bg-indigo-700 transition-colors shadow-sm"
+            >
+              <Plus className="h-4 w-4" />
+              <span className="hidden sm:inline">Novo</span>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -419,8 +421,48 @@ const SellerManager: React.FC = () => {
             </button>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-100">
+          <>
+            <div className="md:hidden divide-y divide-gray-100">
+              {sellers.map((seller) => (
+                <article key={seller.id} className="p-3 space-y-2">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-gray-900 break-words">
+                        {seller.nome}
+                      </p>
+                      <p className="text-xs text-gray-600 mt-1">
+                        {seller.telefone_whatsapp || "-"}
+                      </p>
+                      <p className="text-xs text-gray-500 mt-0.5 break-all">
+                        {seller.email || "-"}
+                      </p>
+                    </div>
+                    <span
+                      className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${
+                        seller.ativo
+                          ? "bg-green-100 text-green-700"
+                          : "bg-red-100 text-red-700"
+                      }`}
+                    >
+                      {seller.ativo ? "Ativo" : "Inativo"}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-end">
+                    <button
+                      type="button"
+                      onClick={() => openEdit(seller)}
+                      className="h-11 px-4 rounded-xl border border-indigo-200 text-indigo-700 text-sm font-semibold hover:bg-indigo-50 transition-colors"
+                      aria-label={`Editar ${seller.nome}`}
+                    >
+                      Editar
+                    </button>
+                  </div>
+                </article>
+              ))}
+            </div>
+
+            <div className="hidden md:block overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-100">
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
@@ -429,7 +471,7 @@ const SellerManager: React.FC = () => {
                   <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
                     WhatsApp / Telefone
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider hidden lg:table-cell">
                     Email
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
@@ -454,7 +496,7 @@ const SellerManager: React.FC = () => {
                       <td className="px-6 py-4 text-sm text-gray-700">
                         {seller.telefone_whatsapp || "-"}
                       </td>
-                      <td className="px-6 py-4 text-sm text-gray-700">
+                      <td className="px-6 py-4 text-sm text-gray-700 hidden lg:table-cell">
                         {seller.email || "-"}
                       </td>
                       <td className="px-6 py-4">
@@ -540,8 +582,9 @@ const SellerManager: React.FC = () => {
                   );
                 })}
               </tbody>
-            </table>
-          </div>
+              </table>
+            </div>
+          </>
         )}
       </div>
 
@@ -574,6 +617,7 @@ const SellerManager: React.FC = () => {
           setEditing(null);
         }}
         title={editing ? "Editar Vendedor" : "Novo Vendedor"}
+        mobileFullscreen
       >
         <SellerForm
           initial={editing ?? undefined}

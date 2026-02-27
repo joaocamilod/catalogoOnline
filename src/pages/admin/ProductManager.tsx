@@ -1369,7 +1369,7 @@ const ProductForm: React.FC<ProductFormProps> = ({
         </div>
       )}
 
-      <div className="flex justify-end gap-3 pt-2 border-t border-gray-100">
+      <div className="sticky bottom-0 -mx-6 px-6 py-3 flex justify-end gap-3 border-t border-gray-100 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80">
         <button
           type="button"
           onClick={onCancel}
@@ -1699,7 +1699,8 @@ const ProductManager: React.FC = () => {
         />
       )}
 
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+      <div className="sticky top-0 z-10 bg-gray-50/95 backdrop-blur supports-[backdrop-filter]:bg-gray-50/80 -mx-3 sm:-mx-5 lg:mx-0 px-3 sm:px-5 lg:px-0 py-2">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 bg-indigo-100 rounded-xl flex items-center justify-center">
             <Package className="h-5 w-5 text-indigo-600" />
@@ -1744,6 +1745,7 @@ const ProductManager: React.FC = () => {
           </button>
         </div>
       </div>
+      </div>
 
       {error && (
         <div className="p-4 bg-red-50 border border-red-200 text-red-700 rounded-xl text-sm">
@@ -1762,8 +1764,67 @@ const ProductManager: React.FC = () => {
             <p className="text-gray-500 text-sm">Nenhum produto encontrado.</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-100">
+          <>
+            <div className="md:hidden divide-y divide-gray-100">
+              {products.map((p) => (
+                <article key={p.id} className="p-3 sm:p-4 space-y-3">
+                  <div className="flex gap-3">
+                    <img
+                      src={getMainImage(p)}
+                      srcSet={`${getMainImage(p)} 64w, ${getMainImage(p)} 128w, ${getMainImage(p)} 256w`}
+                      sizes="(max-width: 640px) 64px, 96px"
+                      loading="lazy"
+                      alt={p.descricao}
+                      className="w-16 h-16 sm:w-20 sm:h-20 object-cover rounded-lg border border-gray-100 flex-shrink-0"
+                    />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-semibold text-gray-900 break-words">
+                        {p.descricao}
+                      </p>
+                      <p className="text-xs text-gray-500 mt-0.5 break-words">
+                        {(p.marca as any)?.nome ?? "Sem marca"}
+                      </p>
+                      <p className="text-lg font-extrabold text-indigo-700 mt-1">
+                        {p.valorunitariocomercial.toLocaleString("pt-BR", {
+                          style: "currency",
+                          currency: "BRL",
+                        })}
+                      </p>
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className="text-xs text-gray-500">
+                          Estoque: {p.quantidademinima}
+                        </span>
+                        <span
+                          className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium ${
+                            p.ativo
+                              ? "bg-green-100 text-green-700"
+                              : "bg-red-100 text-red-700"
+                          }`}
+                        >
+                          {p.ativo ? "Ativo" : "Inativo"}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-end">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditing(p);
+                        setIsDialogOpen(true);
+                      }}
+                      className="h-11 px-4 rounded-xl border border-indigo-200 text-indigo-700 text-sm font-semibold hover:bg-indigo-50 transition-colors"
+                      aria-label={`Editar ${p.descricao}`}
+                    >
+                      Editar
+                    </button>
+                  </div>
+                </article>
+              ))}
+            </div>
+
+            <div className="hidden md:block overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-100">
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">
@@ -1772,16 +1833,16 @@ const ProductManager: React.FC = () => {
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">
                     Departamento
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase hidden lg:table-cell">
                     Subdepartamento
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase hidden xl:table-cell">
                     Marca
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">
                     Preço
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase hidden lg:table-cell">
                     Estoque
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">
@@ -1804,6 +1865,9 @@ const ProductManager: React.FC = () => {
                         <div className="flex items-center gap-3">
                           <img
                             src={getMainImage(p)}
+                            srcSet={`${getMainImage(p)} 64w, ${getMainImage(p)} 128w, ${getMainImage(p)} 256w`}
+                            sizes="40px"
+                            loading="lazy"
                             alt={p.descricao}
                             className="w-10 h-10 object-cover rounded-lg border border-gray-100 flex-shrink-0"
                           />
@@ -1820,10 +1884,10 @@ const ProductManager: React.FC = () => {
                       <td className="px-4 py-3 text-sm text-gray-600">
                         {(p.departamento as any)?.descricao ?? "—"}
                       </td>
-                      <td className="px-4 py-3 text-sm text-gray-600">
+                      <td className="px-4 py-3 text-sm text-gray-600 hidden lg:table-cell">
                         {(p.subdepartamento as any)?.nome ?? "—"}
                       </td>
-                      <td className="px-4 py-3 text-sm text-gray-600">
+                      <td className="px-4 py-3 text-sm text-gray-600 hidden xl:table-cell">
                         {(p.marca as any)?.nome ?? "—"}
                       </td>
                       <td className="px-4 py-3 text-sm font-medium text-gray-900">
@@ -1832,7 +1896,7 @@ const ProductManager: React.FC = () => {
                           currency: "BRL",
                         })}
                       </td>
-                      <td className="px-4 py-3 text-sm text-gray-600">
+                      <td className="px-4 py-3 text-sm text-gray-600 hidden lg:table-cell">
                         {p.quantidademinima}
                       </td>
                       <td className="px-4 py-3 min-w-[150px]">
@@ -1923,8 +1987,9 @@ const ProductManager: React.FC = () => {
                   );
                 })}
               </tbody>
-            </table>
-          </div>
+              </table>
+            </div>
+          </>
         )}
       </div>
 
@@ -1958,6 +2023,7 @@ const ProductManager: React.FC = () => {
         }}
         title={editing ? "Editar Produto" : "Novo Produto"}
         maxWidth="max-w-5xl"
+        mobileFullscreen
       >
         <ProductForm
           initial={editing ?? undefined}

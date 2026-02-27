@@ -357,6 +357,7 @@ const BrandManager: React.FC = () => {
           setEditing(null);
         }}
         title={editing ? "Editar Marca" : "Nova Marca"}
+        mobileFullscreen
       >
         <BrandForm
           initial={editing ?? undefined}
