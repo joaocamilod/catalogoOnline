@@ -1,15 +1,17 @@
 import React, { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { LogIn, Mail, Lock, ArrowLeft, ShoppingBag } from "lucide-react";
-import { signIn, fetchProfile } from "../lib/supabase";
+import { signIn, fetchProfile, fetchLojaById } from "../lib/supabase";
 import { useAuthStore } from "../store/authStore";
 
 const Login: React.FC = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { setUser } = useAuthStore();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [formData, setFormData] = useState({ email: "", password: "" });
+  const slugFromQuery = searchParams.get("slug");
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
@@ -25,17 +27,42 @@ const Login: React.FC = () => {
       const data = await signIn(formData.email, formData.password);
       if (data.user) {
         const profile = await fetchProfile(data.user.id);
+        const tenantIdFromMetadata =
+          (data.user.user_metadata?.tenant_id as string | undefined) ?? null;
+        const tenantId = profile.tenant_id ?? tenantIdFromMetadata;
+        let tenantSlug: string | null = null;
+
+        if (tenantId) {
+          try {
+            const loja = await fetchLojaById(tenantId);
+            tenantSlug = loja.slug;
+          } catch (_) {
+            tenantSlug = null;
+          }
+        }
+
         setUser({
           id: profile.id,
           email: profile.email,
           name: profile.name,
           role: profile.role,
+          tenant_id: tenantId,
+          tenant_slug: tenantSlug,
         });
 
+        const targetSlug = slugFromQuery || tenantSlug;
         if (profile.role === "admin") {
-          navigate("/admin/produtos");
+          if (targetSlug) {
+            navigate(`/admin/${targetSlug}/produtos`);
+          } else {
+            navigate("/");
+          }
         } else {
-          navigate("/");
+          if (targetSlug) {
+            navigate(`/${targetSlug}`);
+          } else {
+            navigate("/");
+          }
         }
       }
     } catch (_err: any) {
@@ -54,7 +81,7 @@ const Login: React.FC = () => {
 
       <div className="w-full max-w-md">
         <button
-          onClick={() => navigate("/")}
+          onClick={() => navigate(slugFromQuery ? `/${slugFromQuery}` : "/")}
           className="mb-6 flex items-center text-gray-500 hover:text-gray-800 transition-colors text-sm"
         >
           <ArrowLeft className="h-4 w-4 mr-1" />
@@ -138,10 +165,10 @@ const Login: React.FC = () => {
               <p className="text-center text-sm text-gray-500">
                 Não tem uma conta?{" "}
                 <Link
-                  to="/cadastro"
+                  to="/nova-loja"
                   className="font-medium text-indigo-600 hover:text-indigo-700 transition-colors"
                 >
-                  Cadastre-se
+                  Criar nova loja
                 </Link>
               </p>
             </form>

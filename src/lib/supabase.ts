@@ -14,6 +14,30 @@ export const supabase = createClient(
   supabaseAnonKey || "placeholder-key",
 );
 
+let activeTenantId: string | null = null;
+
+export function setTenantContext(tenantId: string | null) {
+  activeTenantId = tenantId;
+}
+
+function requireTenantId() {
+  if (!activeTenantId) {
+    throw new Error("Loja não encontrada");
+  }
+  return activeTenantId;
+}
+
+function withTenantFilter(query: any) {
+  if (!activeTenantId) return query;
+  return query.eq("tenant_id", activeTenantId);
+}
+
+export interface Loja {
+  id: string;
+  slug: string;
+  nome: string;
+}
+
 export const DEFAULT_STORE_NAME = "Catálogo Online";
 
 export interface StoreSettings {
@@ -61,11 +85,17 @@ export async function signIn(email: string, password: string) {
   return data;
 }
 
-export async function signUp(email: string, password: string, name: string) {
+export async function signUp(
+  email: string,
+  password: string,
+  name: string,
+  tenantId?: string | null,
+  role: "admin" | "user" = "user",
+) {
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
-    options: { data: { name } },
+    options: { data: { name, tenant_id: tenantId ?? null, role } },
   });
   if (error) throw error;
   return data;
@@ -82,22 +112,68 @@ export async function getSession() {
 }
 
 export async function fetchProfile(userId: string) {
-  const { data, error } = await supabase
-    .from("profiles")
-    .select("*")
-    .eq("id", userId)
-    .single();
+  let query = supabase.from("profiles").select("*").eq("id", userId);
+
+  if (activeTenantId) {
+    query = query.eq("tenant_id", activeTenantId);
+  }
+
+  const { data, error } = await query.single();
   if (error) throw error;
   return data;
 }
 
+export async function fetchLojasPublic() {
+  const { data, error } = await supabase
+    .from("lojas")
+    .select("id, slug, nome")
+    .order("nome", { ascending: true });
+  if (error) throw error;
+  return (data ?? []) as Loja[];
+}
+
+export async function fetchLojaBySlug(slug: string) {
+  const { data, error } = await supabase
+    .from("lojas")
+    .select("id, slug, nome")
+    .eq("slug", slug)
+    .single();
+  if (error) throw error;
+  return data as Loja;
+}
+
+export async function fetchLojaById(id: string) {
+  const { data, error } = await supabase
+    .from("lojas")
+    .select("id, slug, nome")
+    .eq("id", id)
+    .single();
+  if (error) throw error;
+  return data as Loja;
+}
+
+export async function createLoja(payload: { slug: string; nome: string }) {
+  const { data, error } = await supabase
+    .from("lojas")
+    .insert({
+      slug: payload.slug.trim().toLowerCase(),
+      nome: payload.nome.trim(),
+    })
+    .select("id, slug, nome")
+    .single();
+  if (error) throw error;
+  return data as Loja;
+}
+
 export async function fetchDepartamentos(page = 1, limit = 20, search = "") {
-  let query = supabase
-    .from("departamentos")
-    .select("*", { count: "exact" })
-    .eq("ativo", true)
-    .order("descricao", { ascending: true })
-    .range((page - 1) * limit, page * limit - 1);
+  let query = withTenantFilter(
+    supabase
+      .from("departamentos")
+      .select("*", { count: "exact" })
+      .eq("ativo", true)
+      .order("descricao", { ascending: true })
+      .range((page - 1) * limit, page * limit - 1),
+  );
 
   if (search.trim()) {
     query = query.ilike("descricao", `%${search.trim()}%`);
@@ -112,26 +188,34 @@ export async function fetchDepartamentos(page = 1, limit = 20, search = "") {
 }
 
 export async function fetchAllDepartamentos() {
-  const { data, error } = await supabase
-    .from("departamentos")
-    .select("*")
-    .eq("ativo", true)
-    .order("descricao", { ascending: true });
+  const { data, error } = await withTenantFilter(
+    supabase
+      .from("departamentos")
+      .select("*")
+      .eq("ativo", true)
+      .order("descricao", { ascending: true }),
+  );
   if (error) throw error;
   return data ?? [];
 }
 
 export async function fetchDepartamentosComProdutos() {
+  const tenantId = requireTenantId();
   const { data, error } = await supabase
     .from("departamentos")
     .select("id, descricao, ativo, produtos!inner(id)")
+    .eq("tenant_id", tenantId)
     .eq("ativo", true)
+    .eq("produtos.tenant_id", tenantId)
     .eq("produtos.ativo", true)
     .eq("produtos.exibircatalogo", true)
     .order("descricao", { ascending: true });
 
   if (error) throw error;
-  const unique = new Map<string, { id: string; descricao: string; ativo: boolean }>();
+  const unique = new Map<
+    string,
+    { id: string; descricao: string; ativo: boolean }
+  >();
   for (const row of data ?? []) {
     unique.set((row as any).id, {
       id: (row as any).id,
@@ -155,10 +239,14 @@ async function attachDepartamentosToSubdepartamentos<
   }
 
   const ids = subdepartamentos.map((item) => item.id);
-  const { data: links, error } = await supabase
-    .from("subdepartamentos_departamentos")
-    .select("subdepartamento_id, departamento:departamentos(id, descricao, ativo)")
-    .in("subdepartamento_id", ids);
+  const { data: links, error } = await withTenantFilter(
+    supabase
+      .from("subdepartamentos_departamentos")
+      .select(
+        "subdepartamento_id, departamento:departamentos(id, descricao, ativo)",
+      )
+      .in("subdepartamento_id", ids),
+  );
 
   if (error) throw error;
 
@@ -206,20 +294,24 @@ export async function fetchSubdepartamentos(
   search = "",
   departamentoId = "",
 ) {
-  let query = supabase
-    .from("subdepartamentos")
-    .select("*", { count: "exact" })
-    .order("nome", { ascending: true })
-    .range((page - 1) * limit, page * limit - 1);
+  let query = withTenantFilter(
+    supabase
+      .from("subdepartamentos")
+      .select("*", { count: "exact" })
+      .order("nome", { ascending: true })
+      .range((page - 1) * limit, page * limit - 1),
+  );
 
   if (search.trim()) {
     query = query.ilike("nome", `%${search.trim()}%`);
   }
   if (departamentoId) {
-    const { data: links, error: linksError } = await supabase
-      .from("subdepartamentos_departamentos")
-      .select("subdepartamento_id")
-      .eq("departamento_id", departamentoId);
+    const { data: links, error: linksError } = await withTenantFilter(
+      supabase
+        .from("subdepartamentos_departamentos")
+        .select("subdepartamento_id")
+        .eq("departamento_id", departamentoId),
+    );
     if (linksError) throw linksError;
 
     const ids = [
@@ -241,16 +333,20 @@ export async function fetchSubdepartamentos(
 }
 
 export async function fetchAllSubdepartamentos(departamentoId = "") {
-  let query = supabase
-    .from("subdepartamentos")
-    .select("*")
-    .order("nome", { ascending: true });
+  let query = withTenantFilter(
+    supabase
+      .from("subdepartamentos")
+      .select("*")
+      .order("nome", { ascending: true }),
+  );
 
   if (departamentoId) {
-    const { data: links, error: linksError } = await supabase
-      .from("subdepartamentos_departamentos")
-      .select("subdepartamento_id")
-      .eq("departamento_id", departamentoId);
+    const { data: links, error: linksError } = await withTenantFilter(
+      supabase
+        .from("subdepartamentos_departamentos")
+        .select("subdepartamento_id")
+        .eq("departamento_id", departamentoId),
+    );
     if (linksError) throw linksError;
 
     const ids = [
@@ -266,9 +362,12 @@ export async function fetchAllSubdepartamentos(departamentoId = "") {
 }
 
 export async function fetchSubdepartamentosComProdutos() {
+  const tenantId = requireTenantId();
   const { data, error } = await supabase
     .from("subdepartamentos")
     .select("id, nome, produtos!inner(id)")
+    .eq("tenant_id", tenantId)
+    .eq("produtos.tenant_id", tenantId)
     .eq("produtos.ativo", true)
     .eq("produtos.exibircatalogo", true)
     .order("nome", { ascending: true });
@@ -294,9 +393,10 @@ export async function createSubdepartamento(
     throw new Error("Informe ao menos um departamento.");
   }
 
+  const tenantId = requireTenantId();
   const { data, error } = await supabase
     .from("subdepartamentos")
-    .insert({ nome: nome.trim() })
+    .insert({ nome: nome.trim(), tenant_id: tenantId })
     .select()
     .single();
   if (error) throw error;
@@ -307,6 +407,7 @@ export async function createSubdepartamento(
       uniqueDepartamentoIds.map((departamentoId) => ({
         subdepartamento_id: data.id,
         departamento_id: departamentoId,
+        tenant_id: tenantId,
       })),
     );
   if (linksError) throw linksError;
@@ -324,10 +425,12 @@ export async function updateSubdepartamento(
     throw new Error("Informe ao menos um departamento.");
   }
 
+  const tenantId = requireTenantId();
   const { data, error } = await supabase
     .from("subdepartamentos")
     .update({ nome: nome.trim() })
     .eq("id", id)
+    .eq("tenant_id", tenantId)
     .select()
     .single();
   if (error) throw error;
@@ -335,7 +438,8 @@ export async function updateSubdepartamento(
   const { error: deleteLinksError } = await supabase
     .from("subdepartamentos_departamentos")
     .delete()
-    .eq("subdepartamento_id", id);
+    .eq("subdepartamento_id", id)
+    .eq("tenant_id", tenantId);
   if (deleteLinksError) throw deleteLinksError;
 
   const { error: insertLinksError } = await supabase
@@ -344,6 +448,7 @@ export async function updateSubdepartamento(
       uniqueDepartamentoIds.map((departamentoId) => ({
         subdepartamento_id: id,
         departamento_id: departamentoId,
+        tenant_id: tenantId,
       })),
     );
   if (insertLinksError) throw insertLinksError;
@@ -352,19 +457,23 @@ export async function updateSubdepartamento(
 }
 
 export async function deleteSubdepartamento(id: string) {
+  const tenantId = requireTenantId();
   const { error } = await supabase
     .from("subdepartamentos")
     .delete()
-    .eq("id", id);
+    .eq("id", id)
+    .eq("tenant_id", tenantId);
   if (error) throw error;
 }
 
 export async function fetchMarcas(page = 1, limit = 20, search = "") {
-  let query = supabase
-    .from("marcas")
-    .select("*", { count: "exact" })
-    .order("nome", { ascending: true })
-    .range((page - 1) * limit, page * limit - 1);
+  let query = withTenantFilter(
+    supabase
+      .from("marcas")
+      .select("*", { count: "exact" })
+      .order("nome", { ascending: true })
+      .range((page - 1) * limit, page * limit - 1),
+  );
 
   if (search.trim()) {
     query = query.ilike("nome", `%${search.trim()}%`);
@@ -379,18 +488,20 @@ export async function fetchMarcas(page = 1, limit = 20, search = "") {
 }
 
 export async function fetchAllMarcas() {
-  const { data, error } = await supabase
-    .from("marcas")
-    .select("*")
-    .order("nome", { ascending: true });
+  const { data, error } = await withTenantFilter(
+    supabase.from("marcas").select("*").order("nome", { ascending: true }),
+  );
   if (error) throw error;
   return data ?? [];
 }
 
 export async function fetchMarcasComProdutos() {
+  const tenantId = requireTenantId();
   const { data, error } = await supabase
     .from("marcas")
     .select("id, nome, produtos!inner(id)")
+    .eq("tenant_id", tenantId)
+    .eq("produtos.tenant_id", tenantId)
     .eq("produtos.ativo", true)
     .eq("produtos.exibircatalogo", true)
     .order("nome", { ascending: true });
@@ -407,9 +518,10 @@ export async function fetchMarcasComProdutos() {
 }
 
 export async function createMarca(nome: string) {
+  const tenantId = requireTenantId();
   const { data, error } = await supabase
     .from("marcas")
-    .insert({ nome: nome.trim() })
+    .insert({ nome: nome.trim(), tenant_id: tenantId })
     .select()
     .single();
   if (error) throw error;
@@ -417,10 +529,12 @@ export async function createMarca(nome: string) {
 }
 
 export async function updateMarca(id: string, nome: string) {
+  const tenantId = requireTenantId();
   const { data, error } = await supabase
     .from("marcas")
     .update({ nome: nome.trim() })
     .eq("id", id)
+    .eq("tenant_id", tenantId)
     .select()
     .single();
   if (error) throw error;
@@ -428,14 +542,20 @@ export async function updateMarca(id: string, nome: string) {
 }
 
 export async function deleteMarca(id: string) {
-  const { error } = await supabase.from("marcas").delete().eq("id", id);
+  const tenantId = requireTenantId();
+  const { error } = await supabase
+    .from("marcas")
+    .delete()
+    .eq("id", id)
+    .eq("tenant_id", tenantId);
   if (error) throw error;
 }
 
 export async function createDepartamento(descricao: string, ativo: boolean) {
+  const tenantId = requireTenantId();
   const { data, error } = await supabase
     .from("departamentos")
-    .insert({ descricao, ativo })
+    .insert({ descricao, ativo, tenant_id: tenantId })
     .select()
     .single();
   if (error) throw error;
@@ -447,10 +567,12 @@ export async function updateDepartamento(
   descricao: string,
   ativo: boolean,
 ) {
+  const tenantId = requireTenantId();
   const { data, error } = await supabase
     .from("departamentos")
     .update({ descricao, ativo })
     .eq("id", id)
+    .eq("tenant_id", tenantId)
     .select()
     .single();
   if (error) throw error;
@@ -458,16 +580,23 @@ export async function updateDepartamento(
 }
 
 export async function deleteDepartamento(id: string) {
-  const { error } = await supabase.from("departamentos").delete().eq("id", id);
+  const tenantId = requireTenantId();
+  const { error } = await supabase
+    .from("departamentos")
+    .delete()
+    .eq("id", id)
+    .eq("tenant_id", tenantId);
   if (error) throw error;
 }
 
 export async function fetchVendedores(page = 1, limit = 20, search = "") {
-  let query = supabase
-    .from("vendedores")
-    .select("*", { count: "exact" })
-    .order("nome", { ascending: true })
-    .range((page - 1) * limit, page * limit - 1);
+  let query = withTenantFilter(
+    supabase
+      .from("vendedores")
+      .select("*", { count: "exact" })
+      .order("nome", { ascending: true })
+      .range((page - 1) * limit, page * limit - 1),
+  );
 
   if (search.trim()) {
     query = query.or(
@@ -484,11 +613,13 @@ export async function fetchVendedores(page = 1, limit = 20, search = "") {
 }
 
 export async function fetchAllVendedores() {
-  const { data, error } = await supabase
-    .from("vendedores")
-    .select("*")
-    .eq("ativo", true)
-    .order("nome", { ascending: true });
+  const { data, error } = await withTenantFilter(
+    supabase
+      .from("vendedores")
+      .select("*")
+      .eq("ativo", true)
+      .order("nome", { ascending: true }),
+  );
 
   if (error) throw error;
   return data ?? [];
@@ -500,6 +631,7 @@ export async function createVendedor(
   email: string,
   ativo: boolean,
 ) {
+  const tenantId = requireTenantId();
   const normalizedTelefone = telefoneWhatsapp.trim();
   const normalizedEmail = email.trim();
 
@@ -514,6 +646,7 @@ export async function createVendedor(
       telefone_whatsapp: normalizedTelefone,
       email: normalizedEmail,
       ativo,
+      tenant_id: tenantId,
     })
     .select()
     .single();
@@ -529,6 +662,7 @@ export async function updateVendedor(
   email: string,
   ativo: boolean,
 ) {
+  const tenantId = requireTenantId();
   const normalizedTelefone = telefoneWhatsapp.trim();
   const normalizedEmail = email.trim();
 
@@ -545,6 +679,7 @@ export async function updateVendedor(
       ativo,
     })
     .eq("id", id)
+    .eq("tenant_id", tenantId)
     .select()
     .single();
 
@@ -553,7 +688,12 @@ export async function updateVendedor(
 }
 
 export async function deleteVendedor(id: string) {
-  const { error } = await supabase.from("vendedores").delete().eq("id", id);
+  const tenantId = requireTenantId();
+  const { error } = await supabase
+    .from("vendedores")
+    .delete()
+    .eq("id", id)
+    .eq("tenant_id", tenantId);
   if (error) throw error;
 }
 
@@ -563,6 +703,7 @@ export async function fetchProdutos(
   search = "",
   departamentoId = "",
 ) {
+  const tenantId = requireTenantId();
   let query = supabase
     .from("produtos")
     .select(
@@ -575,6 +716,7 @@ export async function fetchProdutos(
     `,
       { count: "exact" },
     )
+    .eq("tenant_id", tenantId)
     .eq("ativo", true)
     .eq("exibircatalogo", true)
     .order("descricao", { ascending: true })
@@ -596,6 +738,7 @@ export async function fetchProdutos(
 }
 
 export async function fetchProdutoById(id: string) {
+  const tenantId = requireTenantId();
   const { data, error } = await supabase
     .from("produtos")
     .select(
@@ -608,12 +751,14 @@ export async function fetchProdutoById(id: string) {
     `,
     )
     .eq("id", id)
+    .eq("tenant_id", tenantId)
     .single();
   if (error) throw error;
   return data;
 }
 
 export async function fetchTodosProdutos(page = 1, limit = 20, search = "") {
+  const tenantId = requireTenantId();
   let query = supabase
     .from("produtos")
     .select(
@@ -626,6 +771,7 @@ export async function fetchTodosProdutos(page = 1, limit = 20, search = "") {
     `,
       { count: "exact" },
     )
+    .eq("tenant_id", tenantId)
     .order("descricao", { ascending: true })
     .range((page - 1) * limit, page * limit - 1);
 
@@ -673,10 +819,12 @@ export async function createProduto(produto: {
   total_cartao?: number | null;
   texto_adicional_preco?: string | null;
 }) {
+  const tenantId = requireTenantId();
   const { data, error } = await supabase
     .from("produtos")
     .insert({
       ...produto,
+      tenant_id: tenantId,
       destaque: produto.destaque ?? false,
       ativo: produto.ativo ?? true,
       exibircatalogo: produto.exibircatalogo ?? true,
@@ -722,10 +870,12 @@ export async function updateProduto(
     texto_adicional_preco?: string | null;
   },
 ) {
+  const tenantId = requireTenantId();
   const { data, error } = await supabase
     .from("produtos")
     .update(produto)
     .eq("id", id)
+    .eq("tenant_id", tenantId)
     .select()
     .single();
   if (error) throw error;
@@ -733,7 +883,12 @@ export async function updateProduto(
 }
 
 export async function deleteProduto(id: string) {
-  const { error } = await supabase.from("produtos").delete().eq("id", id);
+  const tenantId = requireTenantId();
+  const { error } = await supabase
+    .from("produtos")
+    .delete()
+    .eq("id", id)
+    .eq("tenant_id", tenantId);
   if (error) throw error;
 }
 
@@ -742,9 +897,15 @@ export async function addImagemProduto(
   url: string,
   isimagemdestaque = false,
 ) {
+  const tenantId = requireTenantId();
   const { data, error } = await supabase
     .from("imagens_produto")
-    .insert({ produto_id: produtoId, url, isimagemdestaque })
+    .insert({
+      produto_id: produtoId,
+      url,
+      isimagemdestaque,
+      tenant_id: tenantId,
+    })
     .select()
     .single();
   if (error) throw error;
@@ -752,10 +913,12 @@ export async function addImagemProduto(
 }
 
 export async function deleteImagemProduto(id: string) {
+  const tenantId = requireTenantId();
   const { error } = await supabase
     .from("imagens_produto")
     .delete()
-    .eq("id", id);
+    .eq("id", id)
+    .eq("tenant_id", tenantId);
   if (error) throw error;
 }
 
@@ -763,14 +926,17 @@ export async function updateImagemDestaque(
   produtoId: string,
   imagemId: string,
 ) {
+  const tenantId = requireTenantId();
   await supabase
     .from("imagens_produto")
     .update({ isimagemdestaque: false })
-    .eq("produto_id", produtoId);
+    .eq("produto_id", produtoId)
+    .eq("tenant_id", tenantId);
   const { data, error } = await supabase
     .from("imagens_produto")
     .update({ isimagemdestaque: true })
     .eq("id", imagemId)
+    .eq("tenant_id", tenantId)
     .select()
     .single();
   if (error) throw error;
@@ -803,12 +969,13 @@ export async function deleteImagemStorage(url: string) {
 }
 
 export async function fetchStoreSettings(): Promise<StoreSettings> {
+  const tenantId = requireTenantId();
   const { data, error } = await supabase
     .from("loja_config")
     .select(
       "nome_loja, footer_descricao, footer_observacoes, facebook_url, instagram_url, twitter_url, youtube_url",
     )
-    .eq("id", true)
+    .eq("tenant_id", tenantId)
     .maybeSingle();
 
   if (error) throw error;
@@ -818,6 +985,7 @@ export async function fetchStoreSettings(): Promise<StoreSettings> {
 export async function updateStoreSettings(
   settings: Partial<StoreSettings>,
 ): Promise<StoreSettings> {
+  const tenantId = requireTenantId();
   const normalizedName = settings.nome_loja?.trim();
 
   if (normalizedName !== undefined && !normalizedName) {
@@ -825,7 +993,7 @@ export async function updateStoreSettings(
   }
 
   const payload = {
-    id: true,
+    tenant_id: tenantId,
     ...(settings.nome_loja !== undefined ? { nome_loja: normalizedName } : {}),
     ...(settings.footer_descricao !== undefined
       ? { footer_descricao: settings.footer_descricao.trim() }
@@ -849,7 +1017,7 @@ export async function updateStoreSettings(
 
   const { data, error } = await supabase
     .from("loja_config")
-    .upsert(payload, { onConflict: "id" })
+    .upsert(payload, { onConflict: "tenant_id" })
     .select(
       "nome_loja, footer_descricao, footer_observacoes, facebook_url, instagram_url, twitter_url, youtube_url",
     )
@@ -880,9 +1048,11 @@ export interface CriarVendaParams {
 }
 
 export async function createSale(params: CriarVendaParams) {
+  const tenantId = requireTenantId();
   const { data, error } = await supabase
     .from("vendas")
     .insert({
+      tenant_id: tenantId,
       vendedor_id: params.vendedor_id,
       itens: params.itens,
       total: params.total,
@@ -903,11 +1073,13 @@ export async function createSale(params: CriarVendaParams) {
 }
 
 export async function fetchVendas(page = 1, limit = 20) {
+  const tenantId = requireTenantId();
   const { data, count, error } = await supabase
     .from("vendas")
     .select("*, vendedor:vendedores(id, nome, telefone_whatsapp)", {
       count: "exact",
     })
+    .eq("tenant_id", tenantId)
     .order("criado_em", { ascending: false })
     .range((page - 1) * limit, page * limit - 1);
 
@@ -921,11 +1093,13 @@ export async function fetchVendas(page = 1, limit = 20) {
 import type { CatalogoTema } from "../types";
 
 export async function fetchTemas(page = 1, limit = 20, search = "") {
-  let query = supabase
-    .from("catalogo_temas")
-    .select("*", { count: "exact" })
-    .order("created_at", { ascending: false })
-    .range((page - 1) * limit, page * limit - 1);
+  let query = withTenantFilter(
+    supabase
+      .from("catalogo_temas")
+      .select("*", { count: "exact" })
+      .order("created_at", { ascending: false })
+      .range((page - 1) * limit, page * limit - 1),
+  );
 
   if (search.trim()) {
     query = query.ilike("nome", `%${search.trim()}%`);
@@ -940,11 +1114,9 @@ export async function fetchTemas(page = 1, limit = 20, search = "") {
 }
 
 export async function fetchTemaAtivo(): Promise<CatalogoTema | null> {
-  const { data, error } = await supabase
-    .from("catalogo_temas")
-    .select("*")
-    .eq("ativo", true)
-    .maybeSingle();
+  const { data, error } = await withTenantFilter(
+    supabase.from("catalogo_temas").select("*").eq("ativo", true).maybeSingle(),
+  );
 
   if (error) throw error;
   return data as CatalogoTema | null;
@@ -953,9 +1125,10 @@ export async function fetchTemaAtivo(): Promise<CatalogoTema | null> {
 export async function createTema(
   tema: Omit<CatalogoTema, "id" | "created_at" | "updated_at">,
 ) {
+  const tenantId = requireTenantId();
   const { data, error } = await supabase
     .from("catalogo_temas")
-    .insert(tema)
+    .insert({ ...tema, tenant_id: tenantId })
     .select()
     .single();
   if (error) throw error;
@@ -966,10 +1139,12 @@ export async function updateTema(
   id: string,
   tema: Partial<Omit<CatalogoTema, "id" | "created_at" | "updated_at">>,
 ) {
+  const tenantId = requireTenantId();
   const { data, error } = await supabase
     .from("catalogo_temas")
     .update(tema)
     .eq("id", id)
+    .eq("tenant_id", tenantId)
     .select()
     .single();
   if (error) throw error;
@@ -977,15 +1152,22 @@ export async function updateTema(
 }
 
 export async function deleteTema(id: string) {
-  const { error } = await supabase.from("catalogo_temas").delete().eq("id", id);
+  const tenantId = requireTenantId();
+  const { error } = await supabase
+    .from("catalogo_temas")
+    .delete()
+    .eq("id", id)
+    .eq("tenant_id", tenantId);
   if (error) throw error;
 }
 
 export async function ativarTema(id: string) {
+  const tenantId = requireTenantId();
   const { data, error } = await supabase
     .from("catalogo_temas")
     .update({ ativo: true })
     .eq("id", id)
+    .eq("tenant_id", tenantId)
     .select()
     .single();
   if (error) throw error;
@@ -993,10 +1175,12 @@ export async function ativarTema(id: string) {
 }
 
 export async function desativarTema(id: string) {
+  const tenantId = requireTenantId();
   const { data, error } = await supabase
     .from("catalogo_temas")
     .update({ ativo: false })
     .eq("id", id)
+    .eq("tenant_id", tenantId)
     .select()
     .single();
   if (error) throw error;

@@ -1,0 +1,15 @@
+{
+  "rewrites": [
+    { "source": "/api/:path*", "destination": "/api/:path*" },
+    {
+      "has": [{ "type": "host", "value": "(?<slug>[^.]+)\\..+" }],
+      "source": "/",
+      "destination": "/:slug"
+    },
+    {
+      "has": [{ "type": "host", "value": "(?<slug>[^.]+)\\..+" }],
+      "source": "/admin",
+      "destination": "/admin/:slug"
+    }
+  ]
+}

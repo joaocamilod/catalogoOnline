@@ -18,6 +18,7 @@ import { useNavigate } from "react-router-dom";
 import { fetchAllVendedores } from "../lib/supabase";
 import Dialog from "./Dialog";
 import PaymentModal from "./PaymentModal";
+import { useTenant } from "../context/TenantContext";
 
 const formatBRL = (value) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(
@@ -35,6 +36,7 @@ function Cart({
   tema,
 }) {
   const navigate = useNavigate();
+  const { slug } = useTenant();
 
   const [isSellerDialogOpen, setIsSellerDialogOpen] = useState(false);
   const [sellers, setSellers] = useState([]);
@@ -127,7 +129,7 @@ function Cart({
 
   const handleBackToStore = () => {
     onClose();
-    navigate("/");
+    navigate(slug ? `/${slug}` : "/");
   };
 
   if (!isOpen && !isSellerDialogOpen && !isPaymentModalOpen) return null;

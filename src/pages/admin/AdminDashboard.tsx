@@ -1,5 +1,11 @@
 import React, { useEffect, useRef, useState } from "react";
-import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
+import {
+  Link,
+  Outlet,
+  useLocation,
+  useNavigate,
+  useParams,
+} from "react-router-dom";
 import {
   Package,
   LayoutDashboard,
@@ -17,27 +23,33 @@ import { useAuthStore } from "../../store/authStore";
 import { signOut } from "../../lib/supabase";
 import AdminGlobalNotifier from "../../components/AdminGlobalNotifier";
 
-const navigation = [
-  { name: "Produtos", href: "/admin/produtos", icon: Package },
-  {
-    name: "Departamentos",
-    href: "/admin/departamentos",
-    icon: LayoutDashboard,
-  },
-  {
-    name: "Subdepartamentos",
-    href: "/admin/subdepartamentos",
-    icon: GitBranch,
-  },
-  { name: "Marcas", href: "/admin/marcas", icon: BadgePercent },
-  { name: "Vendedores", href: "/admin/vendedores", icon: Users },
-  { name: "Temas", href: "/admin/temas", icon: Palette },
-  { name: "Configurações", href: "/admin/configuracoes", icon: Settings },
-];
-
 const AdminDashboard: React.FC = () => {
+  const { slug } = useParams<{ slug: string }>();
   const location = useLocation();
   const navigate = useNavigate();
+  const baseAdmin = slug ? `/admin/${slug}` : "/admin";
+  const navigation = [
+    { name: "Produtos", href: `${baseAdmin}/produtos`, icon: Package },
+    {
+      name: "Departamentos",
+      href: `${baseAdmin}/departamentos`,
+      icon: LayoutDashboard,
+    },
+    {
+      name: "Subdepartamentos",
+      href: `${baseAdmin}/subdepartamentos`,
+      icon: GitBranch,
+    },
+    { name: "Marcas", href: `${baseAdmin}/marcas`, icon: BadgePercent },
+    { name: "Vendedores", href: `${baseAdmin}/vendedores`, icon: Users },
+    { name: "Temas", href: `${baseAdmin}/temas`, icon: Palette },
+    {
+      name: "Configurações",
+      href: `${baseAdmin}/configuracoes`,
+      icon: Settings,
+    },
+  ];
+
   const { user, logout } = useAuthStore();
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 640);
   const [isTablet, setIsTablet] = useState(
@@ -85,7 +97,7 @@ const AdminDashboard: React.FC = () => {
       await signOut();
     } catch (_) {}
     logout();
-    navigate("/");
+    navigate(slug ? `/${slug}` : "/");
   };
 
   return (
@@ -114,14 +126,18 @@ const AdminDashboard: React.FC = () => {
             <ShoppingBag className="h-5 w-5 text-white" />
           </div>
           {(!isTablet || !isSidebarCollapsed) && (
-            <span className="text-base font-bold text-gray-900">Administração</span>
+            <span className="text-base font-bold text-gray-900">
+              Administração
+            </span>
           )}
           {isTablet && !isMobile && (
             <button
               type="button"
               onClick={() => setIsSidebarCollapsed((v) => !v)}
               className="ml-auto p-1.5 rounded-lg hover:bg-gray-100"
-              aria-label={isSidebarCollapsed ? "Expandir menu" : "Recolher menu"}
+              aria-label={
+                isSidebarCollapsed ? "Expandir menu" : "Recolher menu"
+              }
             >
               <ChevronRight
                 className={`h-4 w-4 text-gray-500 transition-transform ${isSidebarCollapsed ? "" : "rotate-180"}`}
@@ -158,7 +174,7 @@ const AdminDashboard: React.FC = () => {
 
         <div className="px-3 py-4 border-t border-gray-100 space-y-1">
           <Link
-            to="/"
+            to={slug ? `/${slug}` : "/"}
             onClick={() => isMobile && setIsSidebarOpen(false)}
             className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50 transition-all"
           >

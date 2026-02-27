@@ -1,17 +1,24 @@
 import React, { Suspense, lazy, useEffect, useState } from "react";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { Routes, Route, Navigate, Outlet } from "react-router-dom";
 import ProtectedRoute from "./components/ProtectedRoute";
 import {
   DEFAULT_STORE_NAME,
+  fetchLojaById,
+  fetchProfile,
   fetchStoreSettings,
   fetchTemaAtivo,
+  getSession,
+  supabase,
   type StoreSettings,
 } from "./lib/supabase";
 import type { CatalogoTema } from "./types";
+import { useTenant } from "./context/TenantContext";
+import { useAuthStore } from "./store/authStore";
 
 const Home = lazy(() => import("./pages/Home"));
+const Landing = lazy(() => import("./pages/Landing"));
+const NewStore = lazy(() => import("./pages/NewStore"));
 const Login = lazy(() => import("./pages/Login"));
-const Register = lazy(() => import("./pages/Register"));
 
 const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard"));
 const ProductManager = lazy(() => import("./pages/admin/ProductManager"));
@@ -39,7 +46,33 @@ const AdminRoute = ({ children }: { children: React.ReactNode }) => (
   <ProtectedRoute requiredRole="admin">{children}</ProtectedRoute>
 );
 
-function App() {
+function TenantGate() {
+  const { loading, notFound } = useTenant();
+
+  if (loading) {
+    return <PageLoader />;
+  }
+
+  if (notFound) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 px-6">
+        <div className="max-w-md w-full bg-white rounded-2xl border border-gray-200 p-6 text-center shadow-sm">
+          <h1 className="text-xl font-semibold text-gray-900">
+            Loja não encontrada
+          </h1>
+          <p className="text-sm text-gray-500 mt-2">
+            Verifique o link da loja ou crie uma nova em /nova-loja.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  return <Outlet />;
+}
+
+function TenantCatalogRoute() {
+  const { tenantId } = useTenant();
   const [storeSettings, setStoreSettings] = useState<StoreSettings>({
     nome_loja: DEFAULT_STORE_NAME,
     footer_descricao:
@@ -53,6 +86,7 @@ function App() {
   const [temaAtivo, setTemaAtivo] = useState<CatalogoTema | null>(null);
 
   useEffect(() => {
+    if (!tenantId) return;
     let isMounted = true;
 
     const loadStoreSettings = async () => {
@@ -79,7 +113,7 @@ function App() {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [tenantId]);
 
   useEffect(() => {
     const nome = storeSettings.nome_loja?.trim();
@@ -89,49 +123,159 @@ function App() {
         : "Catálogo Online";
   }, [storeSettings.nome_loja]);
 
+  return <Home storeSettings={storeSettings} tema={temaAtivo} />;
+}
+
+function StoreSettingsRoute() {
+  const [storeSettings, setStoreSettings] = useState<StoreSettings>({
+    nome_loja: DEFAULT_STORE_NAME,
+    footer_descricao:
+      "Sua loja virtual completa com os melhores produtos e preços do mercado. Qualidade e conveniência em um só lugar.",
+    footer_observacoes: "",
+    facebook_url: "",
+    instagram_url: "",
+    twitter_url: "",
+    youtube_url: "",
+  });
+
+  useEffect(() => {
+    fetchStoreSettings()
+      .then(setStoreSettings)
+      .catch((error) =>
+        console.error("Erro ao carregar configurações da loja:", error),
+      );
+  }, []);
+
   return (
-    <BrowserRouter>
-      <Suspense fallback={<PageLoader />}>
-        <Routes>
-          <Route
-            path="/"
-            element={<Home storeSettings={storeSettings} tema={temaAtivo} />}
-          />
-          <Route path="/entrar" element={<Login />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/registrar" element={<Register />} />
-          <Route path="/cadastro" element={<Register />} />
+    <StoreSettingsManager
+      storeSettings={storeSettings}
+      onStoreSettingsChange={setStoreSettings}
+    />
+  );
+}
+
+function App() {
+  const { setUser, setLoading, logout } = useAuthStore();
+
+  useEffect(() => {
+    let mounted = true;
+    setLoading(true);
+
+    const applySession = async () => {
+      try {
+        const session = await getSession();
+        const authUser = session?.user;
+        if (!authUser) {
+          if (mounted) logout();
+          return;
+        }
+
+        const profile = await fetchProfile(authUser.id);
+        const metadataTenantId =
+          (authUser.user_metadata?.tenant_id as string | undefined) ?? null;
+        const tenantId = profile.tenant_id ?? metadataTenantId;
+        let tenantSlug: string | null = null;
+        if (tenantId) {
+          try {
+            tenantSlug = (await fetchLojaById(tenantId)).slug;
+          } catch (_) {
+            tenantSlug = null;
+          }
+        }
+
+        if (mounted) {
+          setUser({
+            id: profile.id,
+            email: profile.email,
+            name: profile.name,
+            role: profile.role,
+            tenant_id: tenantId,
+            tenant_slug: tenantSlug,
+          });
+        }
+      } catch (_err) {
+        if (mounted) logout();
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    };
+
+    applySession();
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      if (!mounted) return;
+      if (!session?.user) {
+        logout();
+        return;
+      }
+
+      try {
+        const profile = await fetchProfile(session.user.id);
+        const metadataTenantId =
+          (session.user.user_metadata?.tenant_id as string | undefined) ?? null;
+        const tenantId = profile.tenant_id ?? metadataTenantId;
+        let tenantSlug: string | null = null;
+        if (tenantId) {
+          try {
+            tenantSlug = (await fetchLojaById(tenantId)).slug;
+          } catch (_) {
+            tenantSlug = null;
+          }
+        }
+        setUser({
+          id: profile.id,
+          email: profile.email,
+          name: profile.name,
+          role: profile.role,
+          tenant_id: tenantId,
+          tenant_slug: tenantSlug,
+        });
+      } catch (_err) {
+        logout();
+      }
+    });
+
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
+  }, [logout, setLoading, setUser]);
+
+  return (
+    <Suspense fallback={<PageLoader />}>
+      <Routes>
+        <Route path="/" element={<Landing />} />
+        <Route path="/nova-loja" element={<NewStore />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/entrar" element={<Navigate to="/login" replace />} />
+
+        <Route element={<TenantGate />}>
+          <Route path="/:slug" element={<TenantCatalogRoute />} />
 
           <Route
-            path="/admin"
+            path="/admin/:slug"
             element={
               <AdminRoute>
                 <AdminDashboard />
               </AdminRoute>
             }
           >
-            <Route index element={<Navigate to="/admin/produtos" replace />} />
+            <Route index element={<Navigate to="produtos" replace />} />
             <Route path="produtos" element={<ProductManager />} />
             <Route path="departamentos" element={<DepartmentManager />} />
             <Route path="subdepartamentos" element={<SubdepartmentManager />} />
             <Route path="marcas" element={<BrandManager />} />
             <Route path="vendedores" element={<SellerManager />} />
             <Route path="temas" element={<ThemeManager />} />
-            <Route
-              path="configuracoes"
-              element={
-                <StoreSettingsManager
-                  storeSettings={storeSettings}
-                  onStoreSettingsChange={setStoreSettings}
-                />
-              }
-            />
+            <Route path="configuracoes" element={<StoreSettingsRoute />} />
           </Route>
+        </Route>
 
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </Suspense>
-    </BrowserRouter>
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </Suspense>
   );
 }
 

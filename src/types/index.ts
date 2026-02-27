@@ -3,6 +3,8 @@ export interface Profile {
   email: string;
   name: string;
   role: "admin" | "user";
+  tenant_id?: string | null;
+  tenant_slug?: string | null;
   created_at?: string;
 }
 

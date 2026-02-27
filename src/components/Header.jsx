@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { useAuthStore } from "../store/authStore";
 import { signOut } from "../lib/supabase";
+import { useTenant } from "../context/TenantContext";
 
 function Header({
   storeName,
@@ -22,6 +23,7 @@ function Header({
   tema,
 }) {
   const { user, logout } = useAuthStore();
+  const { slug } = useTenant();
   const navigate = useNavigate();
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
 
@@ -31,7 +33,7 @@ function Header({
     } catch (_) {}
     logout();
     setIsUserMenuOpen(false);
-    navigate("/");
+    navigate(slug ? `/${slug}` : "/");
   };
 
   return (
@@ -61,7 +63,7 @@ function Header({
           </button>
 
           <Link
-            to="/"
+            to={slug ? `/${slug}` : "/"}
             className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0 min-w-0"
           >
             <ShoppingBag className="h-6 w-6 sm:h-7 sm:w-7 flex-shrink-0" />
@@ -131,7 +133,7 @@ function Header({
                     </div>
                     {user.role === "admin" && (
                       <Link
-                        to="/admin/produtos"
+                        to={slug ? `/admin/${slug}/produtos` : "/login"}
                         onClick={() => setIsUserMenuOpen(false)}
                         className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-indigo-50 hover:text-indigo-700 transition-colors"
                       >
@@ -153,7 +155,7 @@ function Header({
             </div>
           ) : (
             <Link
-              to="/entrar"
+              to={slug ? `/login?slug=${slug}` : "/login"}
               className="flex items-center gap-2 px-4 py-2 bg-white text-indigo-700 rounded-full text-sm font-semibold hover:bg-indigo-50 transition-colors shadow-sm"
             >
               <User className="h-4 w-4" />

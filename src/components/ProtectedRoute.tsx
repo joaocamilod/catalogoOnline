@@ -1,5 +1,5 @@
 import React from "react";
-import { Navigate } from "react-router-dom";
+import { Navigate, useParams } from "react-router-dom";
 import { useAuthStore } from "../store/authStore";
 import type { UserRole } from "../types";
 
@@ -13,6 +13,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   requiredRole,
 }) => {
   const { user, isLoading } = useAuthStore();
+  const { slug } = useParams<{ slug: string }>();
 
   if (isLoading) {
     return (
@@ -23,11 +24,16 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   }
 
   if (!user) {
-    return <Navigate to="/login" replace />;
+    const to = slug ? `/login?slug=${slug}` : "/login";
+    return <Navigate to={to} replace />;
   }
 
   if (requiredRole && user.role !== requiredRole) {
-    return <Navigate to="/" replace />;
+    return <Navigate to={slug ? `/${slug}` : "/"} replace />;
+  }
+
+  if (slug && user.tenant_slug && user.tenant_slug !== slug) {
+    return <Navigate to={`/admin/${user.tenant_slug}`} replace />;
   }
 
   return <>{children}</>;

@@ -140,3 +140,31 @@ http://localhost:3000
 Desenvolvido como projeto pessoal de demonstração de habilidades em desenvolvimento front-end moderno.
 
 **Tecnologias**: React • Vite • JavaScript ES6+ • CSS3 • HTML5
+
+## Multi-tenancy
+
+- Catálogo público por loja: `/:slug`
+- Admin por loja: `/admin/:slug`
+- Login global: `/login`
+- Onboarding de loja: `/nova-loja`
+
+### Variáveis de ambiente
+
+Crie um `.env` com:
+
+```bash
+VITE_SUPABASE_URL=...
+VITE_SUPABASE_ANON_KEY=...
+```
+
+### Migrations
+
+Aplicar as migrations da pasta `supabase/migrations` em ordem, com foco na migration:
+
+- `013_multi_tenant_lojas_rls.sql`
+
+Essa migration cria `lojas`, adiciona `tenant_id` nas tabelas principais e ajusta RLS/trigger para isolamento por tenant.
+
+### Deploy Vercel
+
+Consulte o guia completo em `README-deploy.md`.

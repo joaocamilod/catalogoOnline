@@ -21,6 +21,7 @@ import type {
 } from "../types";
 import { normalizeProduto } from "../types";
 import type { StoreSettings } from "../lib/supabase";
+import { useTenant } from "../context/TenantContext";
 
 const PRODUCTS_PER_PAGE = 20;
 
@@ -30,6 +31,7 @@ interface HomeProps {
 }
 
 const Home: React.FC<HomeProps> = ({ storeSettings, tema }) => {
+  const { tenantId } = useTenant();
   const [produtos, setProdutos] = useState<CatalogProduct[]>([]);
   const [departamentos, setDepartamentos] = useState<Departamento[]>([]);
   const [subdepartamentos, setSubdepartamentos] = useState<Subdepartamento[]>(
@@ -71,6 +73,11 @@ const Home: React.FC<HomeProps> = ({ storeSettings, tema }) => {
 
   const loadProdutos = useCallback(
     async (page: number, search: string, depId: string) => {
+      if (!tenantId) {
+        setError("Loja não encontrada");
+        setLoading(false);
+        return;
+      }
       setLoading(true);
       setError(null);
       try {
@@ -92,10 +99,11 @@ const Home: React.FC<HomeProps> = ({ storeSettings, tema }) => {
         setLoading(false);
       }
     },
-    [],
+    [tenantId],
   );
 
   useEffect(() => {
+    if (!tenantId) return;
     Promise.all([
       fetchDepartamentosComProdutos(),
       fetchSubdepartamentosComProdutos(),
@@ -107,11 +115,12 @@ const Home: React.FC<HomeProps> = ({ storeSettings, tema }) => {
         setMarcas(marcs);
       })
       .catch(() => {});
-  }, []);
+  }, [tenantId]);
 
   useEffect(() => {
+    if (!tenantId) return;
     loadProdutos(1, debouncedSearch, selectedCategory);
-  }, [debouncedSearch, selectedCategory, loadProdutos]);
+  }, [debouncedSearch, selectedCategory, loadProdutos, tenantId]);
 
   const filteredProducts = useMemo(() => {
     let list = produtos.filter(
