@@ -1,6 +1,15 @@
 import React, { useCallback, useEffect, useState } from "react";
-import { BadgePercent, Loader2, Pencil, Plus, Search, Trash2, X } from "lucide-react";
+import {
+  BadgePercent,
+  Loader2,
+  Pencil,
+  Plus,
+  Search,
+  Trash2,
+  X,
+} from "lucide-react";
 import Dialog from "../../components/Dialog";
+import ConfirmDeleteDialog from "../../components/ConfirmDeleteDialog";
 import Toast from "../../components/Toast";
 import {
   createMarca,
@@ -17,7 +26,12 @@ interface FormProps {
   onCancel: () => void;
 }
 
-const BrandForm: React.FC<FormProps> = ({ initial, loading, onSubmit, onCancel }) => {
+const BrandForm: React.FC<FormProps> = ({
+  initial,
+  loading,
+  onSubmit,
+  onCancel,
+}) => {
   const [nome, setNome] = useState(initial?.nome ?? "");
   const [error, setError] = useState("");
 
@@ -35,7 +49,9 @@ const BrandForm: React.FC<FormProps> = ({ initial, loading, onSubmit, onCancel }
       }}
     >
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1.5">Nome *</label>
+        <label className="block text-sm font-medium text-gray-700 mb-1.5">
+          Nome *
+        </label>
         <input
           type="text"
           value={nome}
@@ -77,6 +93,8 @@ const BrandManager: React.FC = () => {
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Marca | null>(null);
+  const [deletingBrand, setDeletingBrand] = useState<Marca | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [toast, setToast] = useState<{
     msg: string;
     type: "success" | "error";
@@ -123,23 +141,31 @@ const BrandManager: React.FC = () => {
     }
   };
 
-  const handleDelete = async (item: Marca) => {
-    if (!window.confirm(`Excluir "${item.nome}"?`)) return;
+  const handleDelete = async () => {
+    if (!deletingBrand) return;
+    setIsDeleting(true);
     setLoading(true);
     try {
-      await deleteMarca(item.id);
+      await deleteMarca(deletingBrand.id);
       setToast({ msg: "Marca excluída!", type: "success" });
+      setDeletingBrand(null);
       await load();
     } catch {
       setToast({ msg: "Erro ao excluir marca.", type: "error" });
+    } finally {
       setLoading(false);
+      setIsDeleting(false);
     }
   };
 
   return (
     <div className="space-y-6">
       {toast && (
-        <Toast message={toast.msg} type={toast.type} onClose={() => setToast(null)} />
+        <Toast
+          message={toast.msg}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
       )}
 
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -190,7 +216,9 @@ const BrandManager: React.FC = () => {
             <Loader2 className="h-8 w-8 text-indigo-500 animate-spin" />
           </div>
         ) : brands.length === 0 ? (
-          <p className="text-sm text-gray-500 text-center py-12">Nenhuma marca encontrada.</p>
+          <p className="text-sm text-gray-500 text-center py-12">
+            Nenhuma marca encontrada.
+          </p>
         ) : (
           <table className="min-w-full divide-y divide-gray-100">
             <thead className="bg-gray-50">
@@ -205,8 +233,13 @@ const BrandManager: React.FC = () => {
             </thead>
             <tbody className="divide-y divide-gray-50">
               {brands.map((item) => (
-                <tr key={item.id} className="hover:bg-gray-50 transition-colors">
-                  <td className="px-6 py-4 text-sm text-gray-900 font-medium">{item.nome}</td>
+                <tr
+                  key={item.id}
+                  className="hover:bg-gray-50 transition-colors"
+                >
+                  <td className="px-6 py-4 text-sm text-gray-900 font-medium">
+                    {item.nome}
+                  </td>
                   <td className="px-6 py-4">
                     <div className="flex justify-end gap-2">
                       <button
@@ -222,7 +255,7 @@ const BrandManager: React.FC = () => {
                       </button>
                       <button
                         type="button"
-                        onClick={() => handleDelete(item)}
+                        onClick={() => setDeletingBrand(item)}
                         className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                         title="Excluir"
                       >
@@ -255,6 +288,19 @@ const BrandManager: React.FC = () => {
           }}
         />
       </Dialog>
+
+      <ConfirmDeleteDialog
+        isOpen={Boolean(deletingBrand)}
+        title="Excluir marca"
+        description={
+          deletingBrand
+            ? `Tem certeza que deseja excluir "${deletingBrand.nome}"?`
+            : ""
+        }
+        onClose={() => setDeletingBrand(null)}
+        onConfirm={handleDelete}
+        loading={isDeleting}
+      />
     </div>
   );
 };

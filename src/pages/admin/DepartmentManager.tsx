@@ -17,6 +17,7 @@ import {
 } from "../../lib/supabase";
 import Toast from "../../components/Toast";
 import Dialog from "../../components/Dialog";
+import ConfirmDeleteDialog from "../../components/ConfirmDeleteDialog";
 import type { Departamento } from "../../types";
 interface DepartmentFormProps {
   initial?: Partial<Departamento>;
@@ -111,7 +112,6 @@ const DepartmentForm: React.FC<DepartmentFormProps> = ({
   );
 };
 
-// ─── Manager ───────────────────────────────────────────────────────────────────
 const DepartmentManager: React.FC = () => {
   const [departments, setDepartments] = useState<Departamento[]>([]);
   const [loading, setLoading] = useState(true);
@@ -123,6 +123,9 @@ const DepartmentManager: React.FC = () => {
   } | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Departamento | null>(null);
+  const [deletingDepartment, setDeletingDepartment] =
+    useState<Departamento | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
@@ -134,7 +137,6 @@ const DepartmentManager: React.FC = () => {
   );
   const LIMIT = 10;
 
-  // Debounce
   useEffect(() => {
     const t = setTimeout(() => setDebouncedSearch(searchTerm), 350);
     return () => clearTimeout(t);
@@ -208,17 +210,14 @@ const DepartmentManager: React.FC = () => {
     }
   };
 
-  const handleDelete = async (dep: Departamento) => {
-    if (
-      !window.confirm(
-        `Excluir "${dep.descricao}"? Esta ação não pode ser desfeita.`,
-      )
-    )
-      return;
+  const handleDelete = async () => {
+    if (!deletingDepartment) return;
+    setIsDeleting(true);
     setLoading(true);
     try {
-      await deleteDepartamento(dep.id);
+      await deleteDepartamento(deletingDepartment.id);
       setToast({ msg: "Departamento excluído!", type: "success" });
+      setDeletingDepartment(null);
       await load(currentPage, debouncedSearch);
     } catch (e: any) {
       setToast({
@@ -227,6 +226,7 @@ const DepartmentManager: React.FC = () => {
       });
     } finally {
       setLoading(false);
+      setIsDeleting(false);
     }
   };
 
@@ -410,7 +410,7 @@ const DepartmentManager: React.FC = () => {
                                 onClick={() => {
                                   setOpenActionMenuId(null);
                                   setActionMenuOpenUpId(null);
-                                  handleDelete(dep);
+                                  setDeletingDepartment(dep);
                                 }}
                                 className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
                               >
@@ -470,6 +470,19 @@ const DepartmentManager: React.FC = () => {
           }}
         />
       </Dialog>
+
+      <ConfirmDeleteDialog
+        isOpen={Boolean(deletingDepartment)}
+        title="Excluir departamento"
+        description={
+          deletingDepartment
+            ? `Tem certeza que deseja excluir "${deletingDepartment.descricao}"?`
+            : ""
+        }
+        onClose={() => setDeletingDepartment(null)}
+        onConfirm={handleDelete}
+        loading={isDeleting}
+      />
     </div>
   );
 };

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { FaShoppingCart, FaCheck, FaEye } from "react-icons/fa";
+import { FaShoppingCart, FaCheck } from "react-icons/fa";
 
 const formatPrice = (value) => {
   const amount = Number.isFinite(Number(value)) ? Number(value) : 0;
@@ -127,13 +127,6 @@ function ProductCard({ product, onAddToCart, onProductClick, tema }) {
             e.currentTarget.src = firstImage || PLACEHOLDER;
           }}
         />
-
-        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all duration-300 flex items-center justify-center">
-          <span className="opacity-0 group-hover:opacity-100 transition-all duration-200 translate-y-2 group-hover:translate-y-0 bg-white/95 text-gray-900 text-xs font-semibold px-3 py-1.5 rounded-full flex items-center gap-1.5 shadow-md">
-            <FaEye className="text-violet-500" />
-            Ver detalhes
-          </span>
-        </div>
 
         {lowStock && (
           <span className="absolute top-2 right-2 bg-amber-400 text-amber-900 text-xs font-semibold px-2.5 py-1 rounded-full uppercase tracking-wide shadow-sm">

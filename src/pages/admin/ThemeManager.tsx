@@ -41,6 +41,7 @@ import {
 } from "../../lib/supabase";
 import type { CatalogoTema } from "../../types";
 import { TEMA_PADRAO } from "../../types";
+import ConfirmDeleteDialog from "../../components/ConfirmDeleteDialog";
 
 const FONTES_DISPONIVEIS = [
   "Inter",
@@ -854,7 +855,8 @@ const ThemeManager: React.FC = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [deviceView, setDeviceView] = useState<DeviceView>("desktop");
 
-  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  const [deletingTheme, setDeletingTheme] = useState<CatalogoTema | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     const t = setTimeout(() => setDebouncedSearch(search), 350);
@@ -930,14 +932,18 @@ const ThemeManager: React.FC = () => {
     }
   };
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = async () => {
+    if (!deletingTheme) return;
+    setIsDeleting(true);
     try {
-      await deleteTema(id);
+      await deleteTema(deletingTheme.id);
       showFeedback("success", "Tema excluído com sucesso!");
-      setDeleteConfirm(null);
+      setDeletingTheme(null);
       loadTemas(page, debouncedSearch);
     } catch (e: any) {
       showFeedback("error", e?.message || "Erro ao excluir tema.");
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -1607,30 +1613,13 @@ const ThemeManager: React.FC = () => {
                     >
                       <Copy className="h-3.5 w-3.5" />
                     </button>
-                    {deleteConfirm === tema.id ? (
-                      <div className="flex items-center gap-1 ml-auto">
-                        <button
-                          onClick={() => handleDelete(tema.id)}
-                          className="px-2 py-1 rounded-lg text-xs font-medium bg-red-600 text-white hover:bg-red-700 transition-colors focus:outline-none focus:ring-2 focus:ring-red-400"
-                        >
-                          Confirmar
-                        </button>
-                        <button
-                          onClick={() => setDeleteConfirm(null)}
-                          className="p-1 rounded-lg hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-400"
-                        >
-                          <X className="h-3.5 w-3.5 text-gray-400" />
-                        </button>
-                      </div>
-                    ) : (
-                      <button
-                        onClick={() => setDeleteConfirm(tema.id)}
-                        className="ml-auto p-1.5 rounded-lg text-red-400 hover:bg-red-50 hover:text-red-600 transition-colors focus:outline-none focus:ring-2 focus:ring-red-400"
-                        title="Excluir"
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </button>
-                    )}
+                    <button
+                      onClick={() => setDeletingTheme(tema)}
+                      className="ml-auto p-1.5 rounded-lg text-red-400 hover:bg-red-50 hover:text-red-600 transition-colors focus:outline-none focus:ring-2 focus:ring-red-400"
+                      title="Excluir"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
                   </div>
                 </div>
               </div>
@@ -1660,6 +1649,19 @@ const ThemeManager: React.FC = () => {
           </button>
         </div>
       )}
+
+      <ConfirmDeleteDialog
+        isOpen={Boolean(deletingTheme)}
+        title="Excluir tema"
+        description={
+          deletingTheme
+            ? `Tem certeza que deseja excluir "${deletingTheme.nome}"?`
+            : ""
+        }
+        onClose={() => setDeletingTheme(null)}
+        onConfirm={handleDelete}
+        loading={isDeleting}
+      />
 
       <FeedbackBar />
     </div>

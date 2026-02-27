@@ -9,6 +9,7 @@ import {
   X,
 } from "lucide-react";
 import Dialog from "../../components/Dialog";
+import ConfirmDeleteDialog from "../../components/ConfirmDeleteDialog";
 import Toast from "../../components/Toast";
 import {
   createSubdepartamento,
@@ -126,6 +127,9 @@ const SubdepartmentManager: React.FC = () => {
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Subdepartamento | null>(null);
+  const [deletingSubdepartment, setDeletingSubdepartment] =
+    useState<Subdepartamento | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [toast, setToast] = useState<{
     msg: string;
     type: "success" | "error";
@@ -196,16 +200,20 @@ const SubdepartmentManager: React.FC = () => {
     }
   };
 
-  const handleDelete = async (item: Subdepartamento) => {
-    if (!window.confirm(`Excluir "${item.nome}"?`)) return;
+  const handleDelete = async () => {
+    if (!deletingSubdepartment) return;
+    setIsDeleting(true);
     setLoading(true);
     try {
-      await deleteSubdepartamento(item.id);
+      await deleteSubdepartamento(deletingSubdepartment.id);
       setToast({ msg: "Subdepartamento excluído!", type: "success" });
+      setDeletingSubdepartment(null);
       await load();
     } catch {
       setToast({ msg: "Erro ao excluir subdepartamento.", type: "error" });
+    } finally {
       setLoading(false);
+      setIsDeleting(false);
     }
   };
 
@@ -314,7 +322,7 @@ const SubdepartmentManager: React.FC = () => {
                       </button>
                       <button
                         type="button"
-                        onClick={() => handleDelete(item)}
+                        onClick={() => setDeletingSubdepartment(item)}
                         className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                         title="Excluir"
                       >
@@ -348,6 +356,19 @@ const SubdepartmentManager: React.FC = () => {
           }}
         />
       </Dialog>
+
+      <ConfirmDeleteDialog
+        isOpen={Boolean(deletingSubdepartment)}
+        title="Excluir subdepartamento"
+        description={
+          deletingSubdepartment
+            ? `Tem certeza que deseja excluir "${deletingSubdepartment.nome}"?`
+            : ""
+        }
+        onClose={() => setDeletingSubdepartment(null)}
+        onConfirm={handleDelete}
+        loading={isDeleting}
+      />
     </div>
   );
 };

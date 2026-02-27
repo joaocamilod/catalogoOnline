@@ -17,6 +17,7 @@ import {
 } from "../../lib/supabase";
 import Toast from "../../components/Toast";
 import Dialog from "../../components/Dialog";
+import ConfirmDeleteDialog from "../../components/ConfirmDeleteDialog";
 import type { Vendedor } from "../../types";
 
 interface SellerFormProps {
@@ -212,6 +213,8 @@ const SellerManager: React.FC = () => {
   } | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Vendedor | null>(null);
+  const [deletingSeller, setDeletingSeller] = useState<Vendedor | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
@@ -312,21 +315,20 @@ const SellerManager: React.FC = () => {
     }
   };
 
-  const handleDelete = async (seller: Vendedor) => {
-    if (
-      !window.confirm(`Excluir "${seller.nome}"? A ação nao pode ser desfeita.`)
-    )
-      return;
-
+  const handleDelete = async () => {
+    if (!deletingSeller) return;
+    setIsDeleting(true);
     setLoading(true);
     try {
-      await deleteVendedor(seller.id);
+      await deleteVendedor(deletingSeller.id);
       setToast({ msg: "Vendedor excluido!", type: "success" });
+      setDeletingSeller(null);
       await load(currentPage, debouncedSearch);
     } catch {
       setToast({ msg: "Erro ao excluir vendedor.", type: "error" });
     } finally {
       setLoading(false);
+      setIsDeleting(false);
     }
   };
 
@@ -522,7 +524,7 @@ const SellerManager: React.FC = () => {
                                 onClick={() => {
                                   setOpenActionMenuId(null);
                                   setActionMenuOpenUpId(null);
-                                  handleDelete(seller);
+                                  setDeletingSeller(seller);
                                 }}
                                 className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
                               >
@@ -582,6 +584,19 @@ const SellerManager: React.FC = () => {
           }}
         />
       </Dialog>
+
+      <ConfirmDeleteDialog
+        isOpen={Boolean(deletingSeller)}
+        title="Excluir vendedor"
+        description={
+          deletingSeller
+            ? `Tem certeza que deseja excluir "${deletingSeller.nome}"?`
+            : ""
+        }
+        onClose={() => setDeletingSeller(null)}
+        onConfirm={handleDelete}
+        loading={isDeleting}
+      />
     </div>
   );
 };

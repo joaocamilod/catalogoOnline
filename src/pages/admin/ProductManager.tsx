@@ -38,6 +38,7 @@ import {
 } from "../../lib/supabase";
 import Toast from "../../components/Toast";
 import Dialog from "../../components/Dialog";
+import ConfirmDeleteDialog from "../../components/ConfirmDeleteDialog";
 import type {
   Produto,
   Departamento,
@@ -1521,6 +1522,8 @@ const ProductManager: React.FC = () => {
   } | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Produto | null>(null);
+  const [deletingProduct, setDeletingProduct] = useState<Produto | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
@@ -1641,20 +1644,23 @@ const ProductManager: React.FC = () => {
     }
   };
 
-  const handleDelete = async (p: Produto) => {
-    if (!window.confirm(`Excluir "${p.descricao}"?`)) return;
+  const handleDelete = async () => {
+    if (!deletingProduct) return;
+    setIsDeleting(true);
     setLoading(true);
     try {
-      for (const img of p.imagens ?? []) {
+      for (const img of deletingProduct.imagens ?? []) {
         await deleteImagemStorage(img.url).catch(() => {});
       }
-      await deleteProduto(p.id);
+      await deleteProduto(deletingProduct.id);
       setToast({ msg: "Produto excluído!", type: "success" });
+      setDeletingProduct(null);
       await load(currentPage, debouncedSearch);
     } catch (e: any) {
       setToast({ msg: "Erro ao excluir produto.", type: "error" });
     } finally {
       setLoading(false);
+      setIsDeleting(false);
     }
   };
 
@@ -1901,7 +1907,7 @@ const ProductManager: React.FC = () => {
                                 onClick={() => {
                                   setOpenActionMenuId(null);
                                   setActionMenuOpenUpId(null);
-                                  handleDelete(p);
+                                  setDeletingProduct(p);
                                 }}
                                 className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
                               >
@@ -1964,6 +1970,19 @@ const ProductManager: React.FC = () => {
           }}
         />
       </Dialog>
+
+      <ConfirmDeleteDialog
+        isOpen={Boolean(deletingProduct)}
+        title="Excluir produto"
+        description={
+          deletingProduct
+            ? `Tem certeza que deseja excluir "${deletingProduct.descricao}"?`
+            : ""
+        }
+        onClose={() => setDeletingProduct(null)}
+        onConfirm={handleDelete}
+        loading={isDeleting}
+      />
     </div>
   );
 };

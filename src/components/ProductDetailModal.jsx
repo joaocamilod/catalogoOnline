@@ -451,8 +451,14 @@ export default function ProductDetailModal({
                     )}
                   </>
                 ) : (
-                  <div className="text-4xl font-extrabold text-gray-900 tracking-tight leading-none">
-                    {formatBRL(product.price)}
+                  <div className="flex items-baseline gap-2">
+                    <Zap className="h-5 w-5 text-green-500 flex-shrink-0 self-center" />
+                    <span className="text-4xl font-extrabold text-gray-900 tracking-tight leading-none">
+                      {formatBRL(product.price)}
+                    </span>
+                    <span className="text-base font-bold text-green-600">
+                      no Pix
+                    </span>
                   </div>
                 )}
               </div>
