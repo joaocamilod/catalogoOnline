@@ -1,8 +1,9 @@
 import { createClient } from "@supabase/supabase-js";
 
-const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
+const env = ((globalThis as any).process?.env ?? {}) as Record<string, string | undefined>;
+const supabaseUrl = env.VITE_SUPABASE_URL || env.SUPABASE_URL;
 const supabaseServiceKey =
-  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY;
+  env.SUPABASE_SERVICE_ROLE_KEY || env.VITE_SUPABASE_ANON_KEY;
 
 export default async function handler(req: any, res: any) {
   if (!supabaseUrl || !supabaseServiceKey) {
