@@ -914,26 +914,26 @@ export async function decrementarEstoqueProdutos(
 }
 
 export async function createSale(params: CriarVendaParams) {
-  const { data, error } = await supabase
-    .from("vendas")
-    .insert({
-      vendedor_id: params.vendedor_id,
-      itens: params.itens,
-      total: params.total,
-      comprador_nome: params.comprador_nome?.trim() || null,
-      comprador_telefone: params.comprador_telefone?.trim() || null,
-      comprador_email: params.comprador_email?.trim() || null,
-      url_imagem: params.url_imagem || null,
-      texto_mensagem: params.texto_mensagem || null,
-      meio_pagamento: params.meio_pagamento || null,
-      status: "pendente",
-      whatsapp_enviado: false,
-    })
-    .select()
-    .single();
-
-  if (error) throw error;
-  return data;
+  const { error } = await supabase.from("vendas").insert({
+    vendedor_id: params.vendedor_id,
+    itens: params.itens,
+    total: params.total,
+    comprador_nome: params.comprador_nome?.trim() || null,
+    comprador_telefone: params.comprador_telefone?.trim() || null,
+    comprador_email: params.comprador_email?.trim() || null,
+    url_imagem: params.url_imagem || null,
+    texto_mensagem: params.texto_mensagem || null,
+    meio_pagamento: params.meio_pagamento || null,
+    status: "pendente",
+    whatsapp_enviado: false,
+  });
+  if (error) {
+    if ((error as { code?: string }).code === "42501") {
+      return { id: null, permissionDenied: true };
+    }
+    throw error;
+  }
+  return { id: null };
 }
 
 export async function fetchVendas(page = 1, limit = 20) {
