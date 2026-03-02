@@ -10,7 +10,6 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import {
   DEFAULT_STORE_NAME,
   fetchProfile,
-  getSession,
   fetchStoreSettings,
   fetchTemaAtivo,
   supabase,
@@ -130,37 +129,11 @@ function App() {
   useEffect(() => {
     let isMounted = true;
 
-    const hydrateSession = async () => {
-      setLoading(true);
-      try {
-        const session = await getSession();
-        if (!session?.user) {
-          if (isMounted) setUser(null);
-          return;
-        }
-
-        const profile = await fetchProfile(session.user.id);
-        if (!isMounted) return;
-
-        setUser({
-          id: profile.id,
-          email: profile.email,
-          name: profile.name,
-          role: profile.role,
-        });
-      } catch (error) {
-        console.error("Erro ao sincronizar sessão:", error);
-        if (isMounted) setUser(null);
-      } finally {
-        if (isMounted) setLoading(false);
-      }
-    };
-
-    hydrateSession();
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    const applySession = async (
+      session: Awaited<
+        ReturnType<typeof supabase.auth.getSession>
+      >["data"]["session"],
+    ) => {
       if (!isMounted) return;
 
       if (!session?.user) {
@@ -185,6 +158,16 @@ function App() {
       } finally {
         if (isMounted) setLoading(false);
       }
+    };
+
+    setLoading(true);
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      Promise.resolve().then(() => {
+        void applySession(session);
+      });
     });
 
     return () => {
