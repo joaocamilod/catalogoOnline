@@ -12,13 +12,23 @@ const formatPrice = (value) => {
 const PLACEHOLDER =
   "https://cdn.pixabay.com/photo/2019/04/16/10/35/box-4131401_1280.png";
 
-function ProductCard({ product, onAddToCart, onProductClick, tema }) {
+function ProductCard({
+  product,
+  onAddToCart,
+  onNotifyRestock,
+  onProductClick,
+  tema,
+}) {
   const [isAdding, setIsAdding] = useState(false);
   const [showSecondImage, setShowSecondImage] = useState(false);
   const hoverTimerRef = useRef(null);
 
   const handleAddToCart = (e) => {
     e.stopPropagation();
+    if (outOfStock) {
+      onNotifyRestock?.(product);
+      return;
+    }
     setIsAdding(true);
     onAddToCart(product);
     setTimeout(() => setIsAdding(false), 700);
@@ -192,8 +202,12 @@ function ProductCard({ product, onAddToCart, onProductClick, tema }) {
           <button
             type="button"
             onClick={handleAddToCart}
-            disabled={outOfStock || isAdding}
-            aria-label={`Adicionar ${product.name} ao carrinho`}
+            disabled={isAdding}
+            aria-label={
+              outOfStock
+                ? `Avise-me quando ${product.name} voltar ao estoque`
+                : `Adicionar ${product.name} ao carrinho`
+            }
             className={`
               w-full flex items-center justify-center gap-2
               py-2.5 font-semibold text-sm
@@ -201,7 +215,7 @@ function ProductCard({ product, onAddToCart, onProductClick, tema }) {
               focus:outline-none focus:ring-2 focus:ring-offset-2
               ${
                 outOfStock
-                  ? "bg-gray-100 text-gray-400 cursor-not-allowed rounded-lg"
+                  ? "bg-amber-500 text-white hover:bg-amber-600 rounded-lg"
                   : isAdding
                     ? "bg-green-500 text-white scale-95 rounded-lg"
                     : !tema
@@ -227,7 +241,7 @@ function ProductCard({ product, onAddToCart, onProductClick, tema }) {
             ) : (
               <>
                 <FaShoppingCart className="text-sm" aria-hidden="true" />
-                {outOfStock ? "Indisponível" : "Adicionar"}
+                {outOfStock ? "Avise-me" : "Adicionar"}
               </>
             )}
           </button>

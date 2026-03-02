@@ -5,11 +5,15 @@ import FilterSidebar from "../components/FilterSidebar";
 import Cart from "../components/Cart";
 import Footer from "../components/Footer";
 import ProductDetailModal from "../components/ProductDetailModal";
+import Dialog from "../components/Dialog";
+import Toast from "../components/Toast";
+import { AlertCircle, Loader2, Mail, Phone, UserRound } from "lucide-react";
 import {
   fetchProdutos,
   fetchDepartamentosComProdutos,
   fetchSubdepartamentosComProdutos,
   fetchMarcasComProdutos,
+  fetchAllVendedores,
 } from "../lib/supabase";
 import { useCartStore } from "../store/cartStore";
 import type {
@@ -18,6 +22,7 @@ import type {
   Departamento,
   Subdepartamento,
   Marca,
+  Vendedor,
 } from "../types";
 import { normalizeProduto } from "../types";
 import type { StoreSettings } from "../lib/supabase";
@@ -54,6 +59,20 @@ const Home: React.FC<HomeProps> = ({ storeSettings, tema }) => {
   const [selectedProduct, setSelectedProduct] = useState<CatalogProduct | null>(
     null,
   );
+  const [notifyProduct, setNotifyProduct] = useState<CatalogProduct | null>(
+    null,
+  );
+  const [isNotifyDialogOpen, setIsNotifyDialogOpen] = useState(false);
+  const [sellers, setSellers] = useState<Vendedor[]>([]);
+  const [loadingSellers, setLoadingSellers] = useState(false);
+  const [sellerLoadError, setSellerLoadError] = useState("");
+  const [sellerValidationError, setSellerValidationError] = useState("");
+  const [selectedSellerId, setSelectedSellerId] = useState("");
+  const [manualSellerName, setManualSellerName] = useState("");
+  const [toast, setToast] = useState<{
+    msg: string;
+    type: "success" | "error" | "info";
+  } | null>(null);
   const {
     items,
     addItem,
@@ -172,6 +191,89 @@ const Home: React.FC<HomeProps> = ({ storeSettings, tema }) => {
   const handleUpdateQuantity = (productId: string, qty: number) =>
     updateQuantity(productId, qty);
 
+  const loadSellers = useCallback(async () => {
+    setLoadingSellers(true);
+    setSellerLoadError("");
+    try {
+      const data = await fetchAllVendedores();
+      setSellers(data);
+      setSelectedSellerId(data[0]?.id ?? "");
+    } catch (_) {
+      setSellerLoadError("Não foi possível carregar vendedores agora.");
+      setSellers([]);
+      setSelectedSellerId("");
+    } finally {
+      setLoadingSellers(false);
+    }
+  }, []);
+
+  const openNotifyDialog = useCallback(
+    (product: CatalogProduct) => {
+      setNotifyProduct(product);
+      setManualSellerName("");
+      setSellerValidationError("");
+      setIsNotifyDialogOpen(true);
+      loadSellers();
+    },
+    [loadSellers],
+  );
+
+  const handleConfirmNotifySeller = () => {
+    if (!notifyProduct) return;
+
+    const selectedSeller = sellers.find(
+      (seller) => seller.id === selectedSellerId,
+    );
+    const sellerName = selectedSeller?.nome || manualSellerName.trim();
+    if (!sellerName) {
+      setSellerValidationError("Selecione ou informe um vendedor.");
+      return;
+    }
+
+    const phoneDigits = (selectedSeller?.telefone_whatsapp ?? "").replace(
+      /\D/g,
+      "",
+    );
+
+    if (selectedSeller && phoneDigits.length < 10) {
+      setSellerValidationError(
+        "Este vendedor não possui WhatsApp válido cadastrado.",
+      );
+      return;
+    }
+
+    if (!selectedSeller) {
+      setSellerValidationError(
+        "Nenhum vendedor ativo com WhatsApp válido encontrado para envio.",
+      );
+      return;
+    }
+
+    const waNumber = phoneDigits.startsWith("55")
+      ? phoneDigits
+      : `55${phoneDigits}`;
+    const msg =
+      `Olá ${sellerName}, tudo bem?\n\n` +
+      `Tenho interesse no produto "*${notifyProduct.name}*" que está esgotado no catálogo.\n` +
+      `Pode me avisar por aqui quando ele voltar ao estoque?\n\n` +
+      `Obrigado(a)!`;
+
+    const link = document.createElement("a");
+    link.href = `https://wa.me/${waNumber}?text=${encodeURIComponent(msg)}`;
+    link.target = "_blank";
+    link.rel = "noopener noreferrer";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    setIsNotifyDialogOpen(false);
+    setNotifyProduct(null);
+    setToast({
+      msg: "Mensagem aberta no WhatsApp para aviso de reposição.",
+      type: "success",
+    });
+  };
+
   return (
     <div
       className="flex flex-col min-h-screen overflow-x-hidden"
@@ -180,6 +282,13 @@ const Home: React.FC<HomeProps> = ({ storeSettings, tema }) => {
         fontFamily: tema ? `${tema.fonte_familia}, sans-serif` : undefined,
       }}
     >
+      {toast && (
+        <Toast
+          message={toast.msg}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
+      )}
       <Header
         storeName={storeSettings.nome_loja}
         searchTerm={searchTerm}
@@ -255,6 +364,7 @@ const Home: React.FC<HomeProps> = ({ storeSettings, tema }) => {
               <ProductGrid
                 products={filteredProducts}
                 onAddToCart={handleAddToCart}
+                onNotifyRestock={openNotifyDialog}
                 onProductClick={setSelectedProduct}
                 tema={tema}
               />
@@ -335,10 +445,142 @@ const Home: React.FC<HomeProps> = ({ storeSettings, tema }) => {
           product={selectedProduct}
           onClose={() => setSelectedProduct(null)}
           onAddToCart={handleAddToCart}
+          onNotifyRestock={openNotifyDialog}
           onBuyNow={handleBuyNow}
           tema={tema}
         />
       )}
+
+      <Dialog
+        isOpen={isNotifyDialogOpen}
+        onClose={() => {
+          setIsNotifyDialogOpen(false);
+          setNotifyProduct(null);
+        }}
+        title="Avise-me quando voltar ao estoque"
+        maxWidth="max-w-xl"
+        closeOnOverlayClick={false}
+      >
+        <div className="space-y-4">
+          <div className="rounded-xl border border-indigo-100 bg-indigo-50/70 px-3 py-2.5">
+            <p className="text-sm text-indigo-900">
+              Produto: <strong>{notifyProduct?.name}</strong>
+            </p>
+            <p className="text-xs text-indigo-700 mt-1">
+              Selecione o vendedor para abrir o WhatsApp com mensagem
+              padronizada.
+            </p>
+          </div>
+
+          {loadingSellers ? (
+            <div className="flex items-center justify-center gap-2 rounded-xl border border-gray-200 bg-gray-50 py-8">
+              <Loader2 className="h-4 w-4 animate-spin text-indigo-600" />
+              <span className="text-sm text-gray-600">
+                Carregando vendedores...
+              </span>
+            </div>
+          ) : sellers.length > 0 ? (
+            <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
+              {sellers.map((seller) => (
+                <label
+                  key={seller.id}
+                  className={`block cursor-pointer rounded-xl border p-3 transition-all ${
+                    selectedSellerId === seller.id
+                      ? "border-indigo-500 bg-indigo-50 ring-2 ring-indigo-200"
+                      : "border-gray-200 bg-white hover:border-indigo-300 hover:bg-indigo-50/40"
+                  }`}
+                >
+                  <div className="flex items-start gap-3">
+                    <input
+                      type="radio"
+                      name="notify-seller"
+                      checked={selectedSellerId === seller.id}
+                      onChange={() => {
+                        setSelectedSellerId(seller.id);
+                        setSellerValidationError("");
+                      }}
+                      className="mt-1"
+                      style={{ accentColor: "#4f46e5" }}
+                    />
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-gray-900 flex items-center gap-1.5">
+                        <UserRound className="h-4 w-4 text-indigo-600" />
+                        <span className="truncate">{seller.nome}</span>
+                      </p>
+                      <div className="mt-1 space-y-0.5">
+                        {seller.telefone_whatsapp && (
+                          <p className="text-xs text-gray-600 flex items-center gap-1.5">
+                            <Phone className="h-3.5 w-3.5" />
+                            {seller.telefone_whatsapp}
+                          </p>
+                        )}
+                        {seller.email && (
+                          <p className="text-xs text-gray-600 flex items-center gap-1.5">
+                            <Mail className="h-3.5 w-3.5" />
+                            {seller.email}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </label>
+              ))}
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800 flex items-start gap-2">
+                <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                <span>
+                  Nenhum vendedor ativo cadastrado. Informe o nome do vendedor
+                  para gerar a mensagem.
+                </span>
+              </div>
+              <input
+                type="text"
+                value={manualSellerName}
+                onChange={(e) => {
+                  setManualSellerName(e.target.value);
+                  setSellerValidationError("");
+                }}
+                placeholder="Nome do vendedor"
+                className="w-full px-3 py-2.5 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              />
+            </div>
+          )}
+
+          {sellerLoadError && (
+            <p className="text-xs text-red-600 font-medium">
+              {sellerLoadError}
+            </p>
+          )}
+          {sellerValidationError && (
+            <p className="text-xs text-red-600 font-medium">
+              {sellerValidationError}
+            </p>
+          )}
+
+          <div className="pt-2 flex items-center justify-end gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                setIsNotifyDialogOpen(false);
+                setNotifyProduct(null);
+              }}
+              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-xl hover:bg-gray-50 transition-colors"
+            >
+              Cancelar
+            </button>
+            <button
+              type="button"
+              onClick={handleConfirmNotifySeller}
+              disabled={loadingSellers}
+              className="px-4 py-2 text-sm font-semibold rounded-xl disabled:opacity-60 disabled:cursor-not-allowed transition-colors text-white bg-indigo-600 hover:bg-indigo-700"
+            >
+              Enviar no WhatsApp
+            </button>
+          </div>
+        </div>
+      </Dialog>
     </div>
   );
 };

@@ -131,7 +131,10 @@ export async function fetchDepartamentosComProdutos() {
     .order("descricao", { ascending: true });
 
   if (error) throw error;
-  const unique = new Map<string, { id: string; descricao: string; ativo: boolean }>();
+  const unique = new Map<
+    string,
+    { id: string; descricao: string; ativo: boolean }
+  >();
   for (const row of data ?? []) {
     unique.set((row as any).id, {
       id: (row as any).id,
@@ -157,7 +160,9 @@ async function attachDepartamentosToSubdepartamentos<
   const ids = subdepartamentos.map((item) => item.id);
   const { data: links, error } = await supabase
     .from("subdepartamentos_departamentos")
-    .select("subdepartamento_id, departamento:departamentos(id, descricao, ativo)")
+    .select(
+      "subdepartamento_id, departamento:departamentos(id, descricao, ativo)",
+    )
     .in("subdepartamento_id", ids);
 
   if (error) throw error;

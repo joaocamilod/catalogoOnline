@@ -31,6 +31,7 @@ export default function ProductDetailModal({
   product,
   onClose,
   onAddToCart,
+  onNotifyRestock,
   onBuyNow,
   tema,
 }) {
@@ -124,6 +125,7 @@ export default function ProductDetailModal({
   if (!product) return null;
 
   const outOfStock = product.stock === 0;
+  const qtyLimit = Math.max(1, Number(product.stock) || 0);
   const originalPrice = Number(product.preco_original ?? 0) || 0;
   const discountPercent = Number(product.desconto_percentual ?? 0) || 0;
   const cardTotal = Number(product.total_cartao ?? product.price ?? 0) || 0;
@@ -565,10 +567,8 @@ export default function ProductDetailModal({
                     {qty}
                   </span>
                   <button
-                    onClick={() =>
-                      setQty((q) => Math.min(product.stock || 99, q + 1))
-                    }
-                    disabled={qty >= (product.stock || 99)}
+                    onClick={() => setQty((q) => Math.min(qtyLimit, q + 1))}
+                    disabled={outOfStock || qty >= qtyLimit}
                     className="w-11 h-11 flex items-center justify-center hover:bg-gray-50 transition-colors text-gray-600 disabled:opacity-30"
                     aria-label="Aumentar"
                   >
@@ -588,8 +588,10 @@ export default function ProductDetailModal({
                 </div>
               </div>
               <button
-                onClick={handleBuyNow}
-                disabled={outOfStock || adding || buyingNow}
+                onClick={
+                  outOfStock ? () => onNotifyRestock?.(product) : handleBuyNow
+                }
+                disabled={adding || buyingNow}
                 className={`
                   w-full flex items-center justify-center gap-3
                   py-4 sm:py-5 font-extrabold text-base sm:text-lg
@@ -597,7 +599,7 @@ export default function ProductDetailModal({
                   focus:outline-none focus:ring-2 focus:ring-offset-2
                   ${
                     outOfStock
-                      ? "bg-gray-200 text-gray-400 border-gray-200 cursor-not-allowed"
+                      ? "bg-amber-500 text-white border-amber-500 hover:bg-amber-600 focus:ring-amber-400"
                       : !tema
                         ? "bg-white text-violet-600 border-violet-600 hover:bg-violet-50 hover:shadow-xl hover:-translate-y-0.5 active:scale-95 focus:ring-violet-500"
                         : "bg-white hover:shadow-xl hover:-translate-y-0.5 active:scale-95"
@@ -620,56 +622,56 @@ export default function ProductDetailModal({
                   </>
                 ) : (
                   <>
-                    <CreditCard className="h-5 w-5" /> Comprar Agora
+                    <CreditCard className="h-5 w-5" />{" "}
+                    {outOfStock ? "Avise-me quando chegar" : "Comprar Agora"}
                   </>
                 )}
               </button>
-              <button
-                onClick={handleAdd}
-                disabled={outOfStock || adding || buyingNow}
-                className={`
-                  w-full flex items-center justify-center gap-3
-                  py-4 sm:py-5 font-extrabold text-base sm:text-lg
-                  transition-all duration-200 shadow-sm
-                  focus:outline-none focus:ring-2 focus:ring-offset-2
-                  ${
-                    outOfStock
-                      ? "bg-gray-200 text-gray-400 cursor-not-allowed rounded-2xl"
-                      : added
+              {!outOfStock && (
+                <button
+                  onClick={handleAdd}
+                  disabled={adding || buyingNow}
+                  className={`
+                    w-full flex items-center justify-center gap-3
+                    py-4 sm:py-5 font-extrabold text-base sm:text-lg
+                    transition-all duration-200 shadow-sm
+                    focus:outline-none focus:ring-2 focus:ring-offset-2
+                    ${
+                      added
                         ? "bg-green-500 text-white shadow-green-200 shadow-lg rounded-2xl"
                         : adding
                           ? "bg-violet-400 text-white scale-95 rounded-2xl"
                           : !tema
                             ? "bg-gradient-to-r from-violet-600 to-indigo-600 text-white hover:shadow-xl hover:shadow-violet-200 hover:-translate-y-0.5 active:scale-95 rounded-2xl focus:ring-violet-500"
                             : "hover:shadow-xl hover:-translate-y-0.5 active:scale-95"
+                    }
+                  `}
+                  style={
+                    tema && !added && !adding
+                      ? {
+                          background: `linear-gradient(to right, ${tema.botao_bg_de}, ${tema.botao_bg_para})`,
+                          color: tema.botao_texto_cor,
+                          borderRadius: tema.botao_borda_raio,
+                        }
+                      : undefined
                   }
-                `}
-                style={
-                  tema && !outOfStock && !added && !adding
-                    ? {
-                        background: `linear-gradient(to right, ${tema.botao_bg_de}, ${tema.botao_bg_para})`,
-                        color: tema.botao_texto_cor,
-                        borderRadius: tema.botao_borda_raio,
-                      }
-                    : undefined
-                }
-              >
-                {added ? (
-                  <>
-                    <Check className="h-5 w-5" /> Adicionado ao carrinho!
-                  </>
-                ) : adding ? (
-                  <>
-                    <div className="w-5 h-5 border-2 border-white/40 border-t-white rounded-full animate-spin" />{" "}
-                    Adicionando…
-                  </>
-                ) : (
-                  <>
-                    <ShoppingCart className="h-5 w-5" />{" "}
-                    {outOfStock ? "Produto Esgotado" : "Adicionar ao Carrinho"}
-                  </>
-                )}
-              </button>
+                >
+                  {added ? (
+                    <>
+                      <Check className="h-5 w-5" /> Adicionado ao carrinho!
+                    </>
+                  ) : adding ? (
+                    <>
+                      <div className="w-5 h-5 border-2 border-white/40 border-t-white rounded-full animate-spin" />{" "}
+                      Adicionando…
+                    </>
+                  ) : (
+                    <>
+                      <ShoppingCart className="h-5 w-5" /> Adicionar ao Carrinho
+                    </>
+                  )}
+                </button>
+              )}
               {product.description && (
                 <div className="border-t border-gray-100 pt-5">
                   <h3 className="text-sm font-bold text-gray-800 mb-2 uppercase tracking-wide">
