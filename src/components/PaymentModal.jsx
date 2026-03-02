@@ -16,7 +16,7 @@ import {
   Zap,
 } from "lucide-react";
 import { createSale, decrementarEstoqueProdutos } from "../lib/supabase";
-import { openPendingPopup, openWhatsAppChat } from "../lib/whatsapp";
+import { openWhatsAppChat } from "../lib/whatsapp";
 import styles from "./PaymentModal.module.css";
 
 const formatBRL = (value) =>
@@ -332,7 +332,6 @@ function PaymentModal({
     if (hasStockError) return;
     setSending(true);
     setGeneralError("");
-    const pendingPopup = openPendingPopup();
 
     let createdId = null;
 
@@ -415,7 +414,7 @@ function PaymentModal({
           paymentMethod,
         });
 
-        openWhatsAppChat(waNumber, msg, pendingPopup);
+        openWhatsAppChat(waNumber, msg);
       }
 
       setSuccess(true);

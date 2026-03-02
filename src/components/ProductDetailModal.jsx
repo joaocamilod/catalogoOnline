@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   X,
   ChevronLeft,
@@ -41,8 +41,6 @@ export default function ProductDetailModal({
   const [buyingNow, setBuyingNow] = useState(false);
   const [added, setAdded] = useState(false);
   const [visible, setVisible] = useState(false);
-  const touchStartY = useRef(null);
-  const panelRef = useRef(null);
 
   const images = (() => {
     const gallery = (product?.imagens ?? [])
@@ -70,14 +68,6 @@ export default function ProductDetailModal({
     setVisible(false);
     setTimeout(onClose, 280);
   }, [onClose]);
-
-  useEffect(() => {
-    const fn = (e) => {
-      if (e.key === "Escape") handleClose();
-    };
-    window.addEventListener("keydown", fn);
-    return () => window.removeEventListener("keydown", fn);
-  }, [handleClose]);
 
   const prevImg = () =>
     setImgIdx((i) => (i - 1 + images.length) % images.length);
@@ -111,15 +101,6 @@ export default function ProductDetailModal({
       setBuyingNow(false);
       handleClose();
     }, 250);
-  };
-
-  const onTouchStart = (e) => {
-    touchStartY.current = e.touches[0].clientY;
-  };
-  const onTouchEnd = (e) => {
-    if (touchStartY.current == null) return;
-    if (e.changedTouches[0].clientY - touchStartY.current > 80) handleClose();
-    touchStartY.current = null;
   };
 
   if (!product) return null;
@@ -185,16 +166,12 @@ export default function ProductDetailModal({
         transition-colors duration-300
         ${visible ? "bg-black/60 sm:bg-black/40" : "bg-transparent"}
       `}
-      onClick={handleClose}
       aria-modal="true"
       role="dialog"
       aria-label={`Detalhes: ${product.name}`}
     >
       <div
-        ref={panelRef}
         onClick={(e) => e.stopPropagation()}
-        onTouchStart={onTouchStart}
-        onTouchEnd={onTouchEnd}
         className={`
           bg-white flex flex-col w-full overflow-hidden
           shadow-2xl

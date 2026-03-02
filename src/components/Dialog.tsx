@@ -88,7 +88,7 @@ const Dialog: React.FC<DialogProps> = ({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/50 animate-fadeIn"
+      className="fixed inset-0 z-[3000] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/50 animate-fadeIn"
       onClick={() => {
         if (closeOnOverlayClick) onClose();
       }}
