@@ -15,7 +15,7 @@ import {
   X,
   Zap,
 } from "lucide-react";
-import { createSale } from "../lib/supabase";
+import { createSale, decrementarEstoqueProdutos } from "../lib/supabase";
 import styles from "./PaymentModal.module.css";
 
 const formatBRL = (value) =>
@@ -197,11 +197,17 @@ function PaymentModal({
   useEffect(() => {
     if (!isOpen) return;
     const handler = (e) => {
-      if (e.key === "Escape") onClose();
+      if (e.key === "Escape") {
+        if (success) {
+          onSuccess?.();
+        } else {
+          onClose();
+        }
+      }
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [isOpen, onClose]);
+  }, [isOpen, onClose, onSuccess, success]);
 
   const totals = useMemo(() => {
     const subtotal = items.reduce(
@@ -367,6 +373,27 @@ function PaymentModal({
         setOrderId(createdId);
       }
 
+      // Decrementa o estoque de cada produto vendido
+      const itensParaDecrementar = items
+        .filter(
+          (item) =>
+            Number.isFinite(Number(item.product.stock)) &&
+            item.product.stock > 0,
+        )
+        .map((item) => ({
+          produto_id: item.product.id,
+          quantidade: item.quantity,
+        }));
+
+      if (itensParaDecrementar.length > 0) {
+        try {
+          await decrementarEstoqueProdutos(itensParaDecrementar);
+        } catch (stockErr) {
+          console.error("Erro ao atualizar estoque:", stockErr);
+          // Não bloqueia o fluxo de sucesso — o pedido já foi registrado
+        }
+      }
+
       const phoneDigits = normalizePhone(seller?.telefone_whatsapp ?? "");
       if (phoneDigits && phoneDigits.length >= 10) {
         const waNumber = phoneDigits.startsWith("55")
@@ -432,7 +459,7 @@ function PaymentModal({
           <button
             type="button"
             className={styles.closeBtn}
-            onClick={onClose}
+            onClick={success ? handleFinish : onClose}
             aria-label="Fechar modal de pagamento"
           >
             <X className="h-5 w-5" />

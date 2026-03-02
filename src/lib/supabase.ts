@@ -884,6 +884,35 @@ export interface CriarVendaParams {
   meio_pagamento?: string;
 }
 
+export async function decrementarEstoqueProdutos(
+  itens: Array<{ produto_id: string; quantidade: number }>,
+): Promise<void> {
+  const promises = itens
+    .filter((item) => item.quantidade > 0)
+    .map(async (item) => {
+      const { data, error } = await supabase
+        .from("produtos")
+        .select("quantidademinima")
+        .eq("id", item.produto_id)
+        .single();
+
+      if (error || !data) return;
+
+      const currentStock = data.quantidademinima;
+      // Só decrementa se o estoque for rastreado (não nulo/indefinido)
+      if (currentStock == null) return;
+
+      const newStock = Math.max(0, Number(currentStock) - item.quantidade);
+
+      await supabase
+        .from("produtos")
+        .update({ quantidademinima: newStock })
+        .eq("id", item.produto_id);
+    });
+
+  await Promise.all(promises);
+}
+
 export async function createSale(params: CriarVendaParams) {
   const { data, error } = await supabase
     .from("vendas")
