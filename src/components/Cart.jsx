@@ -354,6 +354,7 @@ function Cart({
         onClose={resetSellerDialog}
         title="Escolher vendedor"
         maxWidth="max-w-xl"
+        closeOnOverlayClick={false}
       >
         <div className="space-y-4">
           <div

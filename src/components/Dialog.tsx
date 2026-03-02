@@ -8,6 +8,7 @@ interface DialogProps {
   children: React.ReactNode;
   maxWidth?: string;
   mobileFullscreen?: boolean;
+  closeOnOverlayClick?: boolean;
 }
 
 const Dialog: React.FC<DialogProps> = ({
@@ -17,6 +18,7 @@ const Dialog: React.FC<DialogProps> = ({
   children,
   maxWidth = "max-w-lg",
   mobileFullscreen = false,
+  closeOnOverlayClick = true,
 }) => {
   useEffect(() => {
     if (isOpen) {
@@ -86,8 +88,10 @@ const Dialog: React.FC<DialogProps> = ({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-0 sm:p-4 bg-black/50 animate-fadeIn"
-      onClick={onClose}
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/50 animate-fadeIn"
+      onClick={() => {
+        if (closeOnOverlayClick) onClose();
+      }}
       aria-hidden="true"
     >
       <div
@@ -96,19 +100,32 @@ const Dialog: React.FC<DialogProps> = ({
         aria-modal="true"
         aria-label={title}
         onClick={(e) => e.stopPropagation()}
-        className={`bg-white shadow-xl w-full ${maxWidth} ${mobileFullscreen ? "h-screen sm:h-auto rounded-none sm:rounded-2xl" : "max-h-[92dvh] rounded-2xl"} overflow-y-auto`}
+        className={`
+          bg-white shadow-xl w-full flex flex-col
+          ${maxWidth}
+          ${
+            mobileFullscreen
+              ? "h-[100dvh] sm:h-auto sm:max-h-[92dvh] rounded-none sm:rounded-2xl"
+              : "max-h-[92dvh] rounded-t-2xl sm:rounded-2xl"
+          }
+        `}
       >
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
-          <h2 className="text-lg font-semibold text-gray-900">{title}</h2>
+        <div className="flex-none flex items-center justify-between px-4 sm:px-6 py-4 border-b border-gray-100">
+          <h2 className="text-base sm:text-lg font-semibold text-gray-900 truncate pr-4">
+            {title}
+          </h2>
           <button
             onClick={onClose}
             aria-label="Fechar modal"
-            className="p-1 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+            className="flex-none p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
           >
             <X className="h-5 w-5" />
           </button>
         </div>
-        <div className="px-6 py-4">{children}</div>
+
+        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 sm:px-6 py-4">
+          {children}
+        </div>
       </div>
     </div>
   );

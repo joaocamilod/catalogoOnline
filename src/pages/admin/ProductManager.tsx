@@ -527,7 +527,7 @@ const ProductForm: React.FC<ProductFormProps> = ({
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-3 sm:gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">
                 Preço (R$) *
@@ -603,7 +603,7 @@ const ProductForm: React.FC<ProductFormProps> = ({
             </button>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">
                 Subdepartamento
@@ -650,7 +650,7 @@ const ProductForm: React.FC<ProductFormProps> = ({
             </div>
           </div>
 
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-3 gap-3 sm:gap-4">
             {[
               { label: "Destaque", value: destaque, set: setDestaque },
               { label: "Ativo", value: ativo, set: setAtivo },
@@ -795,7 +795,7 @@ const ProductForm: React.FC<ProductFormProps> = ({
               <span className="text-xs text-gray-400">Opcional</span>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="rounded-xl border border-gray-200 p-3 space-y-3">
                 <div className="flex items-center justify-between">
                   <div>
@@ -818,7 +818,7 @@ const ProductForm: React.FC<ProductFormProps> = ({
                     />
                   </button>
                 </div>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-1 min-[400px]:grid-cols-2 gap-2">
                   <input
                     type="text"
                     inputMode="numeric"
@@ -830,7 +830,7 @@ const ProductForm: React.FC<ProductFormProps> = ({
                       )
                     }
                     placeholder="Acima de R$"
-                    className="px-3 py-2.5 border border-gray-300 rounded-xl"
+                    className="w-full px-3 py-2.5 border border-gray-300 rounded-xl"
                   />
                   <input
                     type="text"
@@ -838,7 +838,7 @@ const ProductForm: React.FC<ProductFormProps> = ({
                     value={freteGratisTexto}
                     onChange={(e) => setFreteGratisTexto(e.target.value)}
                     placeholder="Texto personalizado"
-                    className="px-3 py-2.5 border border-gray-300 rounded-xl"
+                    className="w-full px-3 py-2.5 border border-gray-300 rounded-xl"
                   />
                 </div>
               </div>
@@ -895,7 +895,7 @@ const ProductForm: React.FC<ProductFormProps> = ({
                     />
                   </button>
                 </div>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-1 min-[400px]:grid-cols-2 gap-2">
                   <input
                     type="number"
                     min="0"
@@ -903,7 +903,7 @@ const ProductForm: React.FC<ProductFormProps> = ({
                     value={devolucaoDias}
                     onChange={(e) => setDevolucaoDias(e.target.value)}
                     placeholder="Dias"
-                    className="px-3 py-2.5 border border-gray-300 rounded-xl"
+                    className="w-full px-3 py-2.5 border border-gray-300 rounded-xl"
                   />
                   <input
                     type="text"
@@ -911,7 +911,7 @@ const ProductForm: React.FC<ProductFormProps> = ({
                     value={devolucaoTexto}
                     onChange={(e) => setDevolucaoTexto(e.target.value)}
                     placeholder="Texto de devolução"
-                    className="px-3 py-2.5 border border-gray-300 rounded-xl"
+                    className="w-full px-3 py-2.5 border border-gray-300 rounded-xl"
                   />
                 </div>
               </div>
@@ -1246,12 +1246,12 @@ const ProductForm: React.FC<ProductFormProps> = ({
               </div>
             </div>
 
-            <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               <div className="rounded-xl border border-gray-200 p-4 bg-gray-50">
                 <p className="text-xs font-semibold text-gray-500 uppercase mb-3">
                   Preview do Card do Catálogo
                 </p>
-                <div className="max-w-[320px] bg-white rounded-xl border border-gray-200 p-3 shadow-sm">
+                <div className="w-full max-w-[320px] bg-white rounded-xl border border-gray-200 p-3 shadow-sm">
                   <p className="font-semibold text-gray-900 line-clamp-2">
                     {descricao || "Nome do produto"}
                   </p>
@@ -1369,7 +1369,7 @@ const ProductForm: React.FC<ProductFormProps> = ({
         </div>
       )}
 
-      <div className="sticky bottom-0 -mx-6 px-6 py-3 flex justify-end gap-3 border-t border-gray-100 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80">
+      <div className="sticky bottom-0 -mx-4 sm:-mx-6 px-4 sm:px-6 py-3 flex justify-end gap-3 border-t border-gray-100 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80">
         <button
           type="button"
           onClick={onCancel}
@@ -1701,50 +1701,50 @@ const ProductManager: React.FC = () => {
 
       <div className="sticky top-0 z-10 bg-gray-50/95 backdrop-blur supports-[backdrop-filter]:bg-gray-50/80 -mx-3 sm:-mx-5 lg:mx-0 px-3 sm:px-5 lg:px-0 py-2">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-indigo-100 rounded-xl flex items-center justify-center">
-            <Package className="h-5 w-5 text-indigo-600" />
-          </div>
-          <h1 className="text-xl font-bold text-gray-900">
-            Gerenciar Produtos
-          </h1>
-        </div>
-
-        <div className="flex items-center gap-2 w-full sm:w-auto">
-          <div className="relative flex-1 sm:w-72">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-            <input
-              type="text"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Buscar produtos…"
-              className="w-full pl-9 pr-8 py-2.5 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
-            />
-            {searchTerm && (
-              <button
-                onClick={() => setSearchTerm("")}
-                className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            )}
-            {loading && (
-              <Loader2 className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 animate-spin" />
-            )}
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-indigo-100 rounded-xl flex items-center justify-center">
+              <Package className="h-5 w-5 text-indigo-600" />
+            </div>
+            <h1 className="text-xl font-bold text-gray-900">
+              Gerenciar Produtos
+            </h1>
           </div>
 
-          <button
-            onClick={() => {
-              setEditing(null);
-              setIsDialogOpen(true);
-            }}
-            className="flex items-center gap-2 px-4 py-2.5 bg-indigo-600 text-white text-sm font-medium rounded-xl hover:bg-indigo-700 transition-colors shadow-sm"
-          >
-            <Plus className="h-4 w-4" />
-            <span className="hidden sm:inline">Novo</span>
-          </button>
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            <div className="relative flex-1 sm:w-72">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Buscar produtos…"
+                className="w-full pl-9 pr-8 py-2.5 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+              />
+              {searchTerm && (
+                <button
+                  onClick={() => setSearchTerm("")}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
+              {loading && (
+                <Loader2 className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 animate-spin" />
+              )}
+            </div>
+
+            <button
+              onClick={() => {
+                setEditing(null);
+                setIsDialogOpen(true);
+              }}
+              className="flex items-center gap-2 px-4 py-2.5 bg-indigo-600 text-white text-sm font-medium rounded-xl hover:bg-indigo-700 transition-colors shadow-sm"
+            >
+              <Plus className="h-4 w-4" />
+              <span className="hidden sm:inline">Novo</span>
+            </button>
+          </div>
         </div>
-      </div>
       </div>
 
       {error && (
@@ -1825,168 +1825,168 @@ const ProductManager: React.FC = () => {
 
             <div className="hidden md:block overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-100">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">
-                    Produto
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">
-                    Departamento
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase hidden lg:table-cell">
-                    Subdepartamento
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase hidden xl:table-cell">
-                    Marca
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">
-                    Preço
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase hidden lg:table-cell">
-                    Estoque
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">
-                    Status
-                  </th>
-                  <th className="px-4 py-3 text-center text-xs font-semibold text-gray-500 uppercase">
-                    Ações
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-50">
-                {products.map((p) => {
-                  const shouldOpenUp = actionMenuOpenUpId === p.id;
-                  return (
-                    <tr
-                      key={p.id}
-                      className="hover:bg-gray-50 transition-colors"
-                    >
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-3">
-                          <img
-                            src={getMainImage(p)}
-                            srcSet={`${getMainImage(p)} 64w, ${getMainImage(p)} 128w, ${getMainImage(p)} 256w`}
-                            sizes="40px"
-                            loading="lazy"
-                            alt={p.descricao}
-                            className="w-10 h-10 object-cover rounded-lg border border-gray-100 flex-shrink-0"
-                          />
-                          <div>
-                            <p className="text-sm font-medium text-gray-900 line-clamp-1">
-                              {p.descricao}
-                            </p>
-                            <p className="text-xs text-gray-400 line-clamp-1">
-                              {p.infadicional}
-                            </p>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 text-sm text-gray-600">
-                        {(p.departamento as any)?.descricao ?? "—"}
-                      </td>
-                      <td className="px-4 py-3 text-sm text-gray-600 hidden lg:table-cell">
-                        {(p.subdepartamento as any)?.nome ?? "—"}
-                      </td>
-                      <td className="px-4 py-3 text-sm text-gray-600 hidden xl:table-cell">
-                        {(p.marca as any)?.nome ?? "—"}
-                      </td>
-                      <td className="px-4 py-3 text-sm font-medium text-gray-900">
-                        {p.valorunitariocomercial.toLocaleString("pt-BR", {
-                          style: "currency",
-                          currency: "BRL",
-                        })}
-                      </td>
-                      <td className="px-4 py-3 text-sm text-gray-600 hidden lg:table-cell">
-                        {p.quantidademinima}
-                      </td>
-                      <td className="px-4 py-3 min-w-[150px]">
-                        <div className="flex flex-col items-start gap-1.5">
-                          <span
-                            className={`inline-flex items-center whitespace-nowrap px-2.5 py-0.5 rounded-full text-xs font-medium ${p.ativo ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}
-                          >
-                            {p.ativo ? "Ativo" : "Inativo"}
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => handleToggleCatalog(p)}
-                            className={`inline-flex items-center whitespace-nowrap px-2.5 py-0.5 rounded-full text-xs font-medium cursor-pointer transition-colors ${p.exibircatalogo ? "bg-blue-100 text-blue-700 hover:bg-blue-200" : "bg-gray-100 text-gray-500 hover:bg-gray-200"}`}
-                            title="Clique para alternar visibilidade no catálogo"
-                          >
-                            {p.exibircatalogo ? "No catálogo" : "Oculto"}
-                          </button>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 text-center">
-                        <div
-                          className="relative inline-block text-left"
-                          data-action-menu
-                        >
-                          <button
-                            type="button"
-                            onClick={(event) => {
-                              const buttonRect =
-                                event.currentTarget.getBoundingClientRect();
-                              const estimatedMenuHeight = 96;
-                              const openUp =
-                                window.innerHeight - buttonRect.bottom <
-                                estimatedMenuHeight;
-
-                              setOpenActionMenuId((prev) => {
-                                if (prev === p.id) {
-                                  setActionMenuOpenUpId(null);
-                                  return null;
-                                }
-                                setActionMenuOpenUpId(openUp ? p.id : null);
-                                return p.id;
-                              });
-                            }}
-                            className="p-2 text-gray-600 hover:text-indigo-700 hover:bg-indigo-50 rounded-lg transition-colors"
-                            title="Ações"
-                          >
-                            <Settings className="h-4 w-4" />
-                          </button>
-
-                          {openActionMenuId === p.id && (
-                            <div
-                              className={`absolute right-0 w-36 bg-white border border-gray-200 rounded-xl shadow-lg z-20 overflow-hidden animate-fadeIn ${
-                                shouldOpenUp
-                                  ? "bottom-full mb-2 origin-bottom-right"
-                                  : "top-full mt-2 origin-top-right"
-                              }`}
-                            >
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setOpenActionMenuId(null);
-                                  setActionMenuOpenUpId(null);
-                                  setEditing(p);
-                                  setIsDialogOpen(true);
-                                }}
-                                className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-indigo-50 hover:text-indigo-700 transition-colors"
-                              >
-                                <Pencil className="h-4 w-4" />
-                                Editar
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setOpenActionMenuId(null);
-                                  setActionMenuOpenUpId(null);
-                                  setDeletingProduct(p);
-                                }}
-                                className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                                Excluir
-                              </button>
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">
+                      Produto
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">
+                      Departamento
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase hidden lg:table-cell">
+                      Subdepartamento
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase hidden xl:table-cell">
+                      Marca
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">
+                      Preço
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase hidden lg:table-cell">
+                      Estoque
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">
+                      Status
+                    </th>
+                    <th className="px-4 py-3 text-center text-xs font-semibold text-gray-500 uppercase">
+                      Ações
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-50">
+                  {products.map((p) => {
+                    const shouldOpenUp = actionMenuOpenUpId === p.id;
+                    return (
+                      <tr
+                        key={p.id}
+                        className="hover:bg-gray-50 transition-colors"
+                      >
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-3">
+                            <img
+                              src={getMainImage(p)}
+                              srcSet={`${getMainImage(p)} 64w, ${getMainImage(p)} 128w, ${getMainImage(p)} 256w`}
+                              sizes="40px"
+                              loading="lazy"
+                              alt={p.descricao}
+                              className="w-10 h-10 object-cover rounded-lg border border-gray-100 flex-shrink-0"
+                            />
+                            <div>
+                              <p className="text-sm font-medium text-gray-900 line-clamp-1">
+                                {p.descricao}
+                              </p>
+                              <p className="text-xs text-gray-400 line-clamp-1">
+                                {p.infadicional}
+                              </p>
                             </div>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 text-sm text-gray-600">
+                          {(p.departamento as any)?.descricao ?? "—"}
+                        </td>
+                        <td className="px-4 py-3 text-sm text-gray-600 hidden lg:table-cell">
+                          {(p.subdepartamento as any)?.nome ?? "—"}
+                        </td>
+                        <td className="px-4 py-3 text-sm text-gray-600 hidden xl:table-cell">
+                          {(p.marca as any)?.nome ?? "—"}
+                        </td>
+                        <td className="px-4 py-3 text-sm font-medium text-gray-900">
+                          {p.valorunitariocomercial.toLocaleString("pt-BR", {
+                            style: "currency",
+                            currency: "BRL",
+                          })}
+                        </td>
+                        <td className="px-4 py-3 text-sm text-gray-600 hidden lg:table-cell">
+                          {p.quantidademinima}
+                        </td>
+                        <td className="px-4 py-3 min-w-[150px]">
+                          <div className="flex flex-col items-start gap-1.5">
+                            <span
+                              className={`inline-flex items-center whitespace-nowrap px-2.5 py-0.5 rounded-full text-xs font-medium ${p.ativo ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}
+                            >
+                              {p.ativo ? "Ativo" : "Inativo"}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => handleToggleCatalog(p)}
+                              className={`inline-flex items-center whitespace-nowrap px-2.5 py-0.5 rounded-full text-xs font-medium cursor-pointer transition-colors ${p.exibircatalogo ? "bg-blue-100 text-blue-700 hover:bg-blue-200" : "bg-gray-100 text-gray-500 hover:bg-gray-200"}`}
+                              title="Clique para alternar visibilidade no catálogo"
+                            >
+                              {p.exibircatalogo ? "No catálogo" : "Oculto"}
+                            </button>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 text-center">
+                          <div
+                            className="relative inline-block text-left"
+                            data-action-menu
+                          >
+                            <button
+                              type="button"
+                              onClick={(event) => {
+                                const buttonRect =
+                                  event.currentTarget.getBoundingClientRect();
+                                const estimatedMenuHeight = 96;
+                                const openUp =
+                                  window.innerHeight - buttonRect.bottom <
+                                  estimatedMenuHeight;
+
+                                setOpenActionMenuId((prev) => {
+                                  if (prev === p.id) {
+                                    setActionMenuOpenUpId(null);
+                                    return null;
+                                  }
+                                  setActionMenuOpenUpId(openUp ? p.id : null);
+                                  return p.id;
+                                });
+                              }}
+                              className="p-2 text-gray-600 hover:text-indigo-700 hover:bg-indigo-50 rounded-lg transition-colors"
+                              title="Ações"
+                            >
+                              <Settings className="h-4 w-4" />
+                            </button>
+
+                            {openActionMenuId === p.id && (
+                              <div
+                                className={`absolute right-0 w-36 bg-white border border-gray-200 rounded-xl shadow-lg z-20 overflow-hidden animate-fadeIn ${
+                                  shouldOpenUp
+                                    ? "bottom-full mb-2 origin-bottom-right"
+                                    : "top-full mt-2 origin-top-right"
+                                }`}
+                              >
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setOpenActionMenuId(null);
+                                    setActionMenuOpenUpId(null);
+                                    setEditing(p);
+                                    setIsDialogOpen(true);
+                                  }}
+                                  className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-indigo-50 hover:text-indigo-700 transition-colors"
+                                >
+                                  <Pencil className="h-4 w-4" />
+                                  Editar
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setOpenActionMenuId(null);
+                                    setActionMenuOpenUpId(null);
+                                    setDeletingProduct(p);
+                                  }}
+                                  className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                  Excluir
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
               </table>
             </div>
           </>
