@@ -15,6 +15,7 @@ import {
   fetchMarcasComProdutos,
   fetchAllVendedores,
 } from "../lib/supabase";
+import { openWhatsAppChat } from "../lib/whatsapp";
 import { useCartStore } from "../store/cartStore";
 import type {
   CatalogProduct,
@@ -265,13 +266,7 @@ const Home: React.FC<HomeProps> = ({
       `Pode me avisar por aqui quando ele voltar ao estoque?\n\n` +
       `Obrigado(a)!`;
 
-    const link = document.createElement("a");
-    link.href = `https://wa.me/${waNumber}?text=${encodeURIComponent(msg)}`;
-    link.target = "_blank";
-    link.rel = "noopener noreferrer";
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    openWhatsAppChat(waNumber, msg);
 
     setIsNotifyDialogOpen(false);
     setNotifyProduct(null);
