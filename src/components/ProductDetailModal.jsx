@@ -41,6 +41,8 @@ export default function ProductDetailModal({
   const [buyingNow, setBuyingNow] = useState(false);
   const [added, setAdded] = useState(false);
   const [visible, setVisible] = useState(false);
+  const [selectedOptions, setSelectedOptions] = useState({});
+  const [variationError, setVariationError] = useState("");
 
   const images = (() => {
     const gallery = (product?.imagens ?? [])
@@ -64,6 +66,12 @@ export default function ProductDetailModal({
     };
   }, []);
 
+  useEffect(() => {
+    setSelectedOptions({});
+    setVariationError("");
+    setQty(1);
+  }, [product?.id]);
+
   const handleClose = useCallback(() => {
     setVisible(false);
     setTimeout(onClose, 280);
@@ -73,10 +81,46 @@ export default function ProductDetailModal({
     setImgIdx((i) => (i - 1 + images.length) % images.length);
   const nextImg = () => setImgIdx((i) => (i + 1) % images.length);
 
+  const variations = (product?.variacoes ?? [])
+    .map((variacao) => ({
+      ...variacao,
+      opcoes: (variacao.opcoes ?? []).filter((opcao) => opcao.ativo !== false),
+    }))
+    .filter((variacao) => variacao.opcoes.length > 0);
+
+  const getMissingRequiredVariation = () =>
+    variations.find(
+      (variacao) => variacao.obrigatoria && !selectedOptions[variacao.id],
+    );
+
+  const buildSelectedVariations = () =>
+    variations
+      .map((variacao) => {
+        const selectedOptionId = selectedOptions[variacao.id];
+        if (!selectedOptionId) return null;
+        const selectedOption = variacao.opcoes.find(
+          (opcao) => opcao.id === selectedOptionId,
+        );
+        if (!selectedOption) return null;
+        return {
+          variacaoId: variacao.id,
+          variacaoNome: variacao.nome,
+          opcaoId: selectedOption.id,
+          opcaoValor: selectedOption.valor,
+        };
+      })
+      .filter(Boolean);
+
   const handleAdd = () => {
     if (adding || buyingNow || added || outOfStock) return;
+    const missingRequired = getMissingRequiredVariation();
+    if (missingRequired) {
+      setVariationError(`Selecione uma opção de ${missingRequired.nome}.`);
+      return;
+    }
     setAdding(true);
-    for (let i = 0; i < qty; i++) onAddToCart(product);
+    const selectedVariations = buildSelectedVariations();
+    for (let i = 0; i < qty; i++) onAddToCart(product, selectedVariations);
     setTimeout(() => {
       setAdding(false);
       setAdded(true);
@@ -89,12 +133,18 @@ export default function ProductDetailModal({
 
   const handleBuyNow = () => {
     if (adding || buyingNow || added || outOfStock) return;
+    const missingRequired = getMissingRequiredVariation();
+    if (missingRequired) {
+      setVariationError(`Selecione uma opção de ${missingRequired.nome}.`);
+      return;
+    }
     setBuyingNow(true);
+    const selectedVariations = buildSelectedVariations();
 
     if (onBuyNow) {
-      onBuyNow(product, qty);
+      onBuyNow(product, qty, selectedVariations);
     } else {
-      for (let i = 0; i < qty; i++) onAddToCart(product);
+      for (let i = 0; i < qty; i++) onAddToCart(product, selectedVariations);
     }
 
     setTimeout(() => {
@@ -475,58 +525,62 @@ export default function ProductDetailModal({
                   )}
                 </div>
               )}
-              {/* <div>
-                <div className="flex items-center justify-between mb-3">
-                  <span className="text-sm font-bold text-gray-800">
-                    Tamanho
-                    {selectedSize && (
-                      <span className="ml-1.5 text-violet-600 font-extrabold">
-                        {selectedSize}
-                      </span>
-                    )}
-                  </span>
-                  {product.exibir_guia_tamanhos && (
-                    <a
-                      href={product.guia_tamanhos_link || "#"}
-                      target={product.guia_tamanhos_link ? "_blank" : undefined}
-                      rel={
-                        product.guia_tamanhos_link
-                          ? "noopener noreferrer"
-                          : undefined
-                      }
-                      className="inline-flex items-center gap-1 text-xs text-violet-600 hover:text-violet-800 underline"
-                      onClick={(e) => {
-                        if (!product.guia_tamanhos_link) e.preventDefault();
-                      }}
-                    >
-                      <Ruler className="h-3.5 w-3.5" />
-                      {product.guia_tamanhos_texto || "Guia de tamanhos"}
-                    </a>
-                  )}
-                </div>
-                <div className="flex gap-2.5 flex-wrap">
-                  {SIZES.map((size) => (
-                    <button
-                      key={size}
-                      onClick={() =>
-                        setSelectedSize((s) => (s === size ? null : size))
-                      }
-                      className={`
-                        w-13 h-13 sm:w-14 sm:h-14 rounded-xl border-2 font-bold text-sm
-                        transition-all duration-150
-                        ${
-                          selectedSize === size
-                            ? "border-violet-600 bg-violet-600 text-white shadow-lg scale-110"
-                            : "border-gray-200 text-gray-700 hover:border-violet-400 hover:bg-violet-50 hover:scale-105"
-                        }
-                      `}
-                      style={{ width: "3.25rem", height: "3.25rem" }}
-                    >
-                      {size}
-                    </button>
+              {variations.length > 0 && (
+                <div className="space-y-4">
+                  {variations.map((variacao) => (
+                    <div key={variacao.id}>
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm font-bold text-gray-800">
+                          {variacao.nome}
+                          {variacao.obrigatoria && (
+                            <span className="ml-1 text-red-500">*</span>
+                          )}
+                        </span>
+                      </div>
+                      <div className="flex gap-2.5 flex-wrap">
+                        {variacao.opcoes.map((opcao) => {
+                          const selected =
+                            selectedOptions[variacao.id] === opcao.id;
+                          return (
+                            <button
+                              key={opcao.id}
+                              type="button"
+                              onClick={() => {
+                                setVariationError("");
+                                setSelectedOptions((prev) => ({
+                                  ...prev,
+                                  [variacao.id]:
+                                    prev[variacao.id] === opcao.id
+                                      ? variacao.obrigatoria
+                                        ? opcao.id
+                                        : undefined
+                                      : opcao.id,
+                                }));
+                              }}
+                              className={`
+                                px-3 py-2 rounded-xl border-2 text-sm font-semibold
+                                transition-all duration-150
+                                ${
+                                  selected
+                                    ? "border-violet-600 bg-violet-600 text-white shadow-md"
+                                    : "border-gray-200 text-gray-700 hover:border-violet-400 hover:bg-violet-50"
+                                }
+                              `}
+                            >
+                              {opcao.valor}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
                   ))}
                 </div>
-              </div> */}
+              )}
+              {variationError && (
+                <p className="text-xs text-red-600 font-semibold">
+                  {variationError}
+                </p>
+              )}
               <div className="flex items-center gap-4">
                 <span className="text-sm font-bold text-gray-800">
                   Quantidade:

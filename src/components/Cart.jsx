@@ -218,7 +218,7 @@ function Cart({
                 <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3">
                   {items.map((item) => (
                     <div
-                      key={item.product.id}
+                      key={item.id}
                       className="flex gap-3 p-3 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors"
                     >
                       <div className="w-16 h-16 rounded-lg overflow-hidden bg-white border border-gray-100 flex-shrink-0">
@@ -236,6 +236,16 @@ function Cart({
                         <h4 className="text-sm font-semibold text-gray-800 line-clamp-2 leading-snug mb-0.5">
                           {item.product.name}
                         </h4>
+                        {item.selectedVariations?.length > 0 && (
+                          <p className="text-[11px] text-gray-500 mb-1">
+                            {item.selectedVariations
+                              .map(
+                                (variacao) =>
+                                  `${variacao.variacaoNome}: ${variacao.opcaoValor}`,
+                              )
+                              .join(" • ")}
+                          </p>
+                        )}
                         <p className="text-xs text-gray-500 mb-2">
                           {formatBRL(item.product.price)} un.
                         </p>
@@ -244,10 +254,7 @@ function Cart({
                           <button
                             type="button"
                             onClick={() =>
-                              onUpdateQuantity(
-                                item.product.id,
-                                item.quantity - 1,
-                              )
+                              onUpdateQuantity(item.id, item.quantity - 1)
                             }
                             aria-label={`Diminuir quantidade de ${item.product.name}`}
                             className="w-7 h-7 rounded-lg border-2 border-gray-200 bg-white text-gray-600 hover:border-indigo-500 hover:text-indigo-600 flex items-center justify-center transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:ring-offset-1"
@@ -263,10 +270,7 @@ function Cart({
                           <button
                             type="button"
                             onClick={() =>
-                              onUpdateQuantity(
-                                item.product.id,
-                                item.quantity + 1,
-                              )
+                              onUpdateQuantity(item.id, item.quantity + 1)
                             }
                             disabled={
                               Number.isFinite(Number(item.product.stock))
@@ -293,7 +297,7 @@ function Cart({
                         </span>
                         <button
                           type="button"
-                          onClick={() => onRemoveItem(item.product.id)}
+                          onClick={() => onRemoveItem(item.id)}
                           aria-label={`Remover ${item.product.name} do carrinho`}
                           className="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-red-400 focus:ring-offset-1"
                         >

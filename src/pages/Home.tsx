@@ -18,6 +18,7 @@ import {
 import { openWhatsAppChat } from "../lib/whatsapp";
 import { useCartStore } from "../store/cartStore";
 import type {
+  CartItem,
   CatalogProduct,
   CatalogoTema,
   Departamento,
@@ -189,15 +190,22 @@ const Home: React.FC<HomeProps> = ({
     );
   }, [sidebarSubdepartments]);
 
-  const handleAddToCart = (product: CatalogProduct) => addItem(product);
-  const handleBuyNow = (product: CatalogProduct, quantity: number) => {
-    for (let i = 0; i < quantity; i++) addItem(product);
+  const handleAddToCart = (
+    product: CatalogProduct,
+    selectedVariations: CartItem["selectedVariations"] = [],
+  ) => addItem(product, selectedVariations);
+  const handleBuyNow = (
+    product: CatalogProduct,
+    quantity: number,
+    selectedVariations: CartItem["selectedVariations"] = [],
+  ) => {
+    for (let i = 0; i < quantity; i++) addItem(product, selectedVariations);
     setSelectedProduct(null);
     setIsCartOpen(true);
   };
-  const handleRemoveFromCart = (productId: string) => removeItem(productId);
-  const handleUpdateQuantity = (productId: string, qty: number) =>
-    updateQuantity(productId, qty);
+  const handleRemoveFromCart = (itemId: string) => removeItem(itemId);
+  const handleUpdateQuantity = (itemId: string, qty: number) =>
+    updateQuantity(itemId, qty);
 
   const loadSellers = useCallback(async () => {
     setLoadingSellers(true);

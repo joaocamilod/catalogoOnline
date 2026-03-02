@@ -21,6 +21,7 @@ import {
   CircleHelp,
   RefreshCcw,
   PlusCircle,
+  Palette,
 } from "lucide-react";
 import {
   fetchTodosProdutos,
@@ -46,6 +47,8 @@ import type {
   ImagemProduto,
   Subdepartamento,
   Marca,
+  ProdutoVariacao,
+  ProdutoVariacaoOpcao,
 } from "../../types";
 
 interface ProductFormProps {
@@ -60,6 +63,87 @@ interface ProductFormProps {
   ) => void;
   onCancel: () => void;
 }
+
+const VARIACOES_SUGERIDAS = [
+  "Cor",
+  "Tamanho",
+  "Voltagem",
+  "Especificação",
+  "Modelo",
+];
+
+const createVariacaoOpcao = (valor = ""): ProdutoVariacaoOpcao => ({
+  id: crypto.randomUUID(),
+  valor,
+  ativo: true,
+});
+
+const createVariacao = (nome = ""): ProdutoVariacao => ({
+  id: crypto.randomUUID(),
+  nome,
+  obrigatoria: true,
+  opcoes: [createVariacaoOpcao()],
+});
+
+const normalizeVariacoesInput = (value: unknown): ProdutoVariacao[] => {
+  if (!Array.isArray(value)) return [];
+
+  return value
+    .map((item) => {
+      const nome =
+        typeof (item as ProdutoVariacao)?.nome === "string"
+          ? (item as ProdutoVariacao).nome
+          : "";
+      const obrigatoria =
+        typeof (item as ProdutoVariacao)?.obrigatoria === "boolean"
+          ? (item as ProdutoVariacao).obrigatoria
+          : true;
+      const opcoesRaw = Array.isArray((item as ProdutoVariacao)?.opcoes)
+        ? (item as ProdutoVariacao).opcoes
+        : [];
+      const opcoes = opcoesRaw.map((opcao) => ({
+        id:
+          typeof opcao?.id === "string" && opcao.id
+            ? opcao.id
+            : crypto.randomUUID(),
+        valor: typeof opcao?.valor === "string" ? opcao.valor : "",
+        ativo: typeof opcao?.ativo === "boolean" ? opcao.ativo : true,
+      }));
+
+      return {
+        id:
+          typeof (item as ProdutoVariacao)?.id === "string" &&
+          (item as ProdutoVariacao).id
+            ? (item as ProdutoVariacao).id
+            : crypto.randomUUID(),
+        nome,
+        obrigatoria,
+        opcoes: opcoes.length > 0 ? opcoes : [createVariacaoOpcao()],
+      };
+    })
+    .filter(
+      (variacao) => variacao.nome.trim().length > 0 || variacao.opcoes.length,
+    );
+};
+
+const sanitizeVariacoesForSave = (
+  variacoes: ProdutoVariacao[],
+): ProdutoVariacao[] => {
+  return variacoes
+    .map((variacao) => ({
+      ...variacao,
+      nome: variacao.nome.trim(),
+      opcoes: variacao.opcoes
+        .map((opcao) => ({
+          ...opcao,
+          valor: opcao.valor.trim(),
+        }))
+        .filter((opcao) => opcao.valor.length > 0),
+    }))
+    .filter(
+      (variacao) => variacao.nome.length > 0 && variacao.opcoes.length > 0,
+    );
+};
 
 const ProductForm: React.FC<ProductFormProps> = ({
   initial,
@@ -134,7 +218,12 @@ const ProductForm: React.FC<ProductFormProps> = ({
     preco?: string;
     estoque?: string;
   }>({});
-  const [activeTab, setActiveTab] = useState<"basico" | "vitrine">("basico");
+  const [activeTab, setActiveTab] = useState<
+    "basico" | "variacoes" | "vitrine"
+  >("basico");
+  const [variacoes, setVariacoes] = useState<ProdutoVariacao[]>(
+    normalizeVariacoesInput(initial?.variacoes),
+  );
 
   const [exibirFreteGratis, setExibirFreteGratis] = useState(
     initial?.exibir_frete_gratis ?? false,
@@ -452,6 +541,7 @@ const ProductForm: React.FC<ProductFormProps> = ({
             parcelas_quantidade: parcelasQtdNum,
             total_cartao: parseOptionalMoney(totalCartao),
             texto_adicional_preco: textoAdicionalPreco.trim() || null,
+            variacoes: sanitizeVariacoesForSave(variacoes),
           },
           newFiles,
           removedIds,
@@ -470,6 +560,17 @@ const ProductForm: React.FC<ProductFormProps> = ({
           }`}
         >
           Dados Básicos
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab("variacoes")}
+          className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+            activeTab === "variacoes"
+              ? "bg-white text-indigo-700 shadow-sm"
+              : "text-gray-600 hover:text-gray-900"
+          }`}
+        >
+          Variações & Grades
         </button>
         <button
           type="button"
@@ -774,6 +875,190 @@ const ProductForm: React.FC<ProductFormProps> = ({
             </p>
           </div>
         </>
+      )}
+
+      {activeTab === "variacoes" && (
+        <div className="space-y-5">
+          <div className="rounded-2xl border border-indigo-100 bg-gradient-to-r from-indigo-50 to-violet-50 px-5 py-4">
+            <div className="flex items-start gap-3">
+              <div className="w-9 h-9 rounded-xl bg-indigo-100 text-indigo-700 flex items-center justify-center">
+                <Palette className="h-5 w-5" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-gray-900">
+                  Variações e Grades do Produto
+                </h3>
+                <p className="text-sm text-gray-600 mt-1">
+                  Crie combinações como Cor, Tamanho, Voltagem e outras
+                  características para facilitar a escolha do cliente.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-gray-200 bg-white shadow-sm p-4 sm:p-5 space-y-4">
+            <div className="flex flex-wrap gap-2">
+              {VARIACOES_SUGERIDAS.map((sugestao) => (
+                <button
+                  key={sugestao}
+                  type="button"
+                  onClick={() =>
+                    setVariacoes((prev) => [...prev, createVariacao(sugestao)])
+                  }
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-indigo-200 text-indigo-700 text-xs font-semibold hover:bg-indigo-50 transition-colors"
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                  {sugestao}
+                </button>
+              ))}
+              <button
+                type="button"
+                onClick={() =>
+                  setVariacoes((prev) => [...prev, createVariacao()])
+                }
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-300 text-gray-700 text-xs font-semibold hover:bg-gray-50 transition-colors"
+              >
+                <PlusCircle className="h-3.5 w-3.5" />
+                Nova variação
+              </button>
+            </div>
+
+            {variacoes.length === 0 && (
+              <div className="rounded-xl border border-dashed border-gray-300 bg-gray-50 px-4 py-5 text-sm text-gray-600">
+                Nenhuma variação cadastrada. Use os atalhos acima para criar sua
+                primeira grade.
+              </div>
+            )}
+
+            {variacoes.map((variacao, variacaoIndex) => (
+              <div
+                key={variacao.id}
+                className="rounded-xl border border-gray-200 bg-gray-50/50 p-4 space-y-3"
+              >
+                <div className="flex flex-col sm:flex-row gap-3 sm:items-center">
+                  <input
+                    type="text"
+                    value={variacao.nome}
+                    onChange={(e) =>
+                      setVariacoes((prev) =>
+                        prev.map((item) =>
+                          item.id === variacao.id
+                            ? { ...item, nome: e.target.value }
+                            : item,
+                        ),
+                      )
+                    }
+                    placeholder={`Nome da variação #${variacaoIndex + 1} (ex: Cor)`}
+                    className="flex-1 px-3 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                  />
+                  <div className="flex items-center gap-3">
+                    <label className="inline-flex items-center gap-2 text-sm text-gray-700">
+                      <input
+                        type="checkbox"
+                        checked={variacao.obrigatoria}
+                        onChange={(e) =>
+                          setVariacoes((prev) =>
+                            prev.map((item) =>
+                              item.id === variacao.id
+                                ? { ...item, obrigatoria: e.target.checked }
+                                : item,
+                            ),
+                          )
+                        }
+                      />
+                      Obrigatória
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setVariacoes((prev) =>
+                          prev.filter((item) => item.id !== variacao.id),
+                        )
+                      }
+                      className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-red-200 text-red-600 text-sm font-medium hover:bg-red-50 transition-colors"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                      Remover
+                    </button>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  {variacao.opcoes.map((opcao, opcaoIndex) => (
+                    <div key={opcao.id} className="flex items-center gap-2">
+                      <input
+                        type="text"
+                        value={opcao.valor}
+                        onChange={(e) =>
+                          setVariacoes((prev) =>
+                            prev.map((item) =>
+                              item.id === variacao.id
+                                ? {
+                                    ...item,
+                                    opcoes: item.opcoes.map((op) =>
+                                      op.id === opcao.id
+                                        ? { ...op, valor: e.target.value }
+                                        : op,
+                                    ),
+                                  }
+                                : item,
+                            ),
+                          )
+                        }
+                        placeholder={`Opção ${opcaoIndex + 1} (ex: Azul)`}
+                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                      />
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setVariacoes((prev) =>
+                            prev.map((item) =>
+                              item.id === variacao.id
+                                ? {
+                                    ...item,
+                                    opcoes:
+                                      item.opcoes.length > 1
+                                        ? item.opcoes.filter(
+                                            (op) => op.id !== opcao.id,
+                                          )
+                                        : item.opcoes,
+                                  }
+                                : item,
+                            ),
+                          )
+                        }
+                        className="px-2.5 py-2 rounded-lg border border-gray-300 text-gray-600 hover:bg-gray-100 transition-colors"
+                        title="Remover opção"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    setVariacoes((prev) =>
+                      prev.map((item) =>
+                        item.id === variacao.id
+                          ? {
+                              ...item,
+                              opcoes: [...item.opcoes, createVariacaoOpcao()],
+                            }
+                          : item,
+                      ),
+                    )
+                  }
+                  className="inline-flex items-center gap-1.5 text-sm font-medium text-indigo-700 hover:text-indigo-900"
+                >
+                  <Plus className="h-4 w-4" />
+                  Adicionar opção
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
       )}
 
       {activeTab === "vitrine" && (

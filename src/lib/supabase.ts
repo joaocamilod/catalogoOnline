@@ -1,4 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
+import type { CatalogoTema, ProdutoVariacao } from "../types";
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
@@ -677,6 +678,7 @@ export async function createProduto(produto: {
   parcelas_quantidade?: number | null;
   total_cartao?: number | null;
   texto_adicional_preco?: string | null;
+  variacoes?: ProdutoVariacao[];
 }) {
   const { data, error } = await supabase
     .from("produtos")
@@ -725,6 +727,7 @@ export async function updateProduto(
     parcelas_quantidade?: number | null;
     total_cartao?: number | null;
     texto_adicional_preco?: string | null;
+    variacoes?: ProdutoVariacao[];
   },
 ) {
   const { data, error } = await supabase
@@ -899,7 +902,6 @@ export async function decrementarEstoqueProdutos(
       if (error || !data) return;
 
       const currentStock = data.quantidademinima;
-      // Só decrementa se o estoque for rastreado (não nulo/indefinido)
       if (currentStock == null) return;
 
       const newStock = Math.max(0, Number(currentStock) - item.quantidade);
@@ -951,8 +953,6 @@ export async function fetchVendas(page = 1, limit = 20) {
     totalPages: Math.ceil((count ?? 0) / limit),
   };
 }
-
-import type { CatalogoTema } from "../types";
 
 export async function fetchTemas(page = 1, limit = 20, search = "") {
   let query = supabase

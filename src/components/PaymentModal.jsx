@@ -97,7 +97,13 @@ function buildWhatsAppMessage({
   const itemLines = items
     .map((item) => {
       const unitPrice = getItemUnitPrice(item.product, paymentMethod);
-      return `  • ${item.quantity}x ${item.product.name} — ${formatBRL(unitPrice * item.quantity)}`;
+      const variationLabel =
+        item.selectedVariations?.length > 0
+          ? ` (${item.selectedVariations
+              .map((v) => `${v.variacaoNome}: ${v.opcaoValor}`)
+              .join(", ")})`
+          : "";
+      return `  • ${item.quantity}x ${item.product.name}${variationLabel} — ${formatBRL(unitPrice * item.quantity)}`;
     })
     .join("\n");
 
@@ -241,16 +247,19 @@ function PaymentModal({
     return { subtotal, total: methodTotal, discount, surcharge, installments };
   }, [items, paymentMethod]);
 
-  const stockErrorIds = useMemo(
-    () =>
-      items
-        .filter(
-          (item) =>
-            item.product.stock > 0 && item.quantity > item.product.stock,
-        )
-        .map((item) => item.product.id),
-    [items],
-  );
+  const stockErrorIds = useMemo(() => {
+    const byProduct = new Map();
+    for (const item of items) {
+      const current = byProduct.get(item.product.id) ?? 0;
+      byProduct.set(item.product.id, current + item.quantity);
+    }
+    return items
+      .filter((item) => {
+        if (!(item.product.stock > 0)) return false;
+        return (byProduct.get(item.product.id) ?? 0) > item.product.stock;
+      })
+      .map((item) => item.id);
+  }, [items]);
   const hasStockError = stockErrorIds.length > 0;
   const formatCep = (value = "") => {
     const digits = value.replace(/\D/g, "").slice(0, 8);
@@ -352,7 +361,12 @@ function PaymentModal({
       if (seller?.id) {
         const itensVenda = items.map((item) => ({
           produto_id: item.product.id,
-          nome: item.product.name,
+          nome:
+            item.selectedVariations?.length > 0
+              ? `${item.product.name} (${item.selectedVariations
+                  .map((v) => `${v.variacaoNome}: ${v.opcaoValor}`)
+                  .join(", ")})`
+              : item.product.name,
           preco: getItemUnitPrice(item.product, paymentMethod),
           quantidade: item.quantity,
           imagem: item.product.image ?? null,
@@ -374,7 +388,6 @@ function PaymentModal({
         setOrderId(createdId);
       }
 
-      // Decrementa o estoque de cada produto vendido
       const itensParaDecrementar = items
         .filter(
           (item) =>
@@ -391,7 +404,6 @@ function PaymentModal({
           await decrementarEstoqueProdutos(itensParaDecrementar);
         } catch (stockErr) {
           console.error("Erro ao atualizar estoque:", stockErr);
-          // Não bloqueia o fluxo de sucesso — o pedido já foi registrado
         }
       }
 
@@ -565,10 +577,10 @@ function PaymentModal({
                           item.product,
                           paymentMethod,
                         );
-                        const hasErr = stockErrorIds.includes(item.product.id);
+                        const hasErr = stockErrorIds.includes(item.id);
                         return (
                           <div
-                            key={item.product.id}
+                            key={item.id}
                             className={`${styles.itemRow} ${hasErr ? styles.itemRowError : ""}`}
                           >
                             <img
@@ -583,6 +595,16 @@ function PaymentModal({
                               <p className={styles.itemName}>
                                 {item.product.name}
                               </p>
+                              {item.selectedVariations?.length > 0 && (
+                                <p className={styles.itemUnitPrice}>
+                                  {item.selectedVariations
+                                    .map(
+                                      (variacao) =>
+                                        `${variacao.variacaoNome}: ${variacao.opcaoValor}`,
+                                    )
+                                    .join(" • ")}
+                                </p>
+                              )}
                               <p className={styles.itemUnitPrice}>
                                 {formatBRL(unitPrice)} un.
                               </p>
