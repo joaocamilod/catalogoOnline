@@ -100,6 +100,30 @@ http://localhost:3000
 | `npm run build` | Gera build de produção otimizado na pasta `dist/` |
 | `npm run preview` | Visualiza o build de produção localmente |
 
+## Rotas de Produção
+
+- Vitrine pública da loja: `/:nomedaloja` (exemplo: `/minhaloja`)
+- Login: `/entrar` (alias: `/login`)
+- Cadastro: `/cadastro` (alias: `/registrar`)
+- Painel administrativo (somente admin): `/admin/*`
+
+### Regras de navegação implementadas
+
+- A raiz `/` redireciona automaticamente para o link público da loja (`/:nomedaloja`).
+- O botão **Entrar** não é exibido na vitrine pública `/:nomedaloja`.
+- Usuário comum sempre retorna para a vitrine após login.
+- Administrador é redirecionado para `/admin/produtos` após login.
+
+## Checklist de Deploy
+
+1. Configurar variáveis de ambiente:
+   - `VITE_SUPABASE_URL`
+   - `VITE_SUPABASE_ANON_KEY`
+2. Rodar build de produção:
+   - `npm run build`
+3. Publicar o conteúdo da pasta `dist/` no provedor de hospedagem.
+4. Garantir fallback SPA para `index.html` no servidor.
+
 ### Convenções de Nomenclatura
 
 - **Componentes**: PascalCase (ex: `ProductCard.jsx`)

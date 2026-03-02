@@ -1,15 +1,19 @@
 import React, { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { LogIn, Mail, Lock, ArrowLeft, ShoppingBag } from "lucide-react";
 import { signIn, fetchProfile } from "../lib/supabase";
 import { useAuthStore } from "../store/authStore";
 
 const Login: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { setUser } = useAuthStore();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [formData, setFormData] = useState({ email: "", password: "" });
+  const storefrontPath =
+    (location.state as { fromStorefrontPath?: string } | null)
+      ?.fromStorefrontPath || "/";
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
@@ -35,7 +39,7 @@ const Login: React.FC = () => {
         if (profile.role === "admin") {
           navigate("/admin/produtos");
         } else {
-          navigate("/");
+          navigate(storefrontPath);
         }
       }
     } catch (_err: any) {
@@ -54,7 +58,7 @@ const Login: React.FC = () => {
 
       <div className="w-full max-w-md">
         <button
-          onClick={() => navigate("/")}
+          onClick={() => navigate(storefrontPath)}
           className="mb-6 flex items-center text-gray-500 hover:text-gray-800 transition-colors text-sm"
         >
           <ArrowLeft className="h-4 w-4 mr-1" />
@@ -139,6 +143,7 @@ const Login: React.FC = () => {
                 Não tem uma conta?{" "}
                 <Link
                   to="/cadastro"
+                  state={{ fromStorefrontPath: storefrontPath }}
                   className="font-medium text-indigo-600 hover:text-indigo-700 transition-colors"
                 >
                   Cadastre-se

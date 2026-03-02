@@ -20,6 +20,8 @@ function Header({
   onCartClick,
   onToggleSidebar,
   tema,
+  homePath = "/",
+  hideLoginButton = false,
 }) {
   const { user, logout } = useAuthStore();
   const navigate = useNavigate();
@@ -31,7 +33,7 @@ function Header({
     } catch (_) {}
     logout();
     setIsUserMenuOpen(false);
-    navigate("/");
+    navigate(homePath);
   };
 
   return (
@@ -61,7 +63,7 @@ function Header({
           </button>
 
           <Link
-            to="/"
+            to={homePath}
             className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0 min-w-0"
           >
             <ShoppingBag className="h-6 w-6 sm:h-7 sm:w-7 flex-shrink-0" />
@@ -151,15 +153,16 @@ function Header({
                 </>
               )}
             </div>
-          ) : (
+          ) : !hideLoginButton ? (
             <Link
               to="/entrar"
+              state={{ fromStorefrontPath: homePath }}
               className="flex items-center gap-2 px-4 py-2 bg-white text-indigo-700 rounded-full text-sm font-semibold hover:bg-indigo-50 transition-colors shadow-sm"
             >
               <User className="h-4 w-4" />
               Entrar
             </Link>
-          )}
+          ) : null}
         </div>
       </div>
 

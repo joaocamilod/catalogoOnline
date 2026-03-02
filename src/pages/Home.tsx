@@ -32,9 +32,16 @@ const PRODUCTS_PER_PAGE = 20;
 interface HomeProps {
   storeSettings: StoreSettings;
   tema?: CatalogoTema | null;
+  storefrontPath?: string;
+  hideLoginButton?: boolean;
 }
 
-const Home: React.FC<HomeProps> = ({ storeSettings, tema }) => {
+const Home: React.FC<HomeProps> = ({
+  storeSettings,
+  tema,
+  storefrontPath = "/",
+  hideLoginButton = false,
+}) => {
   const [produtos, setProdutos] = useState<CatalogProduct[]>([]);
   const [departamentos, setDepartamentos] = useState<Departamento[]>([]);
   const [subdepartamentos, setSubdepartamentos] = useState<Subdepartamento[]>(
@@ -297,6 +304,8 @@ const Home: React.FC<HomeProps> = ({ storeSettings, tema }) => {
         onCartClick={() => setIsCartOpen(true)}
         onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
         tema={tema}
+        homePath={storefrontPath}
+        hideLoginButton={hideLoginButton}
       />
 
       <main className="flex-1 py-8">

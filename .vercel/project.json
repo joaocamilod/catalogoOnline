@@ -1,0 +1,16 @@
+{
+  "projectId": "prj_80pQlzByNNE1pmpP7aRzHTbhp48P",
+  "orgId": "team_1In67nHdX72967rDPoZGZvXJ",
+  "projectName": "catalogo-online",
+  "settings": {
+    "createdAt": 1772456112228,
+    "framework": "vite",
+    "devCommand": null,
+    "installCommand": "npm install",
+    "buildCommand": "npm run build",
+    "outputDirectory": "dist",
+    "rootDirectory": null,
+    "directoryListing": false,
+    "nodeVersion": "24.x"
+  }
+}

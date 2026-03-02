@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   UserPlus,
   Mail,
@@ -9,11 +9,13 @@ import {
   ShoppingBag,
 } from "lucide-react";
 import { signUp } from "../lib/supabase";
-import { useAuthStore } from "../store/authStore";
 
 const Register: React.FC = () => {
   const navigate = useNavigate();
-  const { setUser } = useAuthStore();
+  const location = useLocation();
+  const storefrontPath =
+    (location.state as { fromStorefrontPath?: string } | null)
+      ?.fromStorefrontPath || "/";
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
@@ -70,6 +72,7 @@ const Register: React.FC = () => {
             </p>
             <Link
               to="/login"
+              state={{ fromStorefrontPath: storefrontPath }}
               className="inline-flex items-center justify-center gap-2 py-2.5 px-6 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-semibold rounded-xl hover:from-indigo-700 hover:to-purple-700 transition-all shadow-md"
             >
               Ir para login
@@ -89,7 +92,7 @@ const Register: React.FC = () => {
 
       <div className="w-full max-w-md">
         <button
-          onClick={() => navigate("/")}
+          onClick={() => navigate(storefrontPath)}
           className="mb-6 flex items-center text-gray-500 hover:text-gray-800 transition-colors text-sm"
         >
           <ArrowLeft className="h-4 w-4 mr-1" />
@@ -209,6 +212,7 @@ const Register: React.FC = () => {
                 Já tem uma conta?{" "}
                 <Link
                   to="/login"
+                  state={{ fromStorefrontPath: storefrontPath }}
                   className="font-medium text-indigo-600 hover:text-indigo-700 transition-colors"
                 >
                   Faça login

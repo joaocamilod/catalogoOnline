@@ -1,13 +1,24 @@
-import React, { Suspense, lazy, useEffect, useState } from "react";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import React, { Suspense, lazy, useEffect, useMemo, useState } from "react";
+import {
+  BrowserRouter,
+  Routes,
+  Route,
+  Navigate,
+  useParams,
+} from "react-router-dom";
 import ProtectedRoute from "./components/ProtectedRoute";
 import {
   DEFAULT_STORE_NAME,
+  fetchProfile,
+  getSession,
   fetchStoreSettings,
   fetchTemaAtivo,
+  supabase,
   type StoreSettings,
 } from "./lib/supabase";
 import type { CatalogoTema } from "./types";
+import { useAuthStore } from "./store/authStore";
+import { buildStorePath, isReservedStoreSlug } from "./lib/routes";
 
 const Home = lazy(() => import("./pages/Home"));
 const Login = lazy(() => import("./pages/Login"));
@@ -39,7 +50,38 @@ const AdminRoute = ({ children }: { children: React.ReactNode }) => (
   <ProtectedRoute requiredRole="admin">{children}</ProtectedRoute>
 );
 
+const StorefrontRoute = ({
+  storePath,
+  storeSettings,
+  temaAtivo,
+}: {
+  storePath: string;
+  storeSettings: StoreSettings;
+  temaAtivo: CatalogoTema | null;
+}) => {
+  const { storeSlug } = useParams();
+  const canonicalStoreSlug = storePath.replace(/^\//, "").toLowerCase();
+
+  if (isReservedStoreSlug(storeSlug)) {
+    return <Navigate to={storePath} replace />;
+  }
+
+  if ((storeSlug || "").toLowerCase() !== canonicalStoreSlug) {
+    return <Navigate to={storePath} replace />;
+  }
+
+  return (
+    <Home
+      storeSettings={storeSettings}
+      tema={temaAtivo}
+      storefrontPath={storePath}
+      hideLoginButton
+    />
+  );
+};
+
 function App() {
+  const { setUser, setLoading } = useAuthStore();
   const [storeSettings, setStoreSettings] = useState<StoreSettings>({
     nome_loja: DEFAULT_STORE_NAME,
     footer_descricao:
@@ -51,6 +93,10 @@ function App() {
     youtube_url: "",
   });
   const [temaAtivo, setTemaAtivo] = useState<CatalogoTema | null>(null);
+  const storePath = useMemo(
+    () => buildStorePath(storeSettings.nome_loja),
+    [storeSettings.nome_loja],
+  );
 
   useEffect(() => {
     let isMounted = true;
@@ -82,6 +128,72 @@ function App() {
   }, []);
 
   useEffect(() => {
+    let isMounted = true;
+
+    const hydrateSession = async () => {
+      setLoading(true);
+      try {
+        const session = await getSession();
+        if (!session?.user) {
+          if (isMounted) setUser(null);
+          return;
+        }
+
+        const profile = await fetchProfile(session.user.id);
+        if (!isMounted) return;
+
+        setUser({
+          id: profile.id,
+          email: profile.email,
+          name: profile.name,
+          role: profile.role,
+        });
+      } catch (error) {
+        console.error("Erro ao sincronizar sessão:", error);
+        if (isMounted) setUser(null);
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    };
+
+    hydrateSession();
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      if (!isMounted) return;
+
+      if (!session?.user) {
+        setUser(null);
+        setLoading(false);
+        return;
+      }
+
+      setLoading(true);
+      try {
+        const profile = await fetchProfile(session.user.id);
+        if (!isMounted) return;
+        setUser({
+          id: profile.id,
+          email: profile.email,
+          name: profile.name,
+          role: profile.role,
+        });
+      } catch (error) {
+        console.error("Erro ao atualizar sessão:", error);
+        if (isMounted) setUser(null);
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    });
+
+    return () => {
+      isMounted = false;
+      subscription.unsubscribe();
+    };
+  }, [setLoading, setUser]);
+
+  useEffect(() => {
     const nome = storeSettings.nome_loja?.trim();
     document.title =
       nome && nome !== DEFAULT_STORE_NAME
@@ -93,9 +205,16 @@ function App() {
     <BrowserRouter>
       <Suspense fallback={<PageLoader />}>
         <Routes>
+          <Route path="/" element={<Navigate to={storePath} replace />} />
           <Route
-            path="/"
-            element={<Home storeSettings={storeSettings} tema={temaAtivo} />}
+            path="/:storeSlug"
+            element={
+              <StorefrontRoute
+                storePath={storePath}
+                storeSettings={storeSettings}
+                temaAtivo={temaAtivo}
+              />
+            }
           />
           <Route path="/entrar" element={<Login />} />
           <Route path="/login" element={<Login />} />
@@ -128,7 +247,7 @@ function App() {
             />
           </Route>
 
-          <Route path="*" element={<Navigate to="/" replace />} />
+          <Route path="*" element={<Navigate to={storePath} replace />} />
         </Routes>
       </Suspense>
     </BrowserRouter>
