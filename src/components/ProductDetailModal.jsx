@@ -88,6 +88,25 @@ export default function ProductDetailModal({
     }))
     .filter((variacao) => variacao.opcoes.length > 0);
 
+  useEffect(() => {
+    setSelectedOptions((prev) => {
+      let changed = false;
+      const next = { ...prev };
+      for (const variacao of variations) {
+        const selectedOptionId = prev[variacao.id];
+        if (!selectedOptionId) continue;
+        const selectedOption = variacao.opcoes.find(
+          (opcao) => opcao.id === selectedOptionId,
+        );
+        if (!selectedOption) {
+          delete next[variacao.id];
+          changed = true;
+        }
+      }
+      return changed ? next : prev;
+    });
+  }, [variations]);
+
   const getMissingRequiredVariation = () =>
     variations.find(
       (variacao) => variacao.obrigatoria && !selectedOptions[variacao.id],
@@ -110,6 +129,23 @@ export default function ProductDetailModal({
         };
       })
       .filter(Boolean);
+
+  const selectedVariationStockLimit = (() => {
+    if (!variations.length) return null;
+    const limits = variations
+      .map((variacao) => {
+        const selectedOptionId = selectedOptions[variacao.id];
+        if (!selectedOptionId) return null;
+        const selectedOption = variacao.opcoes.find(
+          (opcao) => opcao.id === selectedOptionId,
+        );
+        const stock = Number(selectedOption?.estoque);
+        return Number.isFinite(stock) ? Math.max(0, Math.floor(stock)) : null;
+      })
+      .filter((value) => value !== null);
+    if (!limits.length) return null;
+    return Math.min(...limits);
+  })();
 
   const handleAdd = () => {
     if (adding || buyingNow || added || outOfStock) return;
@@ -155,8 +191,14 @@ export default function ProductDetailModal({
 
   if (!product) return null;
 
-  const outOfStock = product.stock === 0;
-  const qtyLimit = Math.max(1, Number(product.stock) || 0);
+  const productStock = Number(product.stock);
+  const effectiveStock = Number.isFinite(selectedVariationStockLimit)
+    ? selectedVariationStockLimit
+    : Number.isFinite(productStock)
+      ? Math.max(0, Math.floor(productStock))
+      : 0;
+  const outOfStock = effectiveStock <= 0;
+  const qtyLimit = Math.max(1, effectiveStock);
   const originalPrice = Number(product.preco_original ?? 0) || 0;
   const discountPercent = Number(product.desconto_percentual ?? 0) || 0;
   const cardTotal = Number(product.total_cartao ?? product.price ?? 0) || 0;
@@ -186,28 +228,32 @@ export default function ProductDetailModal({
       ? `Frete Grátis acima de ${formatBRL(product.frete_gratis_valor_minimo)}`
       : "Frete Grátis");
 
-  const stockMax = Math.max(product.stock ?? 0, 50);
-  const stockPct = Math.min(100, ((product.stock ?? 0) / stockMax) * 100);
+  const stockMax = Math.max(effectiveStock, 50);
+  const stockPct = Math.min(100, (effectiveStock / stockMax) * 100);
   const stockColor =
-    product.stock < 5
+    effectiveStock < 5
       ? "bg-red-500"
-      : product.stock < 15
+      : effectiveStock < 15
         ? "bg-amber-400"
         : "bg-green-500";
   const stockLabel = outOfStock
     ? "Produto esgotado"
-    : product.stock < 5
-      ? `Restam apenas ${product.stock} unidades!`
-      : product.stock < 15
-        ? `${product.stock} unidades disponíveis`
+    : effectiveStock < 5
+      ? `Restam apenas ${effectiveStock} unidades!`
+      : effectiveStock < 15
+        ? `${effectiveStock} unidades disponíveis`
         : `Em estoque`;
   const stockLabelColor = outOfStock
     ? "text-red-600"
-    : product.stock < 5
+    : effectiveStock < 5
       ? "text-red-600"
-      : product.stock < 15
+      : effectiveStock < 15
         ? "text-amber-600"
         : "text-green-600";
+
+  useEffect(() => {
+    setQty((current) => Math.min(Math.max(1, current), qtyLimit));
+  }, [qtyLimit]);
 
   return (
     <div
@@ -537,14 +583,45 @@ export default function ProductDetailModal({
                           )}
                         </span>
                       </div>
-                      <div className="flex gap-2.5 flex-wrap">
+                      <div className="flex gap-3 flex-wrap">
                         {variacao.opcoes.map((opcao) => {
                           const selected =
                             selectedOptions[variacao.id] === opcao.id;
+                          const opcaoStock = Number(opcao.estoque ?? 0);
+                          const opcaoOutOfStock =
+                            Number.isFinite(opcaoStock) && opcaoStock <= 0;
+
+                          let chipClass =
+                            "relative px-3 py-2 rounded-xl border-2 text-sm font-semibold " +
+                            "min-w-[44px] min-h-[44px] " +
+                            "transition-all duration-150 " +
+                            "focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-300 ";
+
+                          if (opcaoOutOfStock) {
+                            if (selected) {
+                              chipClass +=
+                                "border-amber-400 bg-gray-100 text-gray-400 opacity-70 cursor-not-allowed";
+                            } else {
+                              chipClass +=
+                                "border-gray-200 bg-gray-50 text-gray-400 opacity-55 cursor-not-allowed hover:border-gray-300";
+                            }
+                          } else if (selected) {
+                            chipClass +=
+                              "border-violet-600 bg-violet-600 text-white shadow-md scale-[1.03]";
+                          } else {
+                            chipClass +=
+                              "border-gray-200 bg-white text-gray-700 hover:border-violet-400 hover:bg-violet-50 cursor-pointer";
+                          }
+
                           return (
                             <button
                               key={opcao.id}
                               type="button"
+                              role="button"
+                              aria-pressed={selected && !opcaoOutOfStock}
+                              aria-disabled={opcaoOutOfStock}
+                              aria-label={`${variacao.nome}: ${opcao.valor}${opcaoOutOfStock ? " — esgotado" : ""}`}
+                              title={opcaoOutOfStock ? "Esgotado" : undefined}
                               onClick={() => {
                                 setVariationError("");
                                 setSelectedOptions((prev) => ({
@@ -557,17 +634,21 @@ export default function ProductDetailModal({
                                       : opcao.id,
                                 }));
                               }}
-                              className={`
-                                px-3 py-2 rounded-xl border-2 text-sm font-semibold
-                                transition-all duration-150
-                                ${
-                                  selected
-                                    ? "border-violet-600 bg-violet-600 text-white shadow-md"
-                                    : "border-gray-200 text-gray-700 hover:border-violet-400 hover:bg-violet-50"
-                                }
-                              `}
+                              className={chipClass}
                             >
                               {opcao.valor}
+
+                              {opcaoOutOfStock && (
+                                <span
+                                  aria-hidden="true"
+                                  className="absolute -top-2 -right-2 w-[18px] h-[18px] flex items-center justify-center rounded-full bg-white border border-gray-300 shadow"
+                                >
+                                  <X
+                                    className="h-2.5 w-2.5 text-red-400"
+                                    strokeWidth={3}
+                                  />
+                                </span>
+                              )}
                             </button>
                           );
                         })}
@@ -620,7 +701,10 @@ export default function ProductDetailModal({
               </div>
               <button
                 onClick={
-                  outOfStock ? () => onNotifyRestock?.(product) : handleBuyNow
+                  outOfStock
+                    ? () =>
+                        onNotifyRestock?.(product, buildSelectedVariations())
+                    : handleBuyNow
                 }
                 disabled={adding || buyingNow}
                 className={`
@@ -654,7 +738,9 @@ export default function ProductDetailModal({
                 ) : (
                   <>
                     <CreditCard className="h-5 w-5" />{" "}
-                    {outOfStock ? "Avise-me quando chegar" : "Comprar Agora"}
+                    {outOfStock
+                      ? "Avise-me quando estiver pronto"
+                      : "Comprar Agora"}
                   </>
                 )}
               </button>

@@ -50,6 +50,8 @@ export interface ProdutoVariacaoOpcao {
   id: string;
   valor: string;
   ativo: boolean;
+  preco?: number | null;
+  estoque?: number | null;
 }
 
 export interface ProdutoVariacao {
@@ -187,6 +189,7 @@ export interface CartItem {
   id: string;
   product: CatalogProduct;
   quantity: number;
+  stock_limit?: number | null;
   selectedVariations: Array<{
     variacaoId: string;
     variacaoNome: string;

@@ -873,6 +873,12 @@ export interface ItemVenda {
   preco: number;
   quantidade: number;
   imagem?: string;
+  variacoes?: Array<{
+    variacao_id: string;
+    variacao_nome: string;
+    opcao_id: string;
+    opcao_valor: string;
+  }>;
 }
 
 export interface CriarVendaParams {
@@ -888,31 +894,81 @@ export interface CriarVendaParams {
 }
 
 export async function decrementarEstoqueProdutos(
-  itens: Array<{ produto_id: string; quantidade: number }>,
+  itens: Array<{
+    produto_id: string;
+    quantidade: number;
+    selected_variations?: Array<{
+      variacaoId: string;
+      opcaoId: string;
+    }>;
+  }>,
 ): Promise<void> {
-  const promises = itens
-    .filter((item) => item.quantidade > 0)
-    .map(async (item) => {
-      const { data, error } = await supabase
-        .from("produtos")
-        .select("quantidademinima")
-        .eq("id", item.produto_id)
-        .single();
+  const itensValidos = itens.filter((item) => item.quantidade > 0);
+  for (const item of itensValidos) {
+    const { data, error } = await supabase
+      .from("produtos")
+      .select("quantidademinima, variacoes")
+      .eq("id", item.produto_id)
+      .single();
 
-      if (error || !data) return;
+    if (error || !data) continue;
 
-      const currentStock = data.quantidademinima;
-      if (currentStock == null) return;
+    const variacoes = Array.isArray((data as any).variacoes)
+      ? ((data as any).variacoes as ProdutoVariacao[])
+      : [];
 
-      const newStock = Math.max(0, Number(currentStock) - item.quantidade);
+    if (variacoes.length > 0 && (item.selected_variations?.length ?? 0) > 0) {
+      const selected = item.selected_variations ?? [];
+      const variacoesAtualizadas = variacoes.map((variacao) => {
+        const selectedFromVariacao = selected.filter(
+          (sel) => sel.variacaoId === variacao.id,
+        );
+        if (selectedFromVariacao.length === 0) return variacao;
+
+        return {
+          ...variacao,
+          opcoes: variacao.opcoes.map((opcao) => {
+            const shouldDecrease = selectedFromVariacao.some(
+              (sel) => sel.opcaoId === opcao.id,
+            );
+            if (!shouldDecrease) return opcao;
+
+            const estoqueAtual = Number(opcao.estoque ?? 0);
+            const estoqueNovo = Math.max(0, estoqueAtual - item.quantidade);
+            return { ...opcao, estoque: estoqueNovo };
+          }),
+        };
+      });
+
+      const estoqueTotal = variacoesAtualizadas.reduce(
+        (sumVariacoes, variacao) =>
+          sumVariacoes +
+          variacao.opcoes.reduce(
+            (sumOpcoes, opcao) => sumOpcoes + Number(opcao.estoque ?? 0),
+            0,
+          ),
+        0,
+      );
 
       await supabase
         .from("produtos")
-        .update({ quantidademinima: newStock })
+        .update({
+          variacoes: variacoesAtualizadas as any,
+          quantidademinima: estoqueTotal,
+        })
         .eq("id", item.produto_id);
-    });
+      continue;
+    }
 
-  await Promise.all(promises);
+    const currentStock = Number((data as any).quantidademinima);
+    if (!Number.isFinite(currentStock)) continue;
+
+    const newStock = Math.max(0, currentStock - item.quantidade);
+    await supabase
+      .from("produtos")
+      .update({ quantidademinima: newStock })
+      .eq("id", item.produto_id);
+  }
 }
 
 export async function createSale(params: CriarVendaParams) {

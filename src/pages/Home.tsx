@@ -71,6 +71,9 @@ const Home: React.FC<HomeProps> = ({
   const [notifyProduct, setNotifyProduct] = useState<CatalogProduct | null>(
     null,
   );
+  const [notifySelectedVariations, setNotifySelectedVariations] = useState<
+    CartItem["selectedVariations"]
+  >([]);
   const [isNotifyDialogOpen, setIsNotifyDialogOpen] = useState(false);
   const [sellers, setSellers] = useState<Vendedor[]>([]);
   const [loadingSellers, setLoadingSellers] = useState(false);
@@ -190,16 +193,49 @@ const Home: React.FC<HomeProps> = ({
     );
   }, [sidebarSubdepartments]);
 
+  const getSelectedVariationStockLimit = (
+    product: CatalogProduct,
+    selectedVariations: CartItem["selectedVariations"],
+  ) => {
+    if (!selectedVariations.length) return null;
+    const limits = selectedVariations
+      .map((selected) => {
+        const variacao = (product.variacoes ?? []).find(
+          (item) => item.id === selected.variacaoId,
+        );
+        const opcao = variacao?.opcoes?.find(
+          (item) => item.id === selected.opcaoId,
+        );
+        const stock = Number(opcao?.estoque);
+        return Number.isFinite(stock) ? Math.max(0, Math.floor(stock)) : null;
+      })
+      .filter((item): item is number => item !== null);
+    if (!limits.length) return null;
+    return Math.min(...limits);
+  };
+
   const handleAddToCart = (
     product: CatalogProduct,
     selectedVariations: CartItem["selectedVariations"] = [],
-  ) => addItem(product, selectedVariations);
+  ) => {
+    const stockLimit = getSelectedVariationStockLimit(
+      product,
+      selectedVariations,
+    );
+    addItem(product, selectedVariations, stockLimit);
+  };
   const handleBuyNow = (
     product: CatalogProduct,
     quantity: number,
     selectedVariations: CartItem["selectedVariations"] = [],
   ) => {
-    for (let i = 0; i < quantity; i++) addItem(product, selectedVariations);
+    const stockLimit = getSelectedVariationStockLimit(
+      product,
+      selectedVariations,
+    );
+    for (let i = 0; i < quantity; i++) {
+      addItem(product, selectedVariations, stockLimit);
+    }
     setSelectedProduct(null);
     setIsCartOpen(true);
   };
@@ -224,8 +260,12 @@ const Home: React.FC<HomeProps> = ({
   }, []);
 
   const openNotifyDialog = useCallback(
-    (product: CatalogProduct) => {
+    (
+      product: CatalogProduct,
+      selectedVariations: CartItem["selectedVariations"] = [],
+    ) => {
       setNotifyProduct(product);
+      setNotifySelectedVariations(selectedVariations);
       setManualSellerName("");
       setSellerValidationError("");
       setIsNotifyDialogOpen(true);
@@ -268,9 +308,16 @@ const Home: React.FC<HomeProps> = ({
     const waNumber = phoneDigits.startsWith("55")
       ? phoneDigits
       : `55${phoneDigits}`;
+    const variacoesTexto =
+      notifySelectedVariations.length > 0
+        ? notifySelectedVariations
+            .map((v) => `${v.variacaoNome}: ${v.opcaoValor}`)
+            .join(" | ")
+        : "";
     const msg =
       `Olá ${sellerName}, tudo bem?\n\n` +
       `Tenho interesse no produto "*${notifyProduct.name}*" que está esgotado no catálogo.\n` +
+      (variacoesTexto ? `(${variacoesTexto}).\n` : "") +
       `Pode me avisar por aqui quando ele voltar ao estoque?\n\n` +
       `Obrigado(a)!`;
 
@@ -278,6 +325,7 @@ const Home: React.FC<HomeProps> = ({
 
     setIsNotifyDialogOpen(false);
     setNotifyProduct(null);
+    setNotifySelectedVariations([]);
     setToast({
       msg: "Mensagem aberta no WhatsApp para aviso de reposição.",
       type: "success",
@@ -468,6 +516,7 @@ const Home: React.FC<HomeProps> = ({
         onClose={() => {
           setIsNotifyDialogOpen(false);
           setNotifyProduct(null);
+          setNotifySelectedVariations([]);
         }}
         title="Avise-me quando voltar ao estoque"
         maxWidth="max-w-xl"
@@ -478,6 +527,16 @@ const Home: React.FC<HomeProps> = ({
             <p className="text-sm text-indigo-900">
               Produto: <strong>{notifyProduct?.name}</strong>
             </p>
+            {notifySelectedVariations.length > 0 && (
+              <p className="text-xs text-indigo-800 mt-1">
+                Variação/grade:{" "}
+                <strong>
+                  {notifySelectedVariations
+                    .map((v) => `${v.variacaoNome}: ${v.opcaoValor}`)
+                    .join(" | ")}
+                </strong>
+              </p>
+            )}
             <p className="text-xs text-indigo-700 mt-1">
               Selecione o vendedor para abrir o WhatsApp com mensagem
               padronizada.
@@ -577,6 +636,7 @@ const Home: React.FC<HomeProps> = ({
               onClick={() => {
                 setIsNotifyDialogOpen(false);
                 setNotifyProduct(null);
+                setNotifySelectedVariations([]);
               }}
               className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-xl hover:bg-gray-50 transition-colors"
             >

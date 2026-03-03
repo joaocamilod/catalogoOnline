@@ -247,19 +247,18 @@ function PaymentModal({
     return { subtotal, total: methodTotal, discount, surcharge, installments };
   }, [items, paymentMethod]);
 
-  const stockErrorIds = useMemo(() => {
-    const byProduct = new Map();
-    for (const item of items) {
-      const current = byProduct.get(item.product.id) ?? 0;
-      byProduct.set(item.product.id, current + item.quantity);
-    }
-    return items
-      .filter((item) => {
-        if (!(item.product.stock > 0)) return false;
-        return (byProduct.get(item.product.id) ?? 0) > item.product.stock;
-      })
-      .map((item) => item.id);
-  }, [items]);
+  const stockErrorIds = useMemo(
+    () =>
+      items
+        .filter((item) => {
+          const limit = Number.isFinite(Number(item.stock_limit))
+            ? Number(item.stock_limit)
+            : Number(item.product.stock);
+          return Number.isFinite(limit) && item.quantity > Math.max(0, limit);
+        })
+        .map((item) => item.id),
+    [items],
+  );
   const hasStockError = stockErrorIds.length > 0;
   const formatCep = (value = "") => {
     const digits = value.replace(/\D/g, "").slice(0, 8);
@@ -370,6 +369,12 @@ function PaymentModal({
           preco: getItemUnitPrice(item.product, paymentMethod),
           quantidade: item.quantity,
           imagem: item.product.image ?? null,
+          variacoes: (item.selectedVariations ?? []).map((v) => ({
+            variacao_id: v.variacaoId,
+            variacao_nome: v.variacaoNome,
+            opcao_id: v.opcaoId,
+            opcao_valor: v.opcaoValor,
+          })),
         }));
 
         const saleData = await createSale({
@@ -389,14 +394,14 @@ function PaymentModal({
       }
 
       const itensParaDecrementar = items
-        .filter(
-          (item) =>
-            Number.isFinite(Number(item.product.stock)) &&
-            item.product.stock > 0,
-        )
+        .filter((item) => item.quantity > 0)
         .map((item) => ({
           produto_id: item.product.id,
           quantidade: item.quantity,
+          selected_variations: (item.selectedVariations ?? []).map((v) => ({
+            variacaoId: v.variacaoId,
+            opcaoId: v.opcaoId,
+          })),
         }));
 
       if (itensParaDecrementar.length > 0) {
@@ -611,7 +616,10 @@ function PaymentModal({
                               {hasErr && (
                                 <p className={styles.stockError} role="alert">
                                   ⚠ Estoque insuficiente (disp.&nbsp;
-                                  {item.product.stock})
+                                  {Number.isFinite(Number(item.stock_limit))
+                                    ? Math.max(0, Number(item.stock_limit))
+                                    : item.product.stock}
+                                  )
                                 </p>
                               )}
                             </div>

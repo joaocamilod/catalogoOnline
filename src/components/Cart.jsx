@@ -249,6 +249,12 @@ function Cart({
                         <p className="text-xs text-gray-500 mb-2">
                           {formatBRL(item.product.price)} un.
                         </p>
+                        {Number.isFinite(Number(item.stock_limit)) && (
+                          <p className="text-[11px] text-amber-600 mb-2">
+                            Limite desta variação:{" "}
+                            {Math.max(0, Number(item.stock_limit))}
+                          </p>
+                        )}
 
                         <div className="flex items-center gap-1.5">
                           <button
@@ -273,10 +279,13 @@ function Cart({
                               onUpdateQuantity(item.id, item.quantity + 1)
                             }
                             disabled={
-                              Number.isFinite(Number(item.product.stock))
+                              Number.isFinite(Number(item.stock_limit))
                                 ? item.quantity >=
-                                  Math.max(0, Number(item.product.stock))
-                                : false
+                                  Math.max(0, Number(item.stock_limit))
+                                : Number.isFinite(Number(item.product.stock))
+                                  ? item.quantity >=
+                                    Math.max(0, Number(item.product.stock))
+                                  : false
                             }
                             aria-label={`Aumentar quantidade de ${item.product.name}`}
                             className="w-7 h-7 rounded-lg border-2 border-gray-200 bg-white text-gray-600 hover:border-indigo-500 hover:text-indigo-600 flex items-center justify-center transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:ring-offset-1 disabled:opacity-30 disabled:cursor-not-allowed"

@@ -75,6 +75,8 @@ const createVariacaoOpcao = (valor = ""): ProdutoVariacaoOpcao => ({
   id: crypto.randomUUID(),
   valor,
   ativo: true,
+  preco: null,
+  estoque: null,
 });
 
 const createVariacao = (nome = ""): ProdutoVariacao => ({
@@ -107,6 +109,18 @@ const normalizeVariacoesInput = (value: unknown): ProdutoVariacao[] => {
             : crypto.randomUUID(),
         valor: typeof opcao?.valor === "string" ? opcao.valor : "",
         ativo: typeof opcao?.ativo === "boolean" ? opcao.ativo : true,
+        preco:
+          opcao?.preco !== null &&
+          opcao?.preco !== undefined &&
+          Number.isFinite(Number(opcao.preco))
+            ? Number(opcao.preco)
+            : null,
+        estoque:
+          opcao?.estoque !== null &&
+          opcao?.estoque !== undefined &&
+          Number.isFinite(Number(opcao.estoque))
+            ? Math.max(0, Math.floor(Number(opcao.estoque)))
+            : null,
       }));
 
       return {
@@ -136,6 +150,20 @@ const sanitizeVariacoesForSave = (
         .map((opcao) => ({
           ...opcao,
           valor: opcao.valor.trim(),
+          preco:
+            opcao.preco !== null &&
+            opcao.preco !== undefined &&
+            Number.isFinite(Number(opcao.preco)) &&
+            Number(opcao.preco) >= 0
+              ? Number(opcao.preco)
+              : null,
+          estoque:
+            opcao.estoque !== null &&
+            opcao.estoque !== undefined &&
+            Number.isFinite(Number(opcao.estoque)) &&
+            Number(opcao.estoque) >= 0
+              ? Math.floor(Number(opcao.estoque))
+              : null,
         }))
         .filter((opcao) => opcao.valor.length > 0),
     }))
@@ -216,6 +244,7 @@ const ProductForm: React.FC<ProductFormProps> = ({
     descricao?: string;
     preco?: string;
     estoque?: string;
+    variacoes?: string;
   }>({});
   const [activeTab, setActiveTab] = useState<
     "basico" | "variacoes" | "vitrine"
@@ -402,9 +431,34 @@ const ProductForm: React.FC<ProductFormProps> = ({
     hasDescontoPixPercentual,
   };
 
+  const variacoesSanitizadas = sanitizeVariacoesForSave(variacoes);
+  const usaEstoquePorVariacoes = variacoes.length > 0;
+  const estoqueTotalVariacoes = variacoesSanitizadas.reduce(
+    (sumVariacoes, variacao) =>
+      sumVariacoes +
+      variacao.opcoes.reduce(
+        (sumOpcoes, opcao) => sumOpcoes + (opcao.estoque ?? 0),
+        0,
+      ),
+    0,
+  );
+
+  useEffect(() => {
+    if (!usaEstoquePorVariacoes) return;
+    setEstoque((prev) =>
+      prev === String(estoqueTotalVariacoes)
+        ? prev
+        : String(estoqueTotalVariacoes),
+    );
+  }, [usaEstoquePorVariacoes, estoqueTotalVariacoes]);
+
   const validateRequiredFields = () => {
-    const nextErrors: { descricao?: string; preco?: string; estoque?: string } =
-      {};
+    const nextErrors: {
+      descricao?: string;
+      preco?: string;
+      estoque?: string;
+      variacoes?: string;
+    } = {};
 
     if (!descricao.trim())
       nextErrors.descricao = "Nome do produto é obrigatório.";
@@ -417,7 +471,41 @@ const ProductForm: React.FC<ProductFormProps> = ({
       nextErrors.preco = "Informe um preço válido.";
     }
 
-    if (!estoque.trim()) {
+    if (usaEstoquePorVariacoes) {
+      for (let vi = 0; vi < variacoes.length; vi++) {
+        const variacao = variacoes[vi];
+        if (!variacao.nome.trim()) {
+          nextErrors.variacoes = `Informe o nome da variação #${vi + 1}.`;
+          break;
+        }
+
+        if (!variacao.opcoes.length) {
+          nextErrors.variacoes = `Adicione ao menos uma opção para ${variacao.nome}.`;
+          break;
+        }
+
+        for (let oi = 0; oi < variacao.opcoes.length; oi++) {
+          const opcao = variacao.opcoes[oi];
+          if (!opcao.valor.trim()) {
+            nextErrors.variacoes = `Informe o nome da opção #${oi + 1} em ${variacao.nome}.`;
+            break;
+          }
+
+          const estoqueOpcao = Number(opcao.estoque);
+          if (
+            opcao.estoque === null ||
+            opcao.estoque === undefined ||
+            Number.isNaN(estoqueOpcao) ||
+            estoqueOpcao < 0
+          ) {
+            nextErrors.variacoes = `Informe o estoque da opção "${opcao.valor}" em ${variacao.nome}.`;
+            break;
+          }
+        }
+
+        if (nextErrors.variacoes) break;
+      }
+    } else if (!estoque.trim()) {
       nextErrors.estoque = "Estoque é obrigatório.";
     } else if (Number.isNaN(Number(estoque))) {
       nextErrors.estoque = "Informe um estoque válido.";
@@ -425,6 +513,11 @@ const ProductForm: React.FC<ProductFormProps> = ({
 
     setFieldErrors(nextErrors);
     return Object.keys(nextErrors).length === 0;
+  };
+
+  const clearVariacoesError = () => {
+    if (!fieldErrors.variacoes) return;
+    setFieldErrors((prev) => ({ ...prev, variacoes: undefined }));
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -504,12 +597,15 @@ const ProductForm: React.FC<ProductFormProps> = ({
       onSubmit={(e) => {
         e.preventDefault();
         if (!validateRequiredFields()) return;
+        const quantidademinimaFinal = usaEstoquePorVariacoes
+          ? estoqueTotalVariacoes
+          : parseInt(estoque) || 0;
         onSubmit(
           {
             descricao,
             infadicional,
             valorunitariocomercial: parsePriceToNumber(preco) || 0,
-            quantidademinima: parseInt(estoque) || 0,
+            quantidademinima: quantidademinimaFinal,
             destaque,
             ativo,
             exibircatalogo,
@@ -540,7 +636,7 @@ const ProductForm: React.FC<ProductFormProps> = ({
             parcelas_quantidade: parcelasQtdNum,
             total_cartao: parseOptionalMoney(totalCartao),
             texto_adicional_preco: textoAdicionalPreco.trim() || null,
-            variacoes: sanitizeVariacoesForSave(variacoes),
+            variacoes: variacoesSanitizadas,
           },
           newFiles,
           removedIds,
@@ -656,12 +752,13 @@ const ProductForm: React.FC<ProductFormProps> = ({
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                Estoque *
+                Estoque total *
               </label>
               <input
                 type="number"
                 value={estoque}
                 onChange={(e) => {
+                  if (usaEstoquePorVariacoes) return;
                   setEstoque(e.target.value);
                   if (fieldErrors.estoque) {
                     setFieldErrors((prev) => ({ ...prev, estoque: undefined }));
@@ -674,7 +771,14 @@ const ProductForm: React.FC<ProductFormProps> = ({
                 }`}
                 placeholder="0"
                 min="0"
+                readOnly={usaEstoquePorVariacoes}
+                disabled={usaEstoquePorVariacoes}
               />
+              {usaEstoquePorVariacoes && (
+                <p className="mt-1 text-xs text-indigo-600">
+                  Calculado automaticamente pela soma dos estoques das opções.
+                </p>
+              )}
               {fieldErrors.estoque && (
                 <p className="mt-1 text-xs text-red-600">
                   {fieldErrors.estoque}
@@ -900,9 +1004,10 @@ const ProductForm: React.FC<ProductFormProps> = ({
                 <button
                   key={sugestao}
                   type="button"
-                  onClick={() =>
-                    setVariacoes((prev) => [...prev, createVariacao(sugestao)])
-                  }
+                  onClick={() => {
+                    clearVariacoesError();
+                    setVariacoes((prev) => [...prev, createVariacao(sugestao)]);
+                  }}
                   className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-violet-200 text-violet-700 text-xs font-semibold hover:bg-violet-50 transition-colors"
                 >
                   <Plus className="h-3.5 w-3.5" />
@@ -911,9 +1016,10 @@ const ProductForm: React.FC<ProductFormProps> = ({
               ))}
               <button
                 type="button"
-                onClick={() =>
-                  setVariacoes((prev) => [...prev, createVariacao()])
-                }
+                onClick={() => {
+                  clearVariacoesError();
+                  setVariacoes((prev) => [...prev, createVariacao()]);
+                }}
                 className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-gray-300 text-gray-700 text-xs font-semibold hover:bg-gray-50 transition-colors"
               >
                 <PlusCircle className="h-3.5 w-3.5" />
@@ -933,6 +1039,16 @@ const ProductForm: React.FC<ProductFormProps> = ({
             </div>
 
             <div className="max-h-[38vh] min-[420px]:max-h-[42vh] sm:max-h-[46vh] lg:max-h-[52vh] overflow-y-auto pr-1 -mr-1 space-y-3">
+              {usaEstoquePorVariacoes && (
+                <div className="rounded-xl border border-indigo-100 bg-indigo-50 px-3 py-2">
+                  <p className="text-xs text-indigo-700">
+                    Com variações ativas, são obrigatórios:{" "}
+                    <strong>Nome da variação</strong>, <strong>Opção</strong> e{" "}
+                    <strong>Estoque</strong>. O preço é opcional e, quando
+                    vazio, será usado o preço base do produto.
+                  </p>
+                </div>
+              )}
               {variacoes.length === 0 && (
                 <div className="rounded-xl border border-dashed border-gray-300 bg-gray-50 px-4 py-5 text-sm text-gray-600">
                   Nenhuma variação cadastrada. Use os atalhos acima para criar
@@ -949,15 +1065,16 @@ const ProductForm: React.FC<ProductFormProps> = ({
                     <input
                       type="text"
                       value={variacao.nome}
-                      onChange={(e) =>
+                      onChange={(e) => {
+                        clearVariacoesError();
                         setVariacoes((prev) =>
                           prev.map((item) =>
                             item.id === variacao.id
                               ? { ...item, nome: e.target.value }
                               : item,
                           ),
-                        )
-                      }
+                        );
+                      }}
                       placeholder={`Nome da variação #${variacaoIndex + 1} (ex: Cor)`}
                       className="flex-1 px-3 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                     />
@@ -970,15 +1087,16 @@ const ProductForm: React.FC<ProductFormProps> = ({
                           type="button"
                           role="switch"
                           aria-checked={variacao.obrigatoria}
-                          onClick={() =>
+                          onClick={() => {
+                            clearVariacoesError();
                             setVariacoes((prev) =>
                               prev.map((item) =>
                                 item.id === variacao.id
                                   ? { ...item, obrigatoria: !item.obrigatoria }
                                   : item,
                               ),
-                            )
-                          }
+                            );
+                          }}
                           className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${variacao.obrigatoria ? "bg-emerald-500" : "bg-gray-300"}`}
                         >
                           <span
@@ -988,11 +1106,12 @@ const ProductForm: React.FC<ProductFormProps> = ({
                       </div>
                       <button
                         type="button"
-                        onClick={() =>
+                        onClick={() => {
+                          clearVariacoesError();
                           setVariacoes((prev) =>
                             prev.filter((item) => item.id !== variacao.id),
-                          )
-                        }
+                          );
+                        }}
                         className="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl border border-red-200 text-red-600 text-sm font-medium hover:bg-red-50 transition-colors"
                       >
                         <Trash2 className="h-4 w-4" />
@@ -1002,15 +1121,30 @@ const ProductForm: React.FC<ProductFormProps> = ({
                   </div>
 
                   <div className="space-y-2">
+                    <div className="hidden sm:grid sm:grid-cols-12 gap-2 px-1">
+                      <span className="sm:col-span-5 text-[11px] font-semibold text-gray-500 uppercase tracking-wide">
+                        Opção *
+                      </span>
+                      <span className="sm:col-span-3 text-[11px] font-semibold text-gray-500 uppercase tracking-wide">
+                        Preço (R$)
+                      </span>
+                      <span className="sm:col-span-3 text-[11px] font-semibold text-gray-500 uppercase tracking-wide">
+                        Estoque *
+                      </span>
+                    </div>
                     {variacao.opcoes.map((opcao, opcaoIndex) => (
                       <div
                         key={opcao.id}
-                        className="flex items-center gap-2 rounded-xl border border-gray-200 p-2 bg-gray-50"
+                        className="grid grid-cols-1 sm:grid-cols-12 gap-2 rounded-xl border border-gray-200 p-2 bg-gray-50"
                       >
+                        <label className="sm:hidden text-[11px] font-semibold text-gray-500 uppercase tracking-wide">
+                          Opção *
+                        </label>
                         <input
                           type="text"
                           value={opcao.valor}
-                          onChange={(e) =>
+                          onChange={(e) => {
+                            clearVariacoesError();
                             setVariacoes((prev) =>
                               prev.map((item) =>
                                 item.id === variacao.id
@@ -1024,14 +1158,97 @@ const ProductForm: React.FC<ProductFormProps> = ({
                                     }
                                   : item,
                               ),
-                            )
-                          }
+                            );
+                          }}
                           placeholder={`Opção ${opcaoIndex + 1} (ex: Azul)`}
-                          className="flex-1 px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white"
+                          className="sm:col-span-5 px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white"
+                        />
+                        <label className="sm:hidden text-[11px] font-semibold text-gray-500 uppercase tracking-wide">
+                          Preço (R$)
+                        </label>
+                        <input
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          value={opcao.preco ?? ""}
+                          onChange={(e) => {
+                            clearVariacoesError();
+                            const value = e.target.value;
+                            setVariacoes((prev) =>
+                              prev.map((item) =>
+                                item.id === variacao.id
+                                  ? {
+                                      ...item,
+                                      opcoes: item.opcoes.map((op) =>
+                                        op.id === opcao.id
+                                          ? {
+                                              ...op,
+                                              preco:
+                                                value === ""
+                                                  ? null
+                                                  : Number.isFinite(
+                                                        Number(value),
+                                                      )
+                                                    ? Math.max(0, Number(value))
+                                                    : null,
+                                            }
+                                          : op,
+                                      ),
+                                    }
+                                  : item,
+                              ),
+                            );
+                          }}
+                          placeholder="Padrão do produto"
+                          className="sm:col-span-3 px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white"
+                        />
+                        <label className="sm:hidden text-[11px] font-semibold text-gray-500 uppercase tracking-wide">
+                          Estoque *
+                        </label>
+                        <input
+                          type="number"
+                          min="0"
+                          value={opcao.estoque ?? ""}
+                          onChange={(e) => {
+                            clearVariacoesError();
+                            const value = e.target.value;
+                            setVariacoes((prev) =>
+                              prev.map((item) =>
+                                item.id === variacao.id
+                                  ? {
+                                      ...item,
+                                      opcoes: item.opcoes.map((op) =>
+                                        op.id === opcao.id
+                                          ? {
+                                              ...op,
+                                              estoque:
+                                                value === ""
+                                                  ? null
+                                                  : Number.isFinite(
+                                                        Number(value),
+                                                      )
+                                                    ? Math.max(
+                                                        0,
+                                                        Math.floor(
+                                                          Number(value),
+                                                        ),
+                                                      )
+                                                    : null,
+                                            }
+                                          : op,
+                                      ),
+                                    }
+                                  : item,
+                              ),
+                            );
+                          }}
+                          placeholder="0"
+                          className="sm:col-span-3 px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white"
                         />
                         <button
                           type="button"
-                          onClick={() =>
+                          onClick={() => {
+                            clearVariacoesError();
                             setVariacoes((prev) =>
                               prev.map((item) =>
                                 item.id === variacao.id
@@ -1046,12 +1263,12 @@ const ProductForm: React.FC<ProductFormProps> = ({
                                     }
                                   : item,
                               ),
-                            )
-                          }
-                          className="px-2.5 py-2 rounded-xl border border-gray-300 text-gray-600 hover:bg-gray-100 transition-colors"
+                            );
+                          }}
+                          className="sm:col-span-1 px-2.5 py-2 rounded-xl border border-gray-300 text-gray-600 hover:bg-gray-100 transition-colors"
                           title="Remover opção"
                         >
-                          <X className="h-4 w-4" />
+                          <X className="h-4 w-4 mx-auto" />
                         </button>
                       </div>
                     ))}
@@ -1059,7 +1276,8 @@ const ProductForm: React.FC<ProductFormProps> = ({
 
                   <button
                     type="button"
-                    onClick={() =>
+                    onClick={() => {
+                      clearVariacoesError();
                       setVariacoes((prev) =>
                         prev.map((item) =>
                           item.id === variacao.id
@@ -1069,8 +1287,8 @@ const ProductForm: React.FC<ProductFormProps> = ({
                               }
                             : item,
                         ),
-                      )
-                    }
+                      );
+                    }}
                     className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium text-violet-700 border border-violet-200 hover:bg-violet-50 transition-colors"
                   >
                     <Plus className="h-4 w-4" />
@@ -1078,6 +1296,11 @@ const ProductForm: React.FC<ProductFormProps> = ({
                   </button>
                 </div>
               ))}
+              {fieldErrors.variacoes && (
+                <p className="text-xs text-red-600 font-medium">
+                  {fieldErrors.variacoes}
+                </p>
+              )}
             </div>
           </div>
         </div>
