@@ -8,11 +8,31 @@ const getMaxStock = (product: CatalogProduct) => {
   return Math.max(0, Math.floor(stock));
 };
 
+const getSelectedVariationBasePrice = (
+  product: CatalogProduct,
+  selectedVariations: CartItem["selectedVariations"],
+) => {
+  for (const selected of selectedVariations ?? []) {
+    const variacao = (product.variacoes ?? []).find(
+      (item) => item.id === selected.variacaoId,
+    );
+    const opcao = variacao?.opcoes?.find(
+      (item) => item.id === selected.opcaoId,
+    );
+    const precoOpcao = Number(opcao?.preco);
+    if (Number.isFinite(precoOpcao) && precoOpcao >= 0) return precoOpcao;
+  }
+  return Number(product.price) || 0;
+};
+
 const getItemMaxStock = (item: CartItem) => {
   const customLimit = Number(item.stock_limit);
   if (Number.isFinite(customLimit)) return Math.max(0, Math.floor(customLimit));
   return getMaxStock(item.product);
 };
+
+const getItemUnitBasePrice = (item: CartItem) =>
+  getSelectedVariationBasePrice(item.product, item.selectedVariations);
 
 interface CartState {
   items: CartItem[];
@@ -108,7 +128,10 @@ export const useCartStore = create<CartState>()(
       clearCart: () => set({ items: [] }),
 
       total: () =>
-        get().items.reduce((sum, i) => sum + i.product.price * i.quantity, 0),
+        get().items.reduce(
+          (sum, i) => sum + getItemUnitBasePrice(i) * i.quantity,
+          0,
+        ),
 
       count: () => get().items.reduce((sum, i) => sum + i.quantity, 0),
     }),

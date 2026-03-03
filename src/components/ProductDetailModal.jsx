@@ -147,6 +147,20 @@ export default function ProductDetailModal({
     return Math.min(...limits);
   })();
 
+  const selectedVariationPrice = (() => {
+    if (!variations.length) return null;
+    for (const variacao of variations) {
+      const selectedOptionId = selectedOptions[variacao.id];
+      if (!selectedOptionId) continue;
+      const selectedOption = variacao.opcoes.find(
+        (opcao) => opcao.id === selectedOptionId,
+      );
+      const price = Number(selectedOption?.preco);
+      if (Number.isFinite(price) && price >= 0) return price;
+    }
+    return null;
+  })();
+
   const handleAdd = () => {
     if (adding || buyingNow || added || outOfStock) return;
     const missingRequired = getMissingRequiredVariation();
@@ -199,11 +213,19 @@ export default function ProductDetailModal({
       : 0;
   const outOfStock = effectiveStock <= 0;
   const qtyLimit = Math.max(1, effectiveStock);
+  const basePrice =
+    selectedVariationPrice !== null ? selectedVariationPrice : product.price;
+  const hasSelectedVariationPrice = selectedVariationPrice !== null;
   const originalPrice = Number(product.preco_original ?? 0) || 0;
   const discountPercent = Number(product.desconto_percentual ?? 0) || 0;
-  const cardTotal = Number(product.total_cartao ?? product.price ?? 0) || 0;
+  const configuredCardTotal = Number(product.total_cartao ?? 0) || 0;
+  const cardTotal =
+    !hasSelectedVariationPrice && configuredCardTotal > 0
+      ? configuredCardTotal
+      : Number(basePrice ?? 0) || 0;
   const pixDiscountPercent = Number(product.desconto_pix_percentual ?? 0) || 0;
-  const hasPixPriceConfigured = Number(product.preco_pix ?? 0) > 0;
+  const configuredPixPrice = Number(product.preco_pix ?? 0) || 0;
+  const hasPixPriceConfigured = configuredPixPrice > 0;
   const hasCardTotalConfigured = Number(product.total_cartao ?? 0) > 0;
   const hasInstallmentsConfigured =
     Number(product.parcelas_quantidade ?? 0) > 0;
@@ -216,8 +238,11 @@ export default function ProductDetailModal({
     hasInstallmentsConfigured ||
     Boolean(product.texto_adicional_preco);
   const pixPrice =
-    Number(product.preco_pix ?? 0) ||
-    (pixDiscountPercent > 0 ? cardTotal * (1 - pixDiscountPercent / 100) : 0);
+    !hasSelectedVariationPrice && configuredPixPrice > 0
+      ? configuredPixPrice
+      : pixDiscountPercent > 0
+        ? cardTotal * (1 - pixDiscountPercent / 100)
+        : cardTotal;
   const installmentCount = Number(product.parcelas_quantidade ?? 0) || 0;
   const installment =
     installmentCount > 0 ? cardTotal / installmentCount : cardTotal;
@@ -529,7 +554,7 @@ export default function ProductDetailModal({
                   <div className="flex items-baseline gap-2">
                     <Zap className="h-5 w-5 text-green-500 flex-shrink-0 self-center" />
                     <span className="text-4xl font-extrabold text-gray-900 tracking-tight leading-none">
-                      {formatBRL(product.price)}
+                      {formatBRL(basePrice)}
                     </span>
                     <span className="text-base font-bold text-green-600">
                       no Pix
@@ -600,10 +625,10 @@ export default function ProductDetailModal({
                           if (opcaoOutOfStock) {
                             if (selected) {
                               chipClass +=
-                                "border-amber-400 bg-gray-100 text-gray-400 opacity-70 cursor-not-allowed";
+                                "border-amber-400 bg-gray-100 text-gray-400 opacity-70 cursor-pointer";
                             } else {
                               chipClass +=
-                                "border-gray-200 bg-gray-50 text-gray-400 opacity-55 cursor-not-allowed hover:border-gray-300";
+                                "border-gray-200 bg-gray-50 text-gray-400 opacity-55 cursor-pointer hover:border-gray-300";
                             }
                           } else if (selected) {
                             chipClass +=

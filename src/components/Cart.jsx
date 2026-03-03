@@ -24,6 +24,19 @@ const formatBRL = (value) =>
     Number.isFinite(value) ? value : 0,
   );
 
+const getItemUnitBasePrice = (item) => {
+  for (const selected of item.selectedVariations ?? []) {
+    const variacao = (item.product.variacoes ?? []).find(
+      (v) => v.id === selected.variacaoId,
+    );
+    const opcao = variacao?.opcoes?.find((o) => o.id === selected.opcaoId);
+    const optionPrice = Number(opcao?.preco);
+    if (Number.isFinite(optionPrice) && optionPrice >= 0) return optionPrice;
+  }
+  const productPrice = Number(item.product.price);
+  return Number.isFinite(productPrice) ? productPrice : 0;
+};
+
 function Cart({
   isOpen,
   onClose,
@@ -216,105 +229,108 @@ function Cart({
             ) : (
               <>
                 <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3">
-                  {items.map((item) => (
-                    <div
-                      key={item.id}
-                      className="flex gap-3 p-3 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors"
-                    >
-                      <div className="w-16 h-16 rounded-lg overflow-hidden bg-white border border-gray-100 flex-shrink-0">
-                        <img
-                          src={
-                            item.product.image ||
-                            "https://cdn.pixabay.com/photo/2019/04/16/10/35/box-4131401_1280.png"
-                          }
-                          alt={item.product.name}
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
-
-                      <div className="flex-1 min-w-0">
-                        <h4 className="text-sm font-semibold text-gray-800 line-clamp-2 leading-snug mb-0.5">
-                          {item.product.name}
-                        </h4>
-                        {item.selectedVariations?.length > 0 && (
-                          <p className="text-[11px] text-gray-500 mb-1">
-                            {item.selectedVariations
-                              .map(
-                                (variacao) =>
-                                  `${variacao.variacaoNome}: ${variacao.opcaoValor}`,
-                              )
-                              .join(" • ")}
-                          </p>
-                        )}
-                        <p className="text-xs text-gray-500 mb-2">
-                          {formatBRL(item.product.price)} un.
-                        </p>
-                        {Number.isFinite(Number(item.stock_limit)) && (
-                          <p className="text-[11px] text-amber-600 mb-2">
-                            Limite desta variação:{" "}
-                            {Math.max(0, Number(item.stock_limit))}
-                          </p>
-                        )}
-
-                        <div className="flex items-center gap-1.5">
-                          <button
-                            type="button"
-                            onClick={() =>
-                              onUpdateQuantity(item.id, item.quantity - 1)
+                  {items.map((item) => {
+                    const itemUnitPrice = getItemUnitBasePrice(item);
+                    return (
+                      <div
+                        key={item.id}
+                        className="flex gap-3 p-3 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors"
+                      >
+                        <div className="w-16 h-16 rounded-lg overflow-hidden bg-white border border-gray-100 flex-shrink-0">
+                          <img
+                            src={
+                              item.product.image ||
+                              "https://cdn.pixabay.com/photo/2019/04/16/10/35/box-4131401_1280.png"
                             }
-                            aria-label={`Diminuir quantidade de ${item.product.name}`}
-                            className="w-7 h-7 rounded-lg border-2 border-gray-200 bg-white text-gray-600 hover:border-indigo-500 hover:text-indigo-600 flex items-center justify-center transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:ring-offset-1"
-                          >
-                            <Minus className="h-3 w-3" />
-                          </button>
+                            alt={item.product.name}
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+
+                        <div className="flex-1 min-w-0">
+                          <h4 className="text-sm font-semibold text-gray-800 line-clamp-2 leading-snug mb-0.5">
+                            {item.product.name}
+                          </h4>
+                          {item.selectedVariations?.length > 0 && (
+                            <p className="text-[11px] text-gray-500 mb-1">
+                              {item.selectedVariations
+                                .map(
+                                  (variacao) =>
+                                    `${variacao.variacaoNome}: ${variacao.opcaoValor}`,
+                                )
+                                .join(" • ")}
+                            </p>
+                          )}
+                          <p className="text-xs text-gray-500 mb-2">
+                            {formatBRL(itemUnitPrice)} un.
+                          </p>
+                          {Number.isFinite(Number(item.stock_limit)) && (
+                            <p className="text-[11px] text-amber-600 mb-2">
+                              Limite desta variação:{" "}
+                              {Math.max(0, Number(item.stock_limit))}
+                            </p>
+                          )}
+
+                          <div className="flex items-center gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() =>
+                                onUpdateQuantity(item.id, item.quantity - 1)
+                              }
+                              aria-label={`Diminuir quantidade de ${item.product.name}`}
+                              className="w-7 h-7 rounded-lg border-2 border-gray-200 bg-white text-gray-600 hover:border-indigo-500 hover:text-indigo-600 flex items-center justify-center transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:ring-offset-1"
+                            >
+                              <Minus className="h-3 w-3" />
+                            </button>
+                            <span
+                              className="w-8 text-center text-sm font-semibold text-gray-800"
+                              aria-live="polite"
+                            >
+                              {item.quantity}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                onUpdateQuantity(item.id, item.quantity + 1)
+                              }
+                              disabled={
+                                Number.isFinite(Number(item.stock_limit))
+                                  ? item.quantity >=
+                                    Math.max(0, Number(item.stock_limit))
+                                  : Number.isFinite(Number(item.product.stock))
+                                    ? item.quantity >=
+                                      Math.max(0, Number(item.product.stock))
+                                    : false
+                              }
+                              aria-label={`Aumentar quantidade de ${item.product.name}`}
+                              className="w-7 h-7 rounded-lg border-2 border-gray-200 bg-white text-gray-600 hover:border-indigo-500 hover:text-indigo-600 flex items-center justify-center transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:ring-offset-1 disabled:opacity-30 disabled:cursor-not-allowed"
+                            >
+                              <Plus className="h-3 w-3" />
+                            </button>
+                          </div>
+                        </div>
+
+                        <div className="flex flex-col items-end justify-between flex-shrink-0">
                           <span
-                            className="w-8 text-center text-sm font-semibold text-gray-800"
-                            aria-live="polite"
+                            className={`text-sm font-bold ${!tema ? "text-indigo-600" : ""}`}
+                            style={
+                              tema ? { color: tema.cor_primaria } : undefined
+                            }
                           >
-                            {item.quantity}
+                            {formatBRL(itemUnitPrice * item.quantity)}
                           </span>
                           <button
                             type="button"
-                            onClick={() =>
-                              onUpdateQuantity(item.id, item.quantity + 1)
-                            }
-                            disabled={
-                              Number.isFinite(Number(item.stock_limit))
-                                ? item.quantity >=
-                                  Math.max(0, Number(item.stock_limit))
-                                : Number.isFinite(Number(item.product.stock))
-                                  ? item.quantity >=
-                                    Math.max(0, Number(item.product.stock))
-                                  : false
-                            }
-                            aria-label={`Aumentar quantidade de ${item.product.name}`}
-                            className="w-7 h-7 rounded-lg border-2 border-gray-200 bg-white text-gray-600 hover:border-indigo-500 hover:text-indigo-600 flex items-center justify-center transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:ring-offset-1 disabled:opacity-30 disabled:cursor-not-allowed"
+                            onClick={() => onRemoveItem(item.id)}
+                            aria-label={`Remover ${item.product.name} do carrinho`}
+                            className="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-red-400 focus:ring-offset-1"
                           >
-                            <Plus className="h-3 w-3" />
+                            <Trash2 className="h-4 w-4" />
                           </button>
                         </div>
                       </div>
-
-                      <div className="flex flex-col items-end justify-between flex-shrink-0">
-                        <span
-                          className={`text-sm font-bold ${!tema ? "text-indigo-600" : ""}`}
-                          style={
-                            tema ? { color: tema.cor_primaria } : undefined
-                          }
-                        >
-                          {formatBRL(item.product.price * item.quantity)}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => onRemoveItem(item.id)}
-                          aria-label={`Remover ${item.product.name} do carrinho`}
-                          className="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-red-400 focus:ring-offset-1"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
 
                 <div className="border-t border-gray-200 px-5 py-4 bg-white flex-shrink-0 space-y-3">

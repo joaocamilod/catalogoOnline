@@ -57,25 +57,60 @@ const PAYMENT_METHODS = [
   },
 ];
 
-function getItemUnitPrice(product, method) {
+function getItemBasePrice(item) {
+  for (const selected of item.selectedVariations ?? []) {
+    const variacao = (item.product.variacoes ?? []).find(
+      (v) => v.id === selected.variacaoId,
+    );
+    const opcao = variacao?.opcoes?.find((o) => o.id === selected.opcaoId);
+    const optionPrice = Number(opcao?.preco);
+    if (Number.isFinite(optionPrice) && optionPrice >= 0) return optionPrice;
+  }
+  const productPrice = Number(item.product.price);
+  return Number.isFinite(productPrice) ? productPrice : 0;
+}
+
+function getSelectedVariationPrice(item) {
+  for (const selected of item.selectedVariations ?? []) {
+    const variacao = (item.product.variacoes ?? []).find(
+      (v) => v.id === selected.variacaoId,
+    );
+    const opcao = variacao?.opcoes?.find((o) => o.id === selected.opcaoId);
+    const optionPrice = Number(opcao?.preco);
+    if (Number.isFinite(optionPrice) && optionPrice >= 0) return optionPrice;
+  }
+  return null;
+}
+
+function getItemUnitPrice(item, method) {
+  const basePrice = getItemBasePrice(item);
+  const hasSelectedVariationPrice = getSelectedVariationPrice(item) !== null;
   switch (method) {
     case "pix": {
-      if (product.preco_pix != null && product.preco_pix > 0) {
-        return product.preco_pix;
+      if (
+        !hasSelectedVariationPrice &&
+        item.product.preco_pix != null &&
+        item.product.preco_pix > 0
+      ) {
+        return item.product.preco_pix;
       }
-      const disc = product.desconto_pix_percentual ?? 0;
-      return product.price * (1 - disc / 100);
+      const disc = item.product.desconto_pix_percentual ?? 0;
+      return basePrice * (1 - disc / 100);
     }
     case "credito": {
-      if (product.total_cartao != null && product.total_cartao > 0) {
-        return product.total_cartao;
+      if (
+        !hasSelectedVariationPrice &&
+        item.product.total_cartao != null &&
+        item.product.total_cartao > 0
+      ) {
+        return item.product.total_cartao;
       }
-      return product.price;
+      return basePrice;
     }
     case "debito":
     case "dinheiro":
     default:
-      return product.price;
+      return basePrice;
   }
 }
 
@@ -96,7 +131,7 @@ function buildWhatsAppMessage({
 
   const itemLines = items
     .map((item) => {
-      const unitPrice = getItemUnitPrice(item.product, paymentMethod);
+      const unitPrice = getItemUnitPrice(item, paymentMethod);
       const variationLabel =
         item.selectedVariations?.length > 0
           ? ` (${item.selectedVariations
@@ -218,12 +253,11 @@ function PaymentModal({
 
   const totals = useMemo(() => {
     const subtotal = items.reduce(
-      (s, item) => s + item.product.price * item.quantity,
+      (s, item) => s + getItemBasePrice(item) * item.quantity,
       0,
     );
     const methodTotal = items.reduce(
-      (s, item) =>
-        s + getItemUnitPrice(item.product, paymentMethod) * item.quantity,
+      (s, item) => s + getItemUnitPrice(item, paymentMethod) * item.quantity,
       0,
     );
 
@@ -366,7 +400,7 @@ function PaymentModal({
                   .map((v) => `${v.variacaoNome}: ${v.opcaoValor}`)
                   .join(", ")})`
               : item.product.name,
-          preco: getItemUnitPrice(item.product, paymentMethod),
+          preco: getItemUnitPrice(item, paymentMethod),
           quantidade: item.quantity,
           imagem: item.product.image ?? null,
           variacoes: (item.selectedVariations ?? []).map((v) => ({
@@ -578,10 +612,7 @@ function PaymentModal({
                       aria-label="Itens do pedido"
                     >
                       {items.map((item) => {
-                        const unitPrice = getItemUnitPrice(
-                          item.product,
-                          paymentMethod,
-                        );
+                        const unitPrice = getItemUnitPrice(item, paymentMethod);
                         const hasErr = stockErrorIds.includes(item.id);
                         return (
                           <div
