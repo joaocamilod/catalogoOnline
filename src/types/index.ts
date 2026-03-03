@@ -46,6 +46,21 @@ export interface ImagemProduto {
   created_at?: string;
 }
 
+export interface ProdutoVariacaoOpcao {
+  id: string;
+  valor: string;
+  ativo: boolean;
+  preco?: number | null;
+  estoque?: number | null;
+}
+
+export interface ProdutoVariacao {
+  id: string;
+  nome: string;
+  obrigatoria: boolean;
+  opcoes: ProdutoVariacaoOpcao[];
+}
+
 export interface Produto {
   id: string;
   descricao: string;
@@ -82,6 +97,7 @@ export interface Produto {
   parcelas_quantidade?: number | null;
   total_cartao?: number | null;
   texto_adicional_preco?: string | null;
+  variacoes?: ProdutoVariacao[];
   created_at?: string;
 }
 
@@ -122,6 +138,7 @@ export interface CatalogProduct {
   parcelas_quantidade?: number | null;
   total_cartao?: number | null;
   texto_adicional_preco?: string | null;
+  variacoes?: ProdutoVariacao[];
 }
 
 export interface CatalogoTema {
@@ -169,8 +186,16 @@ export const TEMA_PADRAO: CatalogoTema = {
 };
 
 export interface CartItem {
+  id: string;
   product: CatalogProduct;
   quantity: number;
+  stock_limit?: number | null;
+  selectedVariations: Array<{
+    variacaoId: string;
+    variacaoNome: string;
+    opcaoId: string;
+    opcaoValor: string;
+  }>;
 }
 
 export function normalizeProduto(p: Produto): CatalogProduct {
@@ -221,5 +246,6 @@ export function normalizeProduto(p: Produto): CatalogProduct {
     parcelas_quantidade: p.parcelas_quantidade ?? null,
     total_cartao: p.total_cartao ?? null,
     texto_adicional_preco: p.texto_adicional_preco ?? null,
+    variacoes: p.variacoes ?? [],
   };
 }

@@ -29,6 +29,10 @@ function ProductCard({
       onNotifyRestock?.(product);
       return;
     }
+    if (hasVariations) {
+      onProductClick?.(product);
+      return;
+    }
     setIsAdding(true);
     onAddToCart(product);
     setTimeout(() => setIsAdding(false), 700);
@@ -87,6 +91,11 @@ function ProductCard({
   const stockLabel =
     product.stock > 0 ? `${product.stock} em estoque` : "Indisponível";
   const descriptionText = product.description?.trim() || "Sem descrição.";
+  const hasVariations = (product.variacoes ?? []).some(
+    (variacao) =>
+      (variacao.opcoes ?? []).filter((opcao) => opcao.ativo !== false).length >
+      0,
+  );
 
   return (
     <article
@@ -210,7 +219,7 @@ function ProductCard({
             }
             className={`
               w-full flex items-center justify-center gap-2
-              py-2.5 font-semibold text-sm
+              py-2.5 font-semibold text-xs sm:text-sm leading-none whitespace-nowrap
               transition-all duration-200
               focus:outline-none focus:ring-2 focus:ring-offset-2
               ${
@@ -240,8 +249,19 @@ function ProductCard({
               </>
             ) : (
               <>
-                <FaShoppingCart className="text-sm" aria-hidden="true" />
-                {outOfStock ? "Avise-me" : "Adicionar"}
+                {!hasVariations && (
+                  <FaShoppingCart className="text-sm" aria-hidden="true" />
+                )}
+                {outOfStock ? (
+                  "Avise-me"
+                ) : hasVariations ? (
+                  <>
+                    <span className="sm:hidden">Selecionar</span>
+                    <span className="hidden sm:inline">Selecionar opções</span>
+                  </>
+                ) : (
+                  "Adicionar"
+                )}
               </>
             )}
           </button>

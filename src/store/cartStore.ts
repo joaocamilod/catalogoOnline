@@ -8,53 +8,115 @@ const getMaxStock = (product: CatalogProduct) => {
   return Math.max(0, Math.floor(stock));
 };
 
+const getSelectedVariationBasePrice = (
+  product: CatalogProduct,
+  selectedVariations: CartItem["selectedVariations"],
+) => {
+  for (const selected of selectedVariations ?? []) {
+    const variacao = (product.variacoes ?? []).find(
+      (item) => item.id === selected.variacaoId,
+    );
+    const opcao = variacao?.opcoes?.find(
+      (item) => item.id === selected.opcaoId,
+    );
+    const precoOpcao = Number(opcao?.preco);
+    if (Number.isFinite(precoOpcao) && precoOpcao >= 0) return precoOpcao;
+  }
+  return Number(product.price) || 0;
+};
+
+const getItemMaxStock = (item: CartItem) => {
+  const customLimit = Number(item.stock_limit);
+  if (Number.isFinite(customLimit)) return Math.max(0, Math.floor(customLimit));
+  return getMaxStock(item.product);
+};
+
+const getItemUnitBasePrice = (item: CartItem) =>
+  getSelectedVariationBasePrice(item.product, item.selectedVariations);
+
 interface CartState {
   items: CartItem[];
-  addItem: (product: CatalogProduct) => void;
-  removeItem: (productId: string) => void;
-  updateQuantity: (productId: string, quantity: number) => void;
+  addItem: (
+    product: CatalogProduct,
+    selectedVariations?: CartItem["selectedVariations"],
+    stockLimit?: number | null,
+  ) => void;
+  removeItem: (itemId: string) => void;
+  updateQuantity: (itemId: string, quantity: number) => void;
   clearCart: () => void;
   total: () => number;
   count: () => number;
 }
+
+const buildCartItemId = (
+  productId: string,
+  selectedVariations: CartItem["selectedVariations"],
+) => {
+  const variationsKey = [...selectedVariations]
+    .sort((a, b) => a.variacaoId.localeCompare(b.variacaoId))
+    .map((item) => `${item.variacaoId}:${item.opcaoId}`)
+    .join("|");
+  return variationsKey ? `${productId}__${variationsKey}` : productId;
+};
 
 export const useCartStore = create<CartState>()(
   persist(
     (set, get) => ({
       items: [],
 
-      addItem: (product) =>
+      addItem: (product, selectedVariations = [], stockLimit = null) =>
         set((state) => {
-          const maxStock = getMaxStock(product);
+          const maxStock = Number.isFinite(Number(stockLimit))
+            ? Math.max(0, Math.floor(Number(stockLimit)))
+            : getMaxStock(product);
           if (maxStock <= 0) return state;
+          const itemId = buildCartItemId(product.id, selectedVariations);
+          const quantityAlreadyInProduct = state.items
+            .filter((i) => i.id === itemId)
+            .reduce((sum, i) => sum + i.quantity, 0);
+          if (quantityAlreadyInProduct >= maxStock) return state;
 
-          const existing = state.items.find((i) => i.product.id === product.id);
+          const existing = state.items.find((i) => i.id === itemId);
           if (existing) {
             const nextQuantity = Math.min(existing.quantity + 1, maxStock);
             if (nextQuantity === existing.quantity) return state;
             return {
               items: state.items.map((i) =>
-                i.product.id === product.id
-                  ? { ...i, quantity: nextQuantity }
-                  : i,
+                i.id === itemId ? { ...i, quantity: nextQuantity } : i,
               ),
             };
           }
-          return { items: [...state.items, { product, quantity: 1 }] };
+          return {
+            items: [
+              ...state.items,
+              {
+                id: itemId,
+                product,
+                quantity: 1,
+                selectedVariations,
+                stock_limit: Number.isFinite(Number(stockLimit))
+                  ? Math.max(0, Math.floor(Number(stockLimit)))
+                  : null,
+              },
+            ],
+          };
         }),
 
-      removeItem: (productId) =>
+      removeItem: (itemId) =>
         set((state) => ({
-          items: state.items.filter((i) => i.product.id !== productId),
+          items: state.items.filter((i) => i.id !== itemId),
         })),
 
-      updateQuantity: (productId, quantity) =>
+      updateQuantity: (itemId, quantity) =>
         set((state) => {
+          const target = state.items.find((item) => item.id === itemId);
+          if (!target) return state;
+          const maxStock = getItemMaxStock(target);
+
           return {
             items: state.items
               .map((i) => {
-                if (i.product.id !== productId) return i;
-                const maxStock = getMaxStock(i.product);
+                if (i.id !== itemId) return i;
                 const clampedQuantity = Math.min(quantity, maxStock);
                 if (clampedQuantity <= 0) return null;
                 return { ...i, quantity: clampedQuantity };
@@ -66,7 +128,10 @@ export const useCartStore = create<CartState>()(
       clearCart: () => set({ items: [] }),
 
       total: () =>
-        get().items.reduce((sum, i) => sum + i.product.price * i.quantity, 0),
+        get().items.reduce(
+          (sum, i) => sum + getItemUnitBasePrice(i) * i.quantity,
+          0,
+        ),
 
       count: () => get().items.reduce((sum, i) => sum + i.quantity, 0),
     }),

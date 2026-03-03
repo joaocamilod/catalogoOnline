@@ -57,25 +57,60 @@ const PAYMENT_METHODS = [
   },
 ];
 
-function getItemUnitPrice(product, method) {
+function getItemBasePrice(item) {
+  for (const selected of item.selectedVariations ?? []) {
+    const variacao = (item.product.variacoes ?? []).find(
+      (v) => v.id === selected.variacaoId,
+    );
+    const opcao = variacao?.opcoes?.find((o) => o.id === selected.opcaoId);
+    const optionPrice = Number(opcao?.preco);
+    if (Number.isFinite(optionPrice) && optionPrice >= 0) return optionPrice;
+  }
+  const productPrice = Number(item.product.price);
+  return Number.isFinite(productPrice) ? productPrice : 0;
+}
+
+function getSelectedVariationPrice(item) {
+  for (const selected of item.selectedVariations ?? []) {
+    const variacao = (item.product.variacoes ?? []).find(
+      (v) => v.id === selected.variacaoId,
+    );
+    const opcao = variacao?.opcoes?.find((o) => o.id === selected.opcaoId);
+    const optionPrice = Number(opcao?.preco);
+    if (Number.isFinite(optionPrice) && optionPrice >= 0) return optionPrice;
+  }
+  return null;
+}
+
+function getItemUnitPrice(item, method) {
+  const basePrice = getItemBasePrice(item);
+  const hasSelectedVariationPrice = getSelectedVariationPrice(item) !== null;
   switch (method) {
     case "pix": {
-      if (product.preco_pix != null && product.preco_pix > 0) {
-        return product.preco_pix;
+      if (
+        !hasSelectedVariationPrice &&
+        item.product.preco_pix != null &&
+        item.product.preco_pix > 0
+      ) {
+        return item.product.preco_pix;
       }
-      const disc = product.desconto_pix_percentual ?? 0;
-      return product.price * (1 - disc / 100);
+      const disc = item.product.desconto_pix_percentual ?? 0;
+      return basePrice * (1 - disc / 100);
     }
     case "credito": {
-      if (product.total_cartao != null && product.total_cartao > 0) {
-        return product.total_cartao;
+      if (
+        !hasSelectedVariationPrice &&
+        item.product.total_cartao != null &&
+        item.product.total_cartao > 0
+      ) {
+        return item.product.total_cartao;
       }
-      return product.price;
+      return basePrice;
     }
     case "debito":
     case "dinheiro":
     default:
-      return product.price;
+      return basePrice;
   }
 }
 
@@ -96,8 +131,14 @@ function buildWhatsAppMessage({
 
   const itemLines = items
     .map((item) => {
-      const unitPrice = getItemUnitPrice(item.product, paymentMethod);
-      return `  • ${item.quantity}x ${item.product.name} — ${formatBRL(unitPrice * item.quantity)}`;
+      const unitPrice = getItemUnitPrice(item, paymentMethod);
+      const variationLabel =
+        item.selectedVariations?.length > 0
+          ? ` (${item.selectedVariations
+              .map((v) => `${v.variacaoNome}: ${v.opcaoValor}`)
+              .join(", ")})`
+          : "";
+      return `  • ${item.quantity}x ${item.product.name}${variationLabel} — ${formatBRL(unitPrice * item.quantity)}`;
     })
     .join("\n");
 
@@ -212,12 +253,11 @@ function PaymentModal({
 
   const totals = useMemo(() => {
     const subtotal = items.reduce(
-      (s, item) => s + item.product.price * item.quantity,
+      (s, item) => s + getItemBasePrice(item) * item.quantity,
       0,
     );
     const methodTotal = items.reduce(
-      (s, item) =>
-        s + getItemUnitPrice(item.product, paymentMethod) * item.quantity,
+      (s, item) => s + getItemUnitPrice(item, paymentMethod) * item.quantity,
       0,
     );
 
@@ -244,11 +284,13 @@ function PaymentModal({
   const stockErrorIds = useMemo(
     () =>
       items
-        .filter(
-          (item) =>
-            item.product.stock > 0 && item.quantity > item.product.stock,
-        )
-        .map((item) => item.product.id),
+        .filter((item) => {
+          const limit = Number.isFinite(Number(item.stock_limit))
+            ? Number(item.stock_limit)
+            : Number(item.product.stock);
+          return Number.isFinite(limit) && item.quantity > Math.max(0, limit);
+        })
+        .map((item) => item.id),
     [items],
   );
   const hasStockError = stockErrorIds.length > 0;
@@ -352,10 +394,21 @@ function PaymentModal({
       if (seller?.id) {
         const itensVenda = items.map((item) => ({
           produto_id: item.product.id,
-          nome: item.product.name,
-          preco: getItemUnitPrice(item.product, paymentMethod),
+          nome:
+            item.selectedVariations?.length > 0
+              ? `${item.product.name} (${item.selectedVariations
+                  .map((v) => `${v.variacaoNome}: ${v.opcaoValor}`)
+                  .join(", ")})`
+              : item.product.name,
+          preco: getItemUnitPrice(item, paymentMethod),
           quantidade: item.quantity,
           imagem: item.product.image ?? null,
+          variacoes: (item.selectedVariations ?? []).map((v) => ({
+            variacao_id: v.variacaoId,
+            variacao_nome: v.variacaoNome,
+            opcao_id: v.opcaoId,
+            opcao_valor: v.opcaoValor,
+          })),
         }));
 
         const saleData = await createSale({
@@ -374,16 +427,15 @@ function PaymentModal({
         setOrderId(createdId);
       }
 
-      // Decrementa o estoque de cada produto vendido
       const itensParaDecrementar = items
-        .filter(
-          (item) =>
-            Number.isFinite(Number(item.product.stock)) &&
-            item.product.stock > 0,
-        )
+        .filter((item) => item.quantity > 0)
         .map((item) => ({
           produto_id: item.product.id,
           quantidade: item.quantity,
+          selected_variations: (item.selectedVariations ?? []).map((v) => ({
+            variacaoId: v.variacaoId,
+            opcaoId: v.opcaoId,
+          })),
         }));
 
       if (itensParaDecrementar.length > 0) {
@@ -391,7 +443,6 @@ function PaymentModal({
           await decrementarEstoqueProdutos(itensParaDecrementar);
         } catch (stockErr) {
           console.error("Erro ao atualizar estoque:", stockErr);
-          // Não bloqueia o fluxo de sucesso — o pedido já foi registrado
         }
       }
 
@@ -561,14 +612,11 @@ function PaymentModal({
                       aria-label="Itens do pedido"
                     >
                       {items.map((item) => {
-                        const unitPrice = getItemUnitPrice(
-                          item.product,
-                          paymentMethod,
-                        );
-                        const hasErr = stockErrorIds.includes(item.product.id);
+                        const unitPrice = getItemUnitPrice(item, paymentMethod);
+                        const hasErr = stockErrorIds.includes(item.id);
                         return (
                           <div
-                            key={item.product.id}
+                            key={item.id}
                             className={`${styles.itemRow} ${hasErr ? styles.itemRowError : ""}`}
                           >
                             <img
@@ -583,13 +631,26 @@ function PaymentModal({
                               <p className={styles.itemName}>
                                 {item.product.name}
                               </p>
+                              {item.selectedVariations?.length > 0 && (
+                                <p className={styles.itemUnitPrice}>
+                                  {item.selectedVariations
+                                    .map(
+                                      (variacao) =>
+                                        `${variacao.variacaoNome}: ${variacao.opcaoValor}`,
+                                    )
+                                    .join(" • ")}
+                                </p>
+                              )}
                               <p className={styles.itemUnitPrice}>
                                 {formatBRL(unitPrice)} un.
                               </p>
                               {hasErr && (
                                 <p className={styles.stockError} role="alert">
                                   ⚠ Estoque insuficiente (disp.&nbsp;
-                                  {item.product.stock})
+                                  {Number.isFinite(Number(item.stock_limit))
+                                    ? Math.max(0, Number(item.stock_limit))
+                                    : item.product.stock}
+                                  )
                                 </p>
                               )}
                             </div>
