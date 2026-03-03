@@ -519,7 +519,7 @@ export default function ProductDetailModal({
                       {formatBRL(promoResult.basePrice)}
                     </span>
                     <span className="text-xs bg-emerald-500 text-white font-bold px-2 py-0.5 rounded-full">
-                      Promo ativa
+                      Promoção ativa
                     </span>
                   </div>
                 )}
