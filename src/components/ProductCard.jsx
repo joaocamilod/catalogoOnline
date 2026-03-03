@@ -226,7 +226,7 @@ function ProductCard({
       </div>
 
       <div className="flex-1 flex flex-col p-4">
-        <h3 className="text-sm md:text-base font-semibold text-gray-900 line-clamp-3 min-h-[3.9rem] mb-2 leading-snug break-words group-hover:text-violet-700 transition-colors">
+        <h3 className="text-sm md:text-base font-semibold text-gray-900 line-clamp-3 min-h-[3.9rem] mb-2 leading-snug break-words">
           {product.name}
         </h3>
 
@@ -302,7 +302,7 @@ function ProductCard({
               </>
             ) : (
               <>
-                {!hasVariations && (
+                {!outOfStock && (
                   <FaShoppingCart className="text-sm" aria-hidden="true" />
                 )}
                 {outOfStock ? (

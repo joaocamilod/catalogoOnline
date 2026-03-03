@@ -48,8 +48,8 @@ function Header({
           : undefined
       }
     >
-      <div className="max-w-7xl mx-auto px-4 py-3 grid grid-cols-3 items-center gap-2">
-        <div className="flex items-center gap-1 sm:gap-2">
+      <div className="max-w-7xl mx-auto px-4 py-3 grid grid-cols-[minmax(0,1fr)_auto] md:grid-cols-[minmax(0,auto)_minmax(0,1fr)_auto] items-center gap-2">
+        <div className="flex items-center gap-1 sm:gap-2 min-w-0">
           <button
             onClick={onToggleSidebar}
             className="flex items-center gap-2 px-2 sm:px-3 py-2 rounded-lg hover:bg-white/20 transition-colors flex-shrink-0"
@@ -64,10 +64,10 @@ function Header({
 
           <Link
             to={homePath}
-            className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0 min-w-0"
+            className="flex items-center gap-1.5 sm:gap-2 min-w-0 flex-1"
           >
             <ShoppingBag className="h-6 w-6 sm:h-7 sm:w-7 flex-shrink-0" />
-            <span className="text-base sm:text-xl font-bold truncate max-w-[110px] sm:max-w-[200px]">
+            <span className="block text-sm sm:text-xl font-bold leading-tight break-words sm:truncate">
               {storeName}
             </span>
           </Link>
@@ -86,9 +86,7 @@ function Header({
           </div>
         </div>
 
-        <div className="md:hidden" />
-
-        <div className="flex items-center gap-2 justify-end">
+        <div className="flex items-center gap-1 sm:gap-2 justify-end">
           <button
             onClick={onCartClick}
             className="relative p-2 rounded-lg hover:bg-white/20 transition-colors"
@@ -107,11 +105,11 @@ function Header({
             <div className="relative">
               <button
                 onClick={() => setIsUserMenuOpen((v) => !v)}
-                className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-white/20 transition-colors"
+                className="flex items-center gap-2 px-2 sm:px-3 py-2 rounded-lg hover:bg-white/20 transition-colors"
                 type="button"
               >
                 <User className="h-5 w-5" />
-                <span className="hidden md:block text-sm font-medium max-w-[120px] truncate">
+                <span className="hidden lg:block text-sm font-medium max-w-[120px] truncate">
                   {user.name || user.email?.split("@")[0]}
                 </span>
               </button>
