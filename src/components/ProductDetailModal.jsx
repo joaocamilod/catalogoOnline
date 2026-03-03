@@ -16,6 +16,7 @@ import {
   RotateCcw,
   Lock,
 } from "lucide-react";
+import { getPrecoComPromocao } from "../lib/promocoes";
 
 const formatBRL = (v) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(
@@ -215,21 +216,26 @@ export default function ProductDetailModal({
   const qtyLimit = Math.max(1, effectiveStock);
   const basePrice =
     selectedVariationPrice !== null ? selectedVariationPrice : product.price;
+  const promoResult = getPrecoComPromocao(product, Number(basePrice) || 0, qty);
+  const hasPromotion = Boolean(promoResult.appliedPromotion);
+  const effectiveBasePrice = promoResult.finalUnitPrice;
   const hasSelectedVariationPrice = selectedVariationPrice !== null;
   const originalPrice = Number(product.preco_original ?? 0) || 0;
   const discountPercent = Number(product.desconto_percentual ?? 0) || 0;
   const configuredCardTotal = Number(product.total_cartao ?? 0) || 0;
   const cardTotal =
-    !hasSelectedVariationPrice && configuredCardTotal > 0
+    !hasPromotion && !hasSelectedVariationPrice && configuredCardTotal > 0
       ? configuredCardTotal
-      : Number(basePrice ?? 0) || 0;
+      : Number(effectiveBasePrice ?? 0) || 0;
   const pixDiscountPercent = Number(product.desconto_pix_percentual ?? 0) || 0;
   const configuredPixPrice = Number(product.preco_pix ?? 0) || 0;
-  const hasPixPriceConfigured = configuredPixPrice > 0;
-  const hasCardTotalConfigured = Number(product.total_cartao ?? 0) > 0;
+  const hasPixPriceConfigured = !hasPromotion && configuredPixPrice > 0;
+  const hasCardTotalConfigured =
+    !hasPromotion && Number(product.total_cartao ?? 0) > 0;
   const hasInstallmentsConfigured =
     Number(product.parcelas_quantidade ?? 0) > 0;
   const hasPricingDetails =
+    hasPromotion ||
     originalPrice > 0 ||
     discountPercent > 0 ||
     hasPixPriceConfigured ||
@@ -238,7 +244,7 @@ export default function ProductDetailModal({
     hasInstallmentsConfigured ||
     Boolean(product.texto_adicional_preco);
   const pixPrice =
-    !hasSelectedVariationPrice && configuredPixPrice > 0
+    !hasPromotion && !hasSelectedVariationPrice && configuredPixPrice > 0
       ? configuredPixPrice
       : pixDiscountPercent > 0
         ? cardTotal * (1 - pixDiscountPercent / 100)
@@ -507,6 +513,16 @@ export default function ProductDetailModal({
                     )}
                   </div>
                 )}
+                {hasPromotion && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-gray-400 line-through">
+                      {formatBRL(promoResult.basePrice)}
+                    </span>
+                    <span className="text-xs bg-emerald-500 text-white font-bold px-2 py-0.5 rounded-full">
+                      Promo ativa
+                    </span>
+                  </div>
+                )}
                 {hasPricingDetails ? (
                   <>
                     <div className="flex items-baseline gap-2">
@@ -523,6 +539,11 @@ export default function ProductDetailModal({
                         <Check className="h-3.5 w-3.5" />
                         {additionalPriceText ||
                           `${pixDiscountPercent.toFixed(0)}% de desconto à vista`}
+                      </p>
+                    )}
+                    {promoResult.appliedPromotion && (
+                      <p className="text-xs text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-xl px-3 py-1.5 inline-flex items-center gap-1.5 font-semibold">
+                        {promoResult.appliedPromotion.nome}
                       </p>
                     )}
 
@@ -554,7 +575,7 @@ export default function ProductDetailModal({
                   <div className="flex items-baseline gap-2">
                     <Zap className="h-5 w-5 text-green-500 flex-shrink-0 self-center" />
                     <span className="text-4xl font-extrabold text-gray-900 tracking-tight leading-none">
-                      {formatBRL(basePrice)}
+                      {formatBRL(effectiveBasePrice)}
                     </span>
                     <span className="text-base font-bold text-green-600">
                       no Pix

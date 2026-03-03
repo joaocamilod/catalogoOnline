@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { fetchAllVendedores } from "../lib/supabase";
+import { getPrecoComPromocao } from "../lib/promocoes";
 import Dialog from "./Dialog";
 import PaymentModal from "./PaymentModal";
 
@@ -24,7 +25,7 @@ const formatBRL = (value) =>
     Number.isFinite(value) ? value : 0,
   );
 
-const getItemUnitBasePrice = (item) => {
+const getItemUnitBasePrice = (item, quantity) => {
   for (const selected of item.selectedVariations ?? []) {
     const variacao = (item.product.variacoes ?? []).find(
       (v) => v.id === selected.variacaoId,
@@ -34,7 +35,8 @@ const getItemUnitBasePrice = (item) => {
     if (Number.isFinite(optionPrice) && optionPrice >= 0) return optionPrice;
   }
   const productPrice = Number(item.product.price);
-  return Number.isFinite(productPrice) ? productPrice : 0;
+  const basePrice = Number.isFinite(productPrice) ? productPrice : 0;
+  return getPrecoComPromocao(item.product, basePrice, quantity).finalUnitPrice;
 };
 
 function Cart({
@@ -230,7 +232,10 @@ function Cart({
               <>
                 <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3">
                   {items.map((item) => {
-                    const itemUnitPrice = getItemUnitBasePrice(item);
+                    const itemUnitPrice = getItemUnitBasePrice(
+                      item,
+                      item.quantity,
+                    );
                     return (
                       <div
                         key={item.id}

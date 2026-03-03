@@ -30,6 +30,7 @@ const SubdepartmentManager = lazy(
   () => import("./pages/admin/SubdepartmentManager"),
 );
 const BrandManager = lazy(() => import("./pages/admin/BrandManager"));
+const PromotionManager = lazy(() => import("./pages/admin/PromotionManager"));
 const SellerManager = lazy(() => import("./pages/admin/SellerManager"));
 const StoreSettingsManager = lazy(
   () => import("./pages/admin/StoreSettingsManager"),
@@ -217,6 +218,7 @@ function App() {
             <Route path="departamentos" element={<DepartmentManager />} />
             <Route path="subdepartamentos" element={<SubdepartmentManager />} />
             <Route path="marcas" element={<BrandManager />} />
+            <Route path="promocoes" element={<PromotionManager />} />
             <Route path="vendedores" element={<SellerManager />} />
             <Route path="temas" element={<ThemeManager />} />
             <Route
