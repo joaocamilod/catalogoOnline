@@ -1,5 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
-import type { CatalogoTema, ProdutoVariacao } from "../types";
+import type { CatalogoTema, ProdutoVariacao, PromocaoProduto } from "../types";
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
@@ -577,7 +577,8 @@ export async function fetchProdutos(
       departamento:departamentos(id, descricao),
       subdepartamento:subdepartamentos(id, nome),
       marca:marcas(id, nome),
-      imagens:imagens_produto(*)
+      imagens:imagens_produto(*),
+      promocoes:promocoes_produto(*)
     `,
       { count: "exact" },
     )
@@ -610,7 +611,8 @@ export async function fetchProdutoById(id: string) {
       departamento:departamentos(id, descricao),
       subdepartamento:subdepartamentos(id, nome),
       marca:marcas(id, nome),
-      imagens:imagens_produto(*)
+      imagens:imagens_produto(*),
+      promocoes:promocoes_produto(*)
     `,
     )
     .eq("id", id)
@@ -628,7 +630,8 @@ export async function fetchTodosProdutos(page = 1, limit = 20, search = "") {
       departamento:departamentos(id, descricao),
       subdepartamento:subdepartamentos(id, nome),
       marca:marcas(id, nome),
-      imagens:imagens_produto(*)
+      imagens:imagens_produto(*),
+      promocoes:promocoes_produto(*)
     `,
       { count: "exact" },
     )
@@ -738,6 +741,96 @@ export async function updateProduto(
     .single();
   if (error) throw error;
   return data;
+}
+
+export interface PromocaoProdutoInput {
+  produto_id: string;
+  nome: string;
+  descricao?: string | null;
+  tipo_desconto: "percentual" | "valor_fixo" | "preco_fixo";
+  valor_desconto: number;
+  quantidade_minima?: number;
+  ativo?: boolean;
+  data_inicio?: string | null;
+  data_fim?: string | null;
+}
+
+export async function fetchPromocoesProduto(produtoId?: string) {
+  let query = supabase
+    .from("promocoes_produto")
+    .select(
+      "*, produto:produtos(id, descricao, ativo, exibircatalogo, valorunitariocomercial, variacoes)",
+    )
+    .order("created_at", { ascending: true });
+
+  if (produtoId) {
+    query = query.eq("produto_id", produtoId);
+  }
+
+  const { data, error } = await query;
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function createPromocaoProduto(
+  promocao: PromocaoProdutoInput,
+): Promise<PromocaoProduto> {
+  const { data, error } = await supabase
+    .from("promocoes_produto")
+    .insert({
+      ...promocao,
+      nome: promocao.nome.trim(),
+      descricao: promocao.descricao?.trim() || null,
+      quantidade_minima: promocao.quantidade_minima ?? 1,
+      ativo: promocao.ativo ?? true,
+      data_inicio: promocao.data_inicio || null,
+      data_fim: promocao.data_fim || null,
+    })
+    .select("*")
+    .single();
+
+  if (error) throw error;
+  return data as PromocaoProduto;
+}
+
+export async function updatePromocaoProduto(
+  id: string,
+  promocao: Partial<PromocaoProdutoInput>,
+): Promise<PromocaoProduto> {
+  const payload: Record<string, unknown> = {};
+  if (promocao.produto_id !== undefined)
+    payload.produto_id = promocao.produto_id;
+  if (promocao.nome !== undefined) payload.nome = promocao.nome.trim();
+  if (promocao.descricao !== undefined)
+    payload.descricao = promocao.descricao?.trim() || null;
+  if (promocao.tipo_desconto !== undefined)
+    payload.tipo_desconto = promocao.tipo_desconto;
+  if (promocao.valor_desconto !== undefined)
+    payload.valor_desconto = promocao.valor_desconto;
+  if (promocao.quantidade_minima !== undefined)
+    payload.quantidade_minima = promocao.quantidade_minima;
+  if (promocao.ativo !== undefined) payload.ativo = promocao.ativo;
+  if (promocao.data_inicio !== undefined)
+    payload.data_inicio = promocao.data_inicio || null;
+  if (promocao.data_fim !== undefined)
+    payload.data_fim = promocao.data_fim || null;
+
+  const { data, error } = await supabase
+    .from("promocoes_produto")
+    .update(payload)
+    .eq("id", id)
+    .select("*")
+    .single();
+  if (error) throw error;
+  return data as PromocaoProduto;
+}
+
+export async function deletePromocaoProduto(id: string) {
+  const { error } = await supabase
+    .from("promocoes_produto")
+    .delete()
+    .eq("id", id);
+  if (error) throw error;
 }
 
 export async function deleteProduto(id: string) {

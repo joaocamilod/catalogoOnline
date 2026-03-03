@@ -16,6 +16,7 @@ import {
   Zap,
 } from "lucide-react";
 import { createSale, decrementarEstoqueProdutos } from "../lib/supabase";
+import { getPrecoComPromocao } from "../lib/promocoes";
 import { openWhatsAppChat } from "../lib/whatsapp";
 import styles from "./PaymentModal.module.css";
 
@@ -84,10 +85,18 @@ function getSelectedVariationPrice(item) {
 
 function getItemUnitPrice(item, method) {
   const basePrice = getItemBasePrice(item);
+  const promoResult = getPrecoComPromocao(
+    item.product,
+    basePrice,
+    item.quantity,
+  );
+  const effectiveBasePrice = promoResult.finalUnitPrice;
+  const hasPromotion = Boolean(promoResult.appliedPromotion);
   const hasSelectedVariationPrice = getSelectedVariationPrice(item) !== null;
   switch (method) {
     case "pix": {
       if (
+        !hasPromotion &&
         !hasSelectedVariationPrice &&
         item.product.preco_pix != null &&
         item.product.preco_pix > 0
@@ -95,22 +104,23 @@ function getItemUnitPrice(item, method) {
         return item.product.preco_pix;
       }
       const disc = item.product.desconto_pix_percentual ?? 0;
-      return basePrice * (1 - disc / 100);
+      return effectiveBasePrice * (1 - disc / 100);
     }
     case "credito": {
       if (
+        !hasPromotion &&
         !hasSelectedVariationPrice &&
         item.product.total_cartao != null &&
         item.product.total_cartao > 0
       ) {
         return item.product.total_cartao;
       }
-      return basePrice;
+      return effectiveBasePrice;
     }
     case "debito":
     case "dinheiro":
     default:
-      return basePrice;
+      return effectiveBasePrice;
   }
 }
 
@@ -148,14 +158,16 @@ function buildWhatsAppMessage({
     `*Itens do pedido:*\n${itemLines}\n\n` +
     `*Forma de pagamento:* ${methodMeta.label}\n\n`;
 
-  if (totals.discount > 0) {
+  if (totals.promotionDiscount > 0) {
     msg +=
       `Subtotal: ${formatBRL(totals.subtotal)}\n` +
-      `Desconto (${methodMeta.label}): −${formatBRL(totals.discount)}\n`;
-  } else if (totals.surcharge > 0) {
-    msg +=
-      `Subtotal: ${formatBRL(totals.subtotal)}\n` +
-      `Taxa (${methodMeta.label}): +${formatBRL(totals.surcharge)}\n`;
+      `Desconto (Promoções): −${formatBRL(totals.promotionDiscount)}\n`;
+  }
+
+  if (totals.paymentDiscount > 0) {
+    msg += `Desconto (${methodMeta.label}): −${formatBRL(totals.paymentDiscount)}\n`;
+  } else if (totals.paymentSurcharge > 0) {
+    msg += `Taxa (${methodMeta.label}): +${formatBRL(totals.paymentSurcharge)}\n`;
   }
 
   msg += `*Total: ${formatBRL(totals.total)}*`;
@@ -256,14 +268,23 @@ function PaymentModal({
       (s, item) => s + getItemBasePrice(item) * item.quantity,
       0,
     );
+    const subtotalWithPromotion = items.reduce(
+      (s, item) =>
+        s +
+        getPrecoComPromocao(item.product, getItemBasePrice(item), item.quantity)
+          .finalUnitPrice *
+          item.quantity,
+      0,
+    );
     const methodTotal = items.reduce(
       (s, item) => s + getItemUnitPrice(item, paymentMethod) * item.quantity,
       0,
     );
 
-    const diff = methodTotal - subtotal;
-    const discount = diff < 0 ? Math.abs(diff) : 0;
-    const surcharge = diff > 0 ? diff : 0;
+    const promotionDiscount = Math.max(0, subtotal - subtotalWithPromotion);
+    const methodDiff = methodTotal - subtotalWithPromotion;
+    const paymentDiscount = methodDiff < 0 ? Math.abs(methodDiff) : 0;
+    const paymentSurcharge = methodDiff > 0 ? methodDiff : 0;
 
     let installments = null;
     if (paymentMethod === "credito") {
@@ -278,7 +299,15 @@ function PaymentModal({
       }
     }
 
-    return { subtotal, total: methodTotal, discount, surcharge, installments };
+    return {
+      subtotal,
+      subtotalWithPromotion,
+      total: methodTotal,
+      promotionDiscount,
+      paymentDiscount,
+      paymentSurcharge,
+      installments,
+    };
   }, [items, paymentMethod]);
 
   const stockErrorIds = useMemo(
@@ -828,7 +857,16 @@ function PaymentModal({
                   <span>{formatBRL(totals.subtotal)}</span>
                 </div>
 
-                {totals.discount > 0 && (
+                {totals.promotionDiscount > 0 && (
+                  <div
+                    className={`${styles.totalRow} ${styles.totalRowHighlight}`}
+                  >
+                    <span>Desconto (Promoções)</span>
+                    <span>−&nbsp;{formatBRL(totals.promotionDiscount)}</span>
+                  </div>
+                )}
+
+                {totals.paymentDiscount > 0 && (
                   <div
                     className={`${styles.totalRow} ${styles.totalRowHighlight}`}
                   >
@@ -840,11 +878,11 @@ function PaymentModal({
                       }
                       )
                     </span>
-                    <span>−&nbsp;{formatBRL(totals.discount)}</span>
+                    <span>−&nbsp;{formatBRL(totals.paymentDiscount)}</span>
                   </div>
                 )}
 
-                {totals.surcharge > 0 && (
+                {totals.paymentSurcharge > 0 && (
                   <div className={`${styles.totalRow} ${styles.totalRowTax}`}>
                     <span>
                       Taxa&nbsp;(
@@ -854,7 +892,7 @@ function PaymentModal({
                       }
                       )
                     </span>
-                    <span>+&nbsp;{formatBRL(totals.surcharge)}</span>
+                    <span>+&nbsp;{formatBRL(totals.paymentSurcharge)}</span>
                   </div>
                 )}
 

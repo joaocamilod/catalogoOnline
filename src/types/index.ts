@@ -61,6 +61,23 @@ export interface ProdutoVariacao {
   opcoes: ProdutoVariacaoOpcao[];
 }
 
+export type TipoDescontoPromocao = "percentual" | "valor_fixo" | "preco_fixo";
+
+export interface PromocaoProduto {
+  id: string;
+  produto_id: string;
+  nome: string;
+  descricao?: string | null;
+  tipo_desconto: TipoDescontoPromocao;
+  valor_desconto: number;
+  quantidade_minima: number;
+  ativo: boolean;
+  data_inicio?: string | null;
+  data_fim?: string | null;
+  created_at?: string;
+  updated_at?: string;
+}
+
 export interface Produto {
   id: string;
   descricao: string;
@@ -98,6 +115,7 @@ export interface Produto {
   total_cartao?: number | null;
   texto_adicional_preco?: string | null;
   variacoes?: ProdutoVariacao[];
+  promocoes?: PromocaoProduto[];
   created_at?: string;
 }
 
@@ -139,6 +157,7 @@ export interface CatalogProduct {
   total_cartao?: number | null;
   texto_adicional_preco?: string | null;
   variacoes?: ProdutoVariacao[];
+  promocoes?: PromocaoProduto[];
 }
 
 export interface CatalogoTema {
@@ -247,5 +266,6 @@ export function normalizeProduto(p: Produto): CatalogProduct {
     total_cartao: p.total_cartao ?? null,
     texto_adicional_preco: p.texto_adicional_preco ?? null,
     variacoes: p.variacoes ?? [],
+    promocoes: p.promocoes ?? [],
   };
 }

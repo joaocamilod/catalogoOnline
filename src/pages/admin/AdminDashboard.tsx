@@ -11,6 +11,7 @@ import {
   Palette,
   GitBranch,
   BadgePercent,
+  Tag,
   Menu,
 } from "lucide-react";
 import { useAuthStore } from "../../store/authStore";
@@ -30,6 +31,7 @@ const navigation = [
     icon: GitBranch,
   },
   { name: "Marcas", href: "/admin/marcas", icon: BadgePercent },
+  { name: "Promoções", href: "/admin/promocoes", icon: Tag },
   { name: "Vendedores", href: "/admin/vendedores", icon: Users },
   { name: "Temas", href: "/admin/temas", icon: Palette },
   { name: "Configurações", href: "/admin/configuracoes", icon: Settings },
@@ -114,14 +116,18 @@ const AdminDashboard: React.FC = () => {
             <ShoppingBag className="h-5 w-5 text-white" />
           </div>
           {(!isTablet || !isSidebarCollapsed) && (
-            <span className="text-base font-bold text-gray-900">Administração</span>
+            <span className="text-base font-bold text-gray-900">
+              Administração
+            </span>
           )}
           {isTablet && !isMobile && (
             <button
               type="button"
               onClick={() => setIsSidebarCollapsed((v) => !v)}
               className="ml-auto p-1.5 rounded-lg hover:bg-gray-100"
-              aria-label={isSidebarCollapsed ? "Expandir menu" : "Recolher menu"}
+              aria-label={
+                isSidebarCollapsed ? "Expandir menu" : "Recolher menu"
+              }
             >
               <ChevronRight
                 className={`h-4 w-4 text-gray-500 transition-transform ${isSidebarCollapsed ? "" : "rotate-180"}`}

@@ -16,6 +16,7 @@ import {
   fetchAllVendedores,
 } from "../lib/supabase";
 import { openWhatsAppChat } from "../lib/whatsapp";
+import { getPrecoComPromocao } from "../lib/promocoes";
 import { useCartStore } from "../store/cartStore";
 import type {
   CartItem,
@@ -145,9 +146,14 @@ const Home: React.FC<HomeProps> = ({
   }, [debouncedSearch, selectedCategory, loadProdutos]);
 
   const filteredProducts = useMemo(() => {
-    let list = produtos.filter(
-      (p) => p.price >= priceRange[0] && p.price <= priceRange[1],
-    );
+    const getPriceForFilters = (product: CatalogProduct) =>
+      getPrecoComPromocao(product, Number(product.price) || 0, 1)
+        .finalUnitPrice;
+
+    let list = produtos.filter((p) => {
+      const price = getPriceForFilters(p);
+      return price >= priceRange[0] && price <= priceRange[1];
+    });
     if (selectedSubdepartments.length > 0) {
       list = list.filter(
         (p) =>
@@ -161,8 +167,10 @@ const Home: React.FC<HomeProps> = ({
       );
     }
     list.sort((a, b) => {
-      if (sortBy === "price-asc") return a.price - b.price;
-      if (sortBy === "price-desc") return b.price - a.price;
+      const priceA = getPriceForFilters(a);
+      const priceB = getPriceForFilters(b);
+      if (sortBy === "price-asc") return priceA - priceB;
+      if (sortBy === "price-desc") return priceB - priceA;
       return a.name.localeCompare(b.name);
     });
     return list;

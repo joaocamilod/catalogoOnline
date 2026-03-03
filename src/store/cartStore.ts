@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type { CartItem, CatalogProduct } from "../types";
+import { getPrecoComPromocao } from "../lib/promocoes";
 
 const getMaxStock = (product: CatalogProduct) => {
   const stock = Number(product.stock);
@@ -31,8 +32,13 @@ const getItemMaxStock = (item: CartItem) => {
   return getMaxStock(item.product);
 };
 
-const getItemUnitBasePrice = (item: CartItem) =>
-  getSelectedVariationBasePrice(item.product, item.selectedVariations);
+const getItemUnitBasePrice = (item: CartItem, quantity: number) => {
+  const base = getSelectedVariationBasePrice(
+    item.product,
+    item.selectedVariations,
+  );
+  return getPrecoComPromocao(item.product, base, quantity).finalUnitPrice;
+};
 
 interface CartState {
   items: CartItem[];
@@ -129,7 +135,7 @@ export const useCartStore = create<CartState>()(
 
       total: () =>
         get().items.reduce(
-          (sum, i) => sum + getItemUnitBasePrice(i) * i.quantity,
+          (sum, i) => sum + getItemUnitBasePrice(i, i.quantity) * i.quantity,
           0,
         ),
 

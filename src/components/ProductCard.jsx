@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { FaShoppingCart, FaCheck } from "react-icons/fa";
+import { getPrecoComPromocao, isPromocaoAtiva } from "../lib/promocoes";
 
 const formatPrice = (value) => {
   const amount = Number.isFinite(Number(value)) ? Number(value) : 0;
@@ -76,7 +77,48 @@ function ProductCard({
   };
   const originalPrice = Number(product.preco_original ?? 0) || 0;
   const discountPct = Number(product.desconto_percentual ?? 0) || 0;
+  const promoResult = getPrecoComPromocao(
+    product,
+    Number(product.price) || 0,
+    1,
+  );
+  const finalPrice = promoResult.finalUnitPrice;
+  const hasPromotion = Boolean(promoResult.appliedPromotion);
+  const activePromotions = (product.promocoes ?? []).filter((promo) =>
+    isPromocaoAtiva(promo),
+  );
+  const promotionForBadge =
+    [...activePromotions].sort((a, b) => {
+      if (a.quantidade_minima !== b.quantidade_minima) {
+        return a.quantidade_minima - b.quantidade_minima;
+      }
+      const aCreated = a.created_at ? new Date(a.created_at).getTime() : 0;
+      const bCreated = b.created_at ? new Date(b.created_at).getTime() : 0;
+      return aCreated - bCreated;
+    })[0] ?? null;
+  const formatPromotionRule = (promotion) => {
+    if (promotion.tipo_desconto === "percentual") {
+      return `${Number(promotion.valor_desconto).toLocaleString("pt-BR", {
+        maximumFractionDigits: 2,
+      })}% OFF`;
+    }
+    if (promotion.tipo_desconto === "valor_fixo") {
+      return `${formatPrice(promotion.valor_desconto)} OFF`;
+    }
+    return `${formatPrice(promotion.valor_desconto)} final`;
+  };
+  const promotionBadgeDetail = promotionForBadge
+    ? `Min ${promotionForBadge.quantidade_minima} • ${formatPromotionRule(
+        promotionForBadge,
+      )}`
+    : "";
+  const promoPct =
+    promoResult.basePrice > 0
+      ? Math.round((promoResult.savingsPerUnit / promoResult.basePrice) * 100)
+      : 0;
+  const hasDiscountBadge = hasPromotion ? promoPct > 0 : discountPct > 0;
   const hasCustomPricing =
+    hasPromotion ||
     originalPrice > 0 ||
     discountPct > 0 ||
     Number(product.preco_pix ?? 0) > 0 ||
@@ -84,10 +126,10 @@ function ProductCard({
     Number(product.total_cartao ?? 0) > 0 ||
     Number(product.parcelas_quantidade ?? 0) > 0;
   const pixPrice =
-    Number(product.preco_pix ?? 0) ||
+    (!hasPromotion && Number(product.preco_pix ?? 0)) ||
     (Number(product.desconto_pix_percentual ?? 0) > 0
-      ? product.price * (1 - Number(product.desconto_pix_percentual ?? 0) / 100)
-      : product.price);
+      ? finalPrice * (1 - Number(product.desconto_pix_percentual ?? 0) / 100)
+      : finalPrice);
   const stockLabel =
     product.stock > 0 ? `${product.stock} em estoque` : "Indisponível";
   const descriptionText = product.description?.trim() || "Sem descrição.";
@@ -162,9 +204,18 @@ function ProductCard({
             Destaque
           </span>
         )}
-        {discountPct > 0 && (
+        {hasDiscountBadge && (
           <span className="absolute top-2 left-2 bg-red-500 text-white text-xs font-semibold px-2 py-1 rounded-full shadow-sm">
-            -{discountPct.toFixed(0)}%
+            -{hasPromotion ? promoPct : discountPct.toFixed(0)}%
+          </span>
+        )}
+        {promotionForBadge && (
+          <span
+            className={`absolute left-2 z-10 inline-flex max-w-[78%] items-center bg-emerald-500/95 text-white text-[11px] font-semibold px-2.5 py-1 rounded-full shadow-sm border border-emerald-400/60 backdrop-blur-[1px] leading-none ${
+              hasDiscountBadge ? "top-10" : "top-2"
+            }`}
+          >
+            {promotionBadgeDetail}
           </span>
         )}
         {product.category && (
@@ -180,16 +231,18 @@ function ProductCard({
         </h3>
 
         <div className="flex flex-col gap-0.5 mb-3">
-          {originalPrice > 0 && (
+          {(originalPrice > 0 || hasPromotion) && (
             <p className="text-xs text-gray-400 line-through">
-              {formatPrice(originalPrice)}
+              {formatPrice(
+                hasPromotion ? promoResult.basePrice : originalPrice,
+              )}
             </p>
           )}
           <span
             className={`text-xl font-extrabold leading-tight ${!tema ? "text-violet-600" : ""}`}
             style={tema ? { color: tema.cor_primaria } : undefined}
           >
-            {formatPrice(product.price)}
+            {formatPrice(finalPrice)}
           </span>
           <p
             className={`text-xs font-medium ${
