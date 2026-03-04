@@ -88,6 +88,7 @@ function App() {
       "Sua loja virtual completa com os melhores produtos e preços do mercado. Qualidade e conveniência em um só lugar.",
     footer_observacoes: "",
     footer_endereco: "",
+    telefone_contato_whatsapp: "",
     facebook_url: "",
     instagram_url: "",
     twitter_url: "",

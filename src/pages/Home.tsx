@@ -8,6 +8,7 @@ import ProductDetailModal from "../components/ProductDetailModal";
 import Dialog from "../components/Dialog";
 import Toast from "../components/Toast";
 import { AlertCircle, Loader2, Mail, Phone, UserRound } from "lucide-react";
+import { FaWhatsapp } from "react-icons/fa";
 import {
   fetchProdutos,
   fetchDepartamentosComProdutos,
@@ -193,6 +194,17 @@ const Home: React.FC<HomeProps> = ({
       ),
     [subdepartamentos, selectedCategory],
   );
+
+  const whatsappFloatingConfig = useMemo(() => {
+    const rawPhone = storeSettings.telefone_contato_whatsapp || "";
+    const digits = rawPhone.replace(/\D/g, "");
+    if (digits.length < 10) return null;
+
+    const phone = digits.startsWith("55") ? digits : `55${digits}`;
+    const storeName = storeSettings.nome_loja?.trim() || "a loja";
+    const message = `Olá! Gostaria de obter mais informações sobre a loja ${storeName}, incluindo produtos, prazos de entrega e formas de pagamento. Poderia me ajudar, por favor?`;
+    return { phone, message };
+  }, [storeSettings.nome_loja, storeSettings.telefone_contato_whatsapp]);
 
   useEffect(() => {
     const availableIds = new Set(sidebarSubdepartments.map((sub) => sub.id));
@@ -506,6 +518,23 @@ const Home: React.FC<HomeProps> = ({
       </main>
 
       <Footer storeSettings={storeSettings} tema={tema} />
+
+      {whatsappFloatingConfig && (
+        <button
+          type="button"
+          onClick={() =>
+            openWhatsAppChat(
+              whatsappFloatingConfig.phone,
+              whatsappFloatingConfig.message,
+            )
+          }
+          className="fixed bottom-5 right-5 sm:bottom-6 sm:right-6 z-40 h-14 w-14 rounded-full bg-[#25D366] text-white shadow-[0_10px_25px_rgba(37,211,102,0.45)] hover:scale-105 hover:brightness-95 focus:outline-none focus:ring-4 focus:ring-[#25D366]/40 transition-all duration-200 flex items-center justify-center"
+          aria-label="Falar no WhatsApp"
+          title="Falar no WhatsApp"
+        >
+          <FaWhatsapp className="h-7 w-7" aria-hidden="true" />
+        </button>
+      )}
 
       <Cart
         isOpen={isCartOpen}

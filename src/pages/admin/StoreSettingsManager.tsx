@@ -11,12 +11,34 @@ const StoreSettingsManager: React.FC<StoreSettingsManagerProps> = ({
   storeSettings,
   onStoreSettingsChange,
 }) => {
+  const formatWhatsappPhone = (rawValue: string) => {
+    let digits = rawValue.replace(/\D/g, "");
+    if (digits.startsWith("55") && digits.length > 11) {
+      digits = digits.slice(2);
+    }
+    digits = digits.slice(0, 11);
+
+    if (!digits) return "";
+    if (digits.length < 3) return `(${digits}`;
+
+    const ddd = digits.slice(0, 2);
+    const numero = digits.slice(2);
+
+    if (!numero) return `(${ddd}`;
+    if (numero.length <= 4) return `(${ddd}) ${numero}`;
+    if (numero.length <= 8) {
+      return `(${ddd}) ${numero.slice(0, 4)}-${numero.slice(4)}`;
+    }
+    return `(${ddd}) ${numero.slice(0, 5)}-${numero.slice(5)}`;
+  };
+
   const [draftSettings, setDraftSettings] = useState(storeSettings);
   const [isSavingSettings, setIsSavingSettings] = useState(false);
   const [settingsFeedback, setSettingsFeedback] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<{
     nome_loja?: string;
     footer_descricao?: string;
+    telefone_contato_whatsapp?: string;
   }>({});
 
   useEffect(() => {
@@ -32,12 +54,23 @@ const StoreSettingsManager: React.FC<StoreSettingsManagerProps> = ({
     const nextErrors: {
       nome_loja?: string;
       footer_descricao?: string;
+      telefone_contato_whatsapp?: string;
     } = {};
     if (!draftSettings.nome_loja.trim()) {
       nextErrors.nome_loja = "Nome da loja é obrigatório.";
     }
     if (!draftSettings.footer_descricao.trim()) {
       nextErrors.footer_descricao = "Descrição é obrigatória.";
+    }
+    const whatsappDigits = (
+      draftSettings.telefone_contato_whatsapp || ""
+    ).replace(/\D/g, "");
+    if (
+      draftSettings.telefone_contato_whatsapp.trim() &&
+      whatsappDigits.length < 10
+    ) {
+      nextErrors.telefone_contato_whatsapp =
+        "Informe um telefone válido com DDD (mínimo 10 dígitos).";
     }
     if (Object.keys(nextErrors).length > 0) {
       setFieldErrors(nextErrors);
@@ -167,7 +200,7 @@ const StoreSettingsManager: React.FC<StoreSettingsManagerProps> = ({
                 footer_observacoes: e.target.value,
               }))
             }
-            placeholder="Informacoes extras (entregas, horarios, contato etc.)"
+            placeholder="Informações extras..."
             className="w-full px-3 py-2.5 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
             rows={2}
             maxLength={350}
@@ -195,6 +228,52 @@ const StoreSettingsManager: React.FC<StoreSettingsManagerProps> = ({
             rows={2}
             maxLength={220}
           />
+        </div>
+
+        <div>
+          <p className="block text-sm font-medium text-gray-700 mb-2">
+            Telefone de contato
+          </p>
+          <label
+            htmlFor="telefone-contato-whatsapp"
+            className="block text-xs text-gray-500 mb-1"
+          >
+            Informe o WhatsApp da loja
+          </label>
+          <input
+            id="telefone-contato-whatsapp"
+            type="tel"
+            value={draftSettings.telefone_contato_whatsapp}
+            onChange={(e) => {
+              const formattedPhone = formatWhatsappPhone(e.target.value);
+              setDraftSettings((prev) => ({
+                ...prev,
+                telefone_contato_whatsapp: formattedPhone,
+              }));
+              if (fieldErrors.telefone_contato_whatsapp) {
+                setFieldErrors((prev) => ({
+                  ...prev,
+                  telefone_contato_whatsapp: undefined,
+                }));
+              }
+            }}
+            placeholder="Ex.: (11) 99999-9999"
+            className={`w-full px-3 py-2.5 rounded-xl border transition-all ${
+              fieldErrors.telefone_contato_whatsapp
+                ? "border-red-500 focus:outline-none focus:ring-2 focus:ring-red-400 focus:border-red-500"
+                : "border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+            }`}
+            maxLength={15}
+          />
+          <p className="mt-1 text-xs text-gray-500">
+            Se preenchido, será exibido um botão flutuante de WhatsApp na página
+            principal do catálogo.
+          </p>
+          {fieldErrors.telefone_contato_whatsapp && (
+            <p className="mt-1 text-xs text-red-600">
+              {fieldErrors.telefone_contato_whatsapp}
+            </p>
+          )}
         </div>
 
         <div>
