@@ -67,11 +67,17 @@ function Cart({
   );
 
   useEffect(() => {
-    document.body.style.overflow = isOpen ? "hidden" : "unset";
+    const shouldLockBackground =
+      isOpen || isSellerDialogOpen || isPaymentModalOpen;
+    document.body.style.overflow = shouldLockBackground ? "hidden" : "unset";
+    document.documentElement.style.overflow = shouldLockBackground
+      ? "hidden"
+      : "unset";
     return () => {
       document.body.style.overflow = "unset";
+      document.documentElement.style.overflow = "unset";
     };
-  }, [isOpen]);
+  }, [isOpen, isSellerDialogOpen, isPaymentModalOpen]);
 
   const loadSellers = async () => {
     setLoadingSellers(true);

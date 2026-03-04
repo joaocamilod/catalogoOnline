@@ -203,7 +203,10 @@ const Home: React.FC<HomeProps> = ({
 
   const handlePriceRangeChange = useCallback((range: [number, number]) => {
     const min = Math.max(0, Number.isFinite(range[0]) ? range[0] : 0);
-    const maxCandidate = Math.max(0, Number.isFinite(range[1]) ? range[1] : min);
+    const maxCandidate = Math.max(
+      0,
+      Number.isFinite(range[1]) ? range[1] : min,
+    );
     const max = Math.max(min, maxCandidate);
     setPriceRange([min, max]);
   }, []);
@@ -349,7 +352,7 @@ const Home: React.FC<HomeProps> = ({
 
   return (
     <div
-      className="flex flex-col min-h-screen overflow-x-hidden"
+      className="flex flex-col min-h-[100dvh] overflow-x-hidden"
       style={{
         backgroundColor: tema?.pagina_bg_cor || "#f9fafb",
         fontFamily: tema ? `${tema.fonte_familia}, sans-serif` : undefined,

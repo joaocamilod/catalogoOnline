@@ -38,6 +38,8 @@
   html {
     scroll-behavior: smooth;
     overflow-x: hidden;
+    overscroll-behavior-y: none;
+    background-color: #f9fafb;
   }
 
   body {
@@ -50,6 +52,8 @@
       sans-serif;
     @apply bg-gray-50 text-gray-900 antialiased;
     overflow-x: hidden;
+    overscroll-behavior-y: none;
+    background-color: #f9fafb;
   }
 
   :focus-visible {
@@ -58,8 +62,9 @@
   }
 
   #root {
-    min-height: 100vh;
+    min-height: 100dvh;
     overflow-x: hidden;
+    background-color: #f9fafb;
   }
 }
 
