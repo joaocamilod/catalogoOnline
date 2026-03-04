@@ -26,7 +26,13 @@ const formatBRL = (v) =>
 const PLACEHOLDER =
   "https://cdn.pixabay.com/photo/2019/04/16/10/35/box-4131401_1280.png";
 
-// const SIZES = ["P", "M", "G", "GG", "GGG"]; // mock por enquanto
+const getValidOptionPrice = (rawPrice) => {
+  if (rawPrice === null || rawPrice === undefined || rawPrice === "") {
+    return null;
+  }
+  const parsedPrice = Number(rawPrice);
+  return Number.isFinite(parsedPrice) && parsedPrice >= 0 ? parsedPrice : null;
+};
 
 export default function ProductDetailModal({
   product,
@@ -156,8 +162,8 @@ export default function ProductDetailModal({
       const selectedOption = variacao.opcoes.find(
         (opcao) => opcao.id === selectedOptionId,
       );
-      const price = Number(selectedOption?.preco);
-      if (Number.isFinite(price) && price >= 0) return price;
+      const price = getValidOptionPrice(selectedOption?.preco);
+      if (price !== null) return price;
     }
     return null;
   })();

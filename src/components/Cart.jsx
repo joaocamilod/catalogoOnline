@@ -25,19 +25,33 @@ const formatBRL = (value) =>
     Number.isFinite(value) ? value : 0,
   );
 
+const getValidOptionPrice = (rawPrice) => {
+  if (rawPrice === null || rawPrice === undefined || rawPrice === "") {
+    return null;
+  }
+  const parsedPrice = Number(rawPrice);
+  return Number.isFinite(parsedPrice) && parsedPrice >= 0 ? parsedPrice : null;
+};
+
 const getItemUnitBasePrice = (item, quantity) => {
   for (const selected of item.selectedVariations ?? []) {
     const variacao = (item.product.variacoes ?? []).find(
       (v) => v.id === selected.variacaoId,
     );
     const opcao = variacao?.opcoes?.find((o) => o.id === selected.opcaoId);
-    const optionPrice = Number(opcao?.preco);
-    if (Number.isFinite(optionPrice) && optionPrice >= 0) return optionPrice;
+    const optionPrice = getValidOptionPrice(opcao?.preco);
+    if (optionPrice !== null) return optionPrice;
   }
   const productPrice = Number(item.product.price);
   const basePrice = Number.isFinite(productPrice) ? productPrice : 0;
   return getPrecoComPromocao(item.product, basePrice, quantity).finalUnitPrice;
 };
+
+const hasValidNumericValue = (value) =>
+  value !== null &&
+  value !== undefined &&
+  value !== "" &&
+  Number.isFinite(Number(value));
 
 function Cart({
   isOpen,
@@ -275,7 +289,7 @@ function Cart({
                           <p className="text-xs text-gray-500 mb-2">
                             {formatBRL(itemUnitPrice)} un.
                           </p>
-                          {Number.isFinite(Number(item.stock_limit)) && (
+                          {hasValidNumericValue(item.stock_limit) && (
                             <p className="text-[11px] text-amber-600 mb-2">
                               Limite desta variação:{" "}
                               {Math.max(0, Number(item.stock_limit))}
@@ -305,7 +319,7 @@ function Cart({
                                 onUpdateQuantity(item.id, item.quantity + 1)
                               }
                               disabled={
-                                Number.isFinite(Number(item.stock_limit))
+                                hasValidNumericValue(item.stock_limit)
                                   ? item.quantity >=
                                     Math.max(0, Number(item.stock_limit))
                                   : Number.isFinite(Number(item.product.stock))

@@ -9,10 +9,26 @@ const getMaxStock = (product: CatalogProduct) => {
   return Math.max(0, Math.floor(stock));
 };
 
+const hasValidNumericValue = (value: unknown) =>
+  value !== null &&
+  value !== undefined &&
+  value !== "" &&
+  Number.isFinite(Number(value));
+
 const getSelectedVariationBasePrice = (
   product: CatalogProduct,
   selectedVariations: CartItem["selectedVariations"],
 ) => {
+  const getValidOptionPrice = (rawPrice: unknown) => {
+    if (rawPrice === null || rawPrice === undefined || rawPrice === "") {
+      return null;
+    }
+    const parsedPrice = Number(rawPrice);
+    return Number.isFinite(parsedPrice) && parsedPrice >= 0
+      ? parsedPrice
+      : null;
+  };
+
   for (const selected of selectedVariations ?? []) {
     const variacao = (product.variacoes ?? []).find(
       (item) => item.id === selected.variacaoId,
@@ -20,15 +36,17 @@ const getSelectedVariationBasePrice = (
     const opcao = variacao?.opcoes?.find(
       (item) => item.id === selected.opcaoId,
     );
-    const precoOpcao = Number(opcao?.preco);
-    if (Number.isFinite(precoOpcao) && precoOpcao >= 0) return precoOpcao;
+    const precoOpcao = getValidOptionPrice(opcao?.preco);
+    if (precoOpcao !== null) return precoOpcao;
   }
   return Number(product.price) || 0;
 };
 
 const getItemMaxStock = (item: CartItem) => {
   const customLimit = Number(item.stock_limit);
-  if (Number.isFinite(customLimit)) return Math.max(0, Math.floor(customLimit));
+  if (hasValidNumericValue(item.stock_limit)) {
+    return Math.max(0, Math.floor(customLimit));
+  }
   return getMaxStock(item.product);
 };
 
@@ -72,7 +90,7 @@ export const useCartStore = create<CartState>()(
 
       addItem: (product, selectedVariations = [], stockLimit = null) =>
         set((state) => {
-          const maxStock = Number.isFinite(Number(stockLimit))
+          const maxStock = hasValidNumericValue(stockLimit)
             ? Math.max(0, Math.floor(Number(stockLimit)))
             : getMaxStock(product);
           if (maxStock <= 0) return state;
@@ -100,7 +118,7 @@ export const useCartStore = create<CartState>()(
                 product,
                 quantity: 1,
                 selectedVariations,
-                stock_limit: Number.isFinite(Number(stockLimit))
+                stock_limit: hasValidNumericValue(stockLimit)
                   ? Math.max(0, Math.floor(Number(stockLimit)))
                   : null,
               },

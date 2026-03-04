@@ -27,6 +27,20 @@ const formatBRL = (value) =>
 
 const normalizePhone = (value = "") => value.replace(/\D/g, "");
 
+const getValidOptionPrice = (rawPrice) => {
+  if (rawPrice === null || rawPrice === undefined || rawPrice === "") {
+    return null;
+  }
+  const parsedPrice = Number(rawPrice);
+  return Number.isFinite(parsedPrice) && parsedPrice >= 0 ? parsedPrice : null;
+};
+
+const hasValidNumericValue = (value) =>
+  value !== null &&
+  value !== undefined &&
+  value !== "" &&
+  Number.isFinite(Number(value));
+
 const PAYMENT_METHODS = [
   {
     id: "pix",
@@ -64,8 +78,8 @@ function getItemBasePrice(item) {
       (v) => v.id === selected.variacaoId,
     );
     const opcao = variacao?.opcoes?.find((o) => o.id === selected.opcaoId);
-    const optionPrice = Number(opcao?.preco);
-    if (Number.isFinite(optionPrice) && optionPrice >= 0) return optionPrice;
+    const optionPrice = getValidOptionPrice(opcao?.preco);
+    if (optionPrice !== null) return optionPrice;
   }
   const productPrice = Number(item.product.price);
   return Number.isFinite(productPrice) ? productPrice : 0;
@@ -77,8 +91,8 @@ function getSelectedVariationPrice(item) {
       (v) => v.id === selected.variacaoId,
     );
     const opcao = variacao?.opcoes?.find((o) => o.id === selected.opcaoId);
-    const optionPrice = Number(opcao?.preco);
-    if (Number.isFinite(optionPrice) && optionPrice >= 0) return optionPrice;
+    const optionPrice = getValidOptionPrice(opcao?.preco);
+    if (optionPrice !== null) return optionPrice;
   }
   return null;
 }
@@ -326,7 +340,7 @@ function PaymentModal({
     () =>
       items
         .filter((item) => {
-          const limit = Number.isFinite(Number(item.stock_limit))
+          const limit = hasValidNumericValue(item.stock_limit)
             ? Number(item.stock_limit)
             : Number(item.product.stock);
           return Number.isFinite(limit) && item.quantity > Math.max(0, limit);
@@ -688,7 +702,7 @@ function PaymentModal({
                               {hasErr && (
                                 <p className={styles.stockError} role="alert">
                                   ⚠ Estoque insuficiente (disp.&nbsp;
-                                  {Number.isFinite(Number(item.stock_limit))
+                                  {hasValidNumericValue(item.stock_limit)
                                     ? Math.max(0, Number(item.stock_limit))
                                     : item.product.stock}
                                   )
