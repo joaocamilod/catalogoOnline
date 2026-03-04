@@ -352,7 +352,7 @@ const Home: React.FC<HomeProps> = ({
 
   return (
     <div
-      className="flex flex-col min-h-[100dvh] overflow-x-hidden"
+      className="flex flex-col min-h-screen overflow-x-hidden"
       style={{
         backgroundColor: tema?.pagina_bg_cor || "#f9fafb",
         fontFamily: tema ? `${tema.fonte_familia}, sans-serif` : undefined,
