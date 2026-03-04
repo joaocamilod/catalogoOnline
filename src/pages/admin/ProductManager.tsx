@@ -606,6 +606,22 @@ const ProductForm: React.FC<ProductFormProps> = ({
     }, 200);
   };
 
+  useEffect(() => {
+    if (!isDepartmentModalOpen) return;
+
+    const handleDepartmentModalEscape = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      event.preventDefault();
+      event.stopPropagation();
+      (event as Event).stopImmediatePropagation?.();
+      closeDepartmentModal();
+    };
+
+    window.addEventListener("keydown", handleDepartmentModalEscape, true);
+    return () =>
+      window.removeEventListener("keydown", handleDepartmentModalEscape, true);
+  }, [isDepartmentModalOpen]);
+
   const selectedDepartment = departments.find((d) => d.id === departamentoId);
   const selectedSubdepartment = departmentSubdepartments.find(
     (s) => s.id === subdepartamentoId,
@@ -859,6 +875,9 @@ const ProductForm: React.FC<ProductFormProps> = ({
               <select
                 value={subdepartamentoId}
                 onChange={(e) => setSubdepartamentoId(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Escape") e.stopPropagation();
+                }}
                 disabled={!departamentoId}
                 className="w-full px-3 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all disabled:bg-gray-100 disabled:text-gray-500"
               >
@@ -886,6 +905,9 @@ const ProductForm: React.FC<ProductFormProps> = ({
               <select
                 value={marcaId}
                 onChange={(e) => setMarcaId(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Escape") e.stopPropagation();
+                }}
                 className="w-full px-3 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
               >
                 <option value="">Selecione uma marca</option>
@@ -2068,7 +2090,7 @@ const ProductForm: React.FC<ProductFormProps> = ({
         </div>
       )}
 
-      <div className="sticky bottom-0 -mx-4 sm:-mx-6 px-4 sm:px-6 py-3 flex justify-end gap-3 border-t border-gray-100 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80">
+      <div className="mt-2 pt-3 flex justify-end gap-3 border-t border-gray-200 bg-white">
         <button
           type="button"
           onClick={onCancel}
@@ -2100,8 +2122,11 @@ const ProductForm: React.FC<ProductFormProps> = ({
           className={`fixed inset-0 z-[70] bg-black/50 flex items-center justify-center p-4 transition-opacity duration-200 ${
             isDepartmentModalClosing ? "opacity-0" : "opacity-100"
           }`}
-          onClick={(e) => {
-            if (e.target === e.currentTarget) closeDepartmentModal();
+          onKeyDownCapture={(e) => {
+            if (e.key !== "Escape") return;
+            e.preventDefault();
+            e.stopPropagation();
+            closeDepartmentModal();
           }}
         >
           <div
@@ -2230,9 +2255,10 @@ const ProductManager: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [openActionMenuId, setOpenActionMenuId] = useState<string | null>(null);
-  const [actionMenuOpenUpId, setActionMenuOpenUpId] = useState<string | null>(
-    null,
-  );
+  const [actionMenuPosition, setActionMenuPosition] = useState<{
+    top: number;
+    left: number;
+  } | null>(null);
   const LIMIT = 10;
 
   useEffect(() => {
@@ -2289,7 +2315,7 @@ const ProductManager: React.FC = () => {
       const target = event.target as HTMLElement;
       if (!target.closest("[data-action-menu]")) {
         setOpenActionMenuId(null);
-        setActionMenuOpenUpId(null);
+        setActionMenuPosition(null);
       }
     };
 
@@ -2554,7 +2580,6 @@ const ProductManager: React.FC = () => {
                 </thead>
                 <tbody className="divide-y divide-gray-50">
                   {products.map((p) => {
-                    const shouldOpenUp = actionMenuOpenUpId === p.id;
                     return (
                       <tr
                         key={p.id}
@@ -2625,17 +2650,25 @@ const ProductManager: React.FC = () => {
                               onClick={(event) => {
                                 const buttonRect =
                                   event.currentTarget.getBoundingClientRect();
-                                const estimatedMenuHeight = 96;
-                                const openUp =
-                                  window.innerHeight - buttonRect.bottom <
-                                  estimatedMenuHeight;
+                                const menuWidth = 144;
+                                const horizontalPadding = 8;
+                                const left = Math.min(
+                                  window.innerWidth -
+                                    menuWidth -
+                                    horizontalPadding,
+                                  Math.max(
+                                    horizontalPadding,
+                                    buttonRect.right - menuWidth,
+                                  ),
+                                );
+                                const top = buttonRect.bottom + 8;
 
                                 setOpenActionMenuId((prev) => {
                                   if (prev === p.id) {
-                                    setActionMenuOpenUpId(null);
+                                    setActionMenuPosition(null);
                                     return null;
                                   }
-                                  setActionMenuOpenUpId(openUp ? p.id : null);
+                                  setActionMenuPosition({ top, left });
                                   return p.id;
                                 });
                               }}
@@ -2647,17 +2680,21 @@ const ProductManager: React.FC = () => {
 
                             {openActionMenuId === p.id && (
                               <div
-                                className={`absolute right-0 w-36 bg-white border border-gray-200 rounded-xl shadow-lg z-20 overflow-hidden animate-fadeIn ${
-                                  shouldOpenUp
-                                    ? "bottom-full mb-2 origin-bottom-right"
-                                    : "top-full mt-2 origin-top-right"
-                                }`}
+                                className="fixed w-36 bg-white border border-gray-200 rounded-xl shadow-lg z-50 overflow-hidden animate-fadeIn origin-top-right"
+                                style={
+                                  actionMenuPosition
+                                    ? {
+                                        top: actionMenuPosition.top,
+                                        left: actionMenuPosition.left,
+                                      }
+                                    : undefined
+                                }
                               >
                                 <button
                                   type="button"
                                   onClick={() => {
                                     setOpenActionMenuId(null);
-                                    setActionMenuOpenUpId(null);
+                                    setActionMenuPosition(null);
                                     setEditing(p);
                                     setIsDialogOpen(true);
                                   }}
@@ -2670,7 +2707,7 @@ const ProductManager: React.FC = () => {
                                   type="button"
                                   onClick={() => {
                                     setOpenActionMenuId(null);
-                                    setActionMenuOpenUpId(null);
+                                    setActionMenuPosition(null);
                                     setDeletingProduct(p);
                                   }}
                                   className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
@@ -2723,6 +2760,7 @@ const ProductManager: React.FC = () => {
         title={editing ? "Editar Produto" : "Novo Produto"}
         maxWidth="max-w-5xl"
         mobileFullscreen
+        closeOnOverlayClick={false}
       >
         <ProductForm
           initial={editing ?? undefined}

@@ -861,6 +861,10 @@ const ThemeManager: React.FC = () => {
   const [deletingTheme, setDeletingTheme] = useState<CatalogoTema | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [openThemeMenuId, setOpenThemeMenuId] = useState<string | null>(null);
+  const [openThemeMenuPosition, setOpenThemeMenuPosition] = useState<{
+    top: number;
+    left: number;
+  } | null>(null);
 
   useEffect(() => {
     const t = setTimeout(() => setDebouncedSearch(search), 350);
@@ -984,6 +988,7 @@ const ThemeManager: React.FC = () => {
       const target = event.target as HTMLElement;
       if (!target.closest("[data-theme-actions-menu]")) {
         setOpenThemeMenuId(null);
+        setOpenThemeMenuPosition(null);
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
@@ -1658,22 +1663,50 @@ const ThemeManager: React.FC = () => {
                     <div className="relative" data-theme-actions-menu>
                       <button
                         type="button"
-                        onClick={() =>
-                          setOpenThemeMenuId((prev) =>
-                            prev === tema.id ? null : tema.id,
-                          )
-                        }
+                        onClick={(event) => {
+                          const buttonRect =
+                            event.currentTarget.getBoundingClientRect();
+                          const menuWidth = 176;
+                          const horizontalPadding = 8;
+                          const left = Math.min(
+                            window.innerWidth - menuWidth - horizontalPadding,
+                            Math.max(
+                              horizontalPadding,
+                              buttonRect.right - menuWidth,
+                            ),
+                          );
+                          const top = buttonRect.bottom + 8;
+                          setOpenThemeMenuId((prev) => {
+                            if (prev === tema.id) {
+                              setOpenThemeMenuPosition(null);
+                              return null;
+                            }
+                            setOpenThemeMenuPosition({ top, left });
+                            return tema.id;
+                          });
+                        }}
                         className="ml-auto flex items-center justify-center w-11 h-11 rounded-xl border border-gray-200 text-gray-600"
                         aria-label={`Ações do tema ${tema.nome}`}
                       >
                         <MoreVertical className="h-5 w-5" />
                       </button>
                       {openThemeMenuId === tema.id && (
-                        <div className="absolute right-0 mt-2 w-44 bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden z-20">
+                        <div
+                          className="fixed w-44 bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden z-50 animate-fadeIn origin-top-right"
+                          style={
+                            openThemeMenuPosition
+                              ? {
+                                  top: openThemeMenuPosition.top,
+                                  left: openThemeMenuPosition.left,
+                                }
+                              : undefined
+                          }
+                        >
                           <button
                             type="button"
                             onClick={() => {
                               setOpenThemeMenuId(null);
+                              setOpenThemeMenuPosition(null);
                               handleToggleAtivo(tema);
                             }}
                             className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
@@ -1684,6 +1717,7 @@ const ThemeManager: React.FC = () => {
                             type="button"
                             onClick={() => {
                               setOpenThemeMenuId(null);
+                              setOpenThemeMenuPosition(null);
                               openEdit(tema);
                             }}
                             className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
@@ -1694,6 +1728,7 @@ const ThemeManager: React.FC = () => {
                             type="button"
                             onClick={() => {
                               setOpenThemeMenuId(null);
+                              setOpenThemeMenuPosition(null);
                               handleDuplicate(tema);
                             }}
                             className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
@@ -1704,6 +1739,7 @@ const ThemeManager: React.FC = () => {
                             type="button"
                             onClick={() => {
                               setOpenThemeMenuId(null);
+                              setOpenThemeMenuPosition(null);
                               setDeletingTheme(tema);
                             }}
                             className="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-red-50"

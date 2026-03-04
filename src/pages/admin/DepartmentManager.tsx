@@ -133,9 +133,10 @@ const DepartmentManager: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [openActionMenuId, setOpenActionMenuId] = useState<string | null>(null);
-  const [actionMenuOpenUpId, setActionMenuOpenUpId] = useState<string | null>(
-    null,
-  );
+  const [actionMenuPosition, setActionMenuPosition] = useState<{
+    top: number;
+    left: number;
+  } | null>(null);
   const LIMIT = 10;
 
   useEffect(() => {
@@ -183,7 +184,7 @@ const DepartmentManager: React.FC = () => {
       const target = event.target as HTMLElement;
       if (!target.closest("[data-action-menu]")) {
         setOpenActionMenuId(null);
-        setActionMenuOpenUpId(null);
+        setActionMenuPosition(null);
       }
     };
 
@@ -336,7 +337,6 @@ const DepartmentManager: React.FC = () => {
               </thead>
               <tbody className="divide-y divide-gray-50">
                 {departments.map((dep) => {
-                  const shouldOpenUp = actionMenuOpenUpId === dep.id;
                   return (
                     <tr
                       key={dep.id}
@@ -366,17 +366,25 @@ const DepartmentManager: React.FC = () => {
                             onClick={(event) => {
                               const buttonRect =
                                 event.currentTarget.getBoundingClientRect();
-                              const estimatedMenuHeight = 96;
-                              const openUp =
-                                window.innerHeight - buttonRect.bottom <
-                                estimatedMenuHeight;
+                              const menuWidth = 144;
+                              const horizontalPadding = 8;
+                              const left = Math.min(
+                                window.innerWidth -
+                                  menuWidth -
+                                  horizontalPadding,
+                                Math.max(
+                                  horizontalPadding,
+                                  buttonRect.right - menuWidth,
+                                ),
+                              );
+                              const top = buttonRect.bottom + 8;
 
                               setOpenActionMenuId((prev) => {
                                 if (prev === dep.id) {
-                                  setActionMenuOpenUpId(null);
+                                  setActionMenuPosition(null);
                                   return null;
                                 }
-                                setActionMenuOpenUpId(openUp ? dep.id : null);
+                                setActionMenuPosition({ top, left });
                                 return dep.id;
                               });
                             }}
@@ -388,17 +396,21 @@ const DepartmentManager: React.FC = () => {
 
                           {openActionMenuId === dep.id && (
                             <div
-                              className={`absolute right-0 w-36 bg-white border border-gray-200 rounded-xl shadow-lg z-20 overflow-hidden animate-fadeIn ${
-                                shouldOpenUp
-                                  ? "bottom-full mb-2 origin-bottom-right"
-                                  : "top-full mt-2 origin-top-right"
-                              }`}
+                              className="fixed w-36 bg-white border border-gray-200 rounded-xl shadow-lg z-50 overflow-hidden animate-fadeIn origin-top-right"
+                              style={
+                                actionMenuPosition
+                                  ? {
+                                      top: actionMenuPosition.top,
+                                      left: actionMenuPosition.left,
+                                    }
+                                  : undefined
+                              }
                             >
                               <button
                                 type="button"
                                 onClick={() => {
                                   setOpenActionMenuId(null);
-                                  setActionMenuOpenUpId(null);
+                                  setActionMenuPosition(null);
                                   openEdit(dep);
                                 }}
                                 className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-indigo-50 hover:text-indigo-700 transition-colors"
@@ -410,7 +422,7 @@ const DepartmentManager: React.FC = () => {
                                 type="button"
                                 onClick={() => {
                                   setOpenActionMenuId(null);
-                                  setActionMenuOpenUpId(null);
+                                  setActionMenuPosition(null);
                                   setDeletingDepartment(dep);
                                 }}
                                 className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
@@ -461,6 +473,7 @@ const DepartmentManager: React.FC = () => {
         }}
         title={editing ? "Editar Departamento" : "Novo Departamento"}
         mobileFullscreen
+        closeOnOverlayClick={false}
       >
         <DepartmentForm
           initial={editing ?? undefined}

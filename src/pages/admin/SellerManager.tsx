@@ -222,9 +222,10 @@ const SellerManager: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [openActionMenuId, setOpenActionMenuId] = useState<string | null>(null);
-  const [actionMenuOpenUpId, setActionMenuOpenUpId] = useState<string | null>(
-    null,
-  );
+  const [actionMenuPosition, setActionMenuPosition] = useState<{
+    top: number;
+    left: number;
+  } | null>(null);
   const LIMIT = 10;
 
   useEffect(() => {
@@ -272,7 +273,7 @@ const SellerManager: React.FC = () => {
       const target = event.target as HTMLElement;
       if (!target.closest("[data-action-menu]")) {
         setOpenActionMenuId(null);
-        setActionMenuOpenUpId(null);
+        setActionMenuPosition(null);
       }
     };
 
@@ -463,125 +464,134 @@ const SellerManager: React.FC = () => {
 
             <div className="hidden md:block overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-100">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                    Nome
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                    WhatsApp / Telefone
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider hidden lg:table-cell">
-                    Email
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                    Status
-                  </th>
-                  <th className="px-6 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                    Acoes
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-50">
-                {sellers.map((seller) => {
-                  const shouldOpenUp = actionMenuOpenUpId === seller.id;
-                  return (
-                    <tr
-                      key={seller.id}
-                      className="hover:bg-gray-50 transition-colors"
-                    >
-                      <td className="px-6 py-4 text-sm text-gray-900 font-medium">
-                        {seller.nome}
-                      </td>
-                      <td className="px-6 py-4 text-sm text-gray-700">
-                        {seller.telefone_whatsapp || "-"}
-                      </td>
-                      <td className="px-6 py-4 text-sm text-gray-700 hidden lg:table-cell">
-                        {seller.email || "-"}
-                      </td>
-                      <td className="px-6 py-4">
-                        <span
-                          className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${
-                            seller.ativo
-                              ? "bg-green-100 text-green-700"
-                              : "bg-red-100 text-red-700"
-                          }`}
-                        >
-                          {seller.ativo ? "Ativo" : "Inativo"}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 text-center">
-                        <div
-                          className="relative inline-block text-left"
-                          data-action-menu
-                        >
-                          <button
-                            type="button"
-                            onClick={(event) => {
-                              const buttonRect =
-                                event.currentTarget.getBoundingClientRect();
-                              const estimatedMenuHeight = 96;
-                              const openUp =
-                                window.innerHeight - buttonRect.bottom <
-                                estimatedMenuHeight;
-
-                              setOpenActionMenuId((prev) => {
-                                if (prev === seller.id) {
-                                  setActionMenuOpenUpId(null);
-                                  return null;
-                                }
-                                setActionMenuOpenUpId(
-                                  openUp ? seller.id : null,
-                                );
-                                return seller.id;
-                              });
-                            }}
-                            className="p-2 text-gray-600 hover:text-indigo-700 hover:bg-indigo-50 rounded-lg transition-colors"
-                            title="Ações"
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                      Nome
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                      WhatsApp / Telefone
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider hidden lg:table-cell">
+                      Email
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                      Status
+                    </th>
+                    <th className="px-6 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                      Acoes
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-50">
+                  {sellers.map((seller) => {
+                    return (
+                      <tr
+                        key={seller.id}
+                        className="hover:bg-gray-50 transition-colors"
+                      >
+                        <td className="px-6 py-4 text-sm text-gray-900 font-medium">
+                          {seller.nome}
+                        </td>
+                        <td className="px-6 py-4 text-sm text-gray-700">
+                          {seller.telefone_whatsapp || "-"}
+                        </td>
+                        <td className="px-6 py-4 text-sm text-gray-700 hidden lg:table-cell">
+                          {seller.email || "-"}
+                        </td>
+                        <td className="px-6 py-4">
+                          <span
+                            className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${
+                              seller.ativo
+                                ? "bg-green-100 text-green-700"
+                                : "bg-red-100 text-red-700"
+                            }`}
                           >
-                            <Settings className="h-4 w-4" />
-                          </button>
+                            {seller.ativo ? "Ativo" : "Inativo"}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 text-center">
+                          <div
+                            className="relative inline-block text-left"
+                            data-action-menu
+                          >
+                            <button
+                              type="button"
+                              onClick={(event) => {
+                                const buttonRect =
+                                  event.currentTarget.getBoundingClientRect();
+                                const menuWidth = 144;
+                                const horizontalPadding = 8;
+                                const left = Math.min(
+                                  window.innerWidth -
+                                    menuWidth -
+                                    horizontalPadding,
+                                  Math.max(
+                                    horizontalPadding,
+                                    buttonRect.right - menuWidth,
+                                  ),
+                                );
+                                const top = buttonRect.bottom + 8;
 
-                          {openActionMenuId === seller.id && (
-                            <div
-                              className={`absolute right-0 w-36 bg-white border border-gray-200 rounded-xl shadow-lg z-20 overflow-hidden animate-fadeIn ${
-                                shouldOpenUp
-                                  ? "bottom-full mb-2 origin-bottom-right"
-                                  : "top-full mt-2 origin-top-right"
-                              }`}
+                                setOpenActionMenuId((prev) => {
+                                  if (prev === seller.id) {
+                                    setActionMenuPosition(null);
+                                    return null;
+                                  }
+                                  setActionMenuPosition({ top, left });
+                                  return seller.id;
+                                });
+                              }}
+                              className="p-2 text-gray-600 hover:text-indigo-700 hover:bg-indigo-50 rounded-lg transition-colors"
+                              title="Ações"
                             >
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setOpenActionMenuId(null);
-                                  setActionMenuOpenUpId(null);
-                                  openEdit(seller);
-                                }}
-                                className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-indigo-50 hover:text-indigo-700 transition-colors"
+                              <Settings className="h-4 w-4" />
+                            </button>
+
+                            {openActionMenuId === seller.id && (
+                              <div
+                                className="fixed w-36 bg-white border border-gray-200 rounded-xl shadow-lg z-50 overflow-hidden animate-fadeIn origin-top-right"
+                                style={
+                                  actionMenuPosition
+                                    ? {
+                                        top: actionMenuPosition.top,
+                                        left: actionMenuPosition.left,
+                                      }
+                                    : undefined
+                                }
                               >
-                                <Pencil className="h-4 w-4" />
-                                Editar
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setOpenActionMenuId(null);
-                                  setActionMenuOpenUpId(null);
-                                  setDeletingSeller(seller);
-                                }}
-                                className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                                Excluir
-                              </button>
-                            </div>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setOpenActionMenuId(null);
+                                    setActionMenuPosition(null);
+                                    openEdit(seller);
+                                  }}
+                                  className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-indigo-50 hover:text-indigo-700 transition-colors"
+                                >
+                                  <Pencil className="h-4 w-4" />
+                                  Editar
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setOpenActionMenuId(null);
+                                    setActionMenuPosition(null);
+                                    setDeletingSeller(seller);
+                                  }}
+                                  className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                  Excluir
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
               </table>
             </div>
           </>
@@ -618,6 +628,7 @@ const SellerManager: React.FC = () => {
         }}
         title={editing ? "Editar Vendedor" : "Novo Vendedor"}
         mobileFullscreen
+        closeOnOverlayClick={false}
       >
         <SellerForm
           initial={editing ?? undefined}

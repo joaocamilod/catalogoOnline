@@ -6,6 +6,7 @@ import {
   Plus,
   Search,
   Settings,
+  Tag,
   Trash2,
   X,
 } from "lucide-react";
@@ -477,9 +478,10 @@ const PromotionManager: React.FC = () => {
   const [deleting, setDeleting] = useState<PromocaoProduto | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [openActionMenuId, setOpenActionMenuId] = useState<string | null>(null);
-  const [actionMenuOpenUpId, setActionMenuOpenUpId] = useState<string | null>(
-    null,
-  );
+  const [actionMenuPosition, setActionMenuPosition] = useState<{
+    top: number;
+    left: number;
+  } | null>(null);
   const [toast, setToast] = useState<{
     msg: string;
     type: "success" | "error";
@@ -521,7 +523,7 @@ const PromotionManager: React.FC = () => {
       const target = event.target as HTMLElement;
       if (!target.closest("[data-action-menu]")) {
         setOpenActionMenuId(null);
-        setActionMenuOpenUpId(null);
+        setActionMenuPosition(null);
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
@@ -638,9 +640,22 @@ const PromotionManager: React.FC = () => {
             <Loader2 className="h-8 w-8 text-indigo-500 animate-spin" />
           </div>
         ) : filteredPromocoes.length === 0 ? (
-          <p className="text-sm text-gray-500 text-center py-12">
-            Nenhuma promoção encontrada.
-          </p>
+          <div className="flex flex-col items-center justify-center py-16">
+            <Tag className="h-12 w-12 text-gray-300 mb-3" />
+            <p className="text-gray-500 text-sm">
+              Nenhuma promoção encontrada.
+            </p>
+            <button
+              type="button"
+              onClick={() => {
+                setEditing(null);
+                setIsDialogOpen(true);
+              }}
+              className="mt-4 text-sm text-indigo-600 hover:text-indigo-700 font-medium"
+            >
+              Criar a primeira promoção →
+            </button>
+          </div>
         ) : (
           <table className="min-w-full divide-y divide-gray-100">
             <thead className="bg-gray-50">
@@ -666,7 +681,6 @@ const PromotionManager: React.FC = () => {
               {filteredPromocoes.map((item) => {
                 const produtoNome =
                   (item as any).produto?.descricao || "Produto";
-                const shouldOpenUp = actionMenuOpenUpId === item.id;
                 const valorLabel =
                   item.tipo_desconto === "percentual"
                     ? `${item.valor_desconto}%`
@@ -716,17 +730,23 @@ const PromotionManager: React.FC = () => {
                           onClick={(event) => {
                             const buttonRect =
                               event.currentTarget.getBoundingClientRect();
-                            const estimatedMenuHeight = 96;
-                            const openUp =
-                              window.innerHeight - buttonRect.bottom <
-                              estimatedMenuHeight;
+                            const menuWidth = 144;
+                            const horizontalPadding = 8;
+                            const left = Math.min(
+                              window.innerWidth - menuWidth - horizontalPadding,
+                              Math.max(
+                                horizontalPadding,
+                                buttonRect.right - menuWidth,
+                              ),
+                            );
+                            const top = buttonRect.bottom + 8;
 
                             setOpenActionMenuId((prev) => {
                               if (prev === item.id) {
-                                setActionMenuOpenUpId(null);
+                                setActionMenuPosition(null);
                                 return null;
                               }
-                              setActionMenuOpenUpId(openUp ? item.id : null);
+                              setActionMenuPosition({ top, left });
                               return item.id;
                             });
                           }}
@@ -738,17 +758,21 @@ const PromotionManager: React.FC = () => {
 
                         {openActionMenuId === item.id && (
                           <div
-                            className={`absolute right-0 w-36 bg-white border border-gray-200 rounded-xl shadow-lg z-20 overflow-hidden animate-fadeIn ${
-                              shouldOpenUp
-                                ? "bottom-full mb-2 origin-bottom-right"
-                                : "top-full mt-2 origin-top-right"
-                            }`}
+                            className="fixed w-36 bg-white border border-gray-200 rounded-xl shadow-lg z-50 overflow-hidden animate-fadeIn origin-top-right"
+                            style={
+                              actionMenuPosition
+                                ? {
+                                    top: actionMenuPosition.top,
+                                    left: actionMenuPosition.left,
+                                  }
+                                : undefined
+                            }
                           >
                             <button
                               type="button"
                               onClick={() => {
                                 setOpenActionMenuId(null);
-                                setActionMenuOpenUpId(null);
+                                setActionMenuPosition(null);
                                 setEditing(item);
                                 setIsDialogOpen(true);
                               }}
@@ -761,7 +785,7 @@ const PromotionManager: React.FC = () => {
                               type="button"
                               onClick={() => {
                                 setOpenActionMenuId(null);
-                                setActionMenuOpenUpId(null);
+                                setActionMenuPosition(null);
                                 setDeleting(item);
                               }}
                               className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
@@ -789,6 +813,7 @@ const PromotionManager: React.FC = () => {
         }}
         title={editing ? "Editar Promoção" : "Nova Promoção"}
         mobileFullscreen
+        closeOnOverlayClick={false}
       >
         <PromotionForm
           initial={editing ?? undefined}
