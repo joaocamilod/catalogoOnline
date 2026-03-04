@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   FaRedo,
   FaTimes,
@@ -93,6 +93,41 @@ function FilterSidebar({
       style: "currency",
       currency: "BRL",
     }).format(price);
+
+  const [minInput, setMinInput] = useState("");
+  const [maxInput, setMaxInput] = useState("");
+
+  const currencyFormatter = useMemo(
+    () =>
+      new Intl.NumberFormat("pt-BR", {
+        style: "currency",
+        currency: "BRL",
+      }),
+    [],
+  );
+
+  const toCurrencyInputValue = (value) =>
+    currencyFormatter.format(Math.max(0, Number(value) || 0));
+
+  const parseCurrencyInput = (value) => {
+    const digits = String(value || "").replace(/\D/g, "");
+    if (!digits) return 0;
+    return Number(digits) / 100;
+  };
+
+  useEffect(() => {
+    setMinInput(toCurrencyInputValue(priceRange[0]));
+    setMaxInput(toCurrencyInputValue(priceRange[1]));
+  }, [priceRange, currencyFormatter]);
+
+  const applyPriceRange = (nextMin, nextMax) => {
+    const min = Math.max(0, Number(nextMin) || 0);
+    const maxCandidate = Math.max(0, Number(nextMax) || 0);
+    const max = Math.max(min, maxCandidate);
+    onPriceRangeChange([min, max]);
+    setMinInput(toCurrencyInputValue(min));
+    setMaxInput(toCurrencyInputValue(max));
+  };
 
   return (
     <>
@@ -247,29 +282,35 @@ function FilterSidebar({
           <h3 className="filter-title">Faixa de Preço</h3>
           <div className="price-range-inputs">
             <input
-              type="number"
+              type="text"
+              inputMode="numeric"
               placeholder="Mín"
-              value={priceRange[0]}
-              onChange={(e) =>
-                onPriceRangeChange([Number(e.target.value), priceRange[1]])
-              }
+              value={minInput}
+              onChange={(e) => {
+                const parsed = parseCurrencyInput(e.target.value);
+                setMinInput(toCurrencyInputValue(parsed));
+                applyPriceRange(parsed, priceRange[1]);
+              }}
+              onBlur={() => applyPriceRange(priceRange[0], priceRange[1])}
               className="price-input"
               aria-label="Preço mínimo"
-              min="0"
             />
             <span className="price-separator" aria-hidden="true">
               –
             </span>
             <input
-              type="number"
+              type="text"
+              inputMode="numeric"
               placeholder="Máx"
-              value={priceRange[1]}
-              onChange={(e) =>
-                onPriceRangeChange([priceRange[0], Number(e.target.value)])
-              }
+              value={maxInput}
+              onChange={(e) => {
+                const parsed = parseCurrencyInput(e.target.value);
+                setMaxInput(toCurrencyInputValue(parsed));
+                applyPriceRange(priceRange[0], parsed);
+              }}
+              onBlur={() => applyPriceRange(priceRange[0], priceRange[1])}
               className="price-input"
               aria-label="Preço máximo"
-              min="0"
             />
           </div>
           <div className="price-range-display" aria-live="polite">

@@ -76,7 +76,7 @@ const StoreSettingsManager: React.FC<StoreSettingsManagerProps> = ({
         Configurações da loja
       </h1>
       <p className="text-sm text-gray-500 mt-1">
-        Edite o nome, observações e informações da sua loja.
+        Edite o nome, observações, endereço e informações da sua loja.
       </p>
 
       <form onSubmit={handleSaveSettings} className="mt-4 space-y-4">
@@ -171,6 +171,29 @@ const StoreSettingsManager: React.FC<StoreSettingsManagerProps> = ({
             className="w-full px-3 py-2.5 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
             rows={2}
             maxLength={350}
+          />
+        </div>
+
+        <div>
+          <label
+            htmlFor="footer-endereco"
+            className="block text-sm font-medium text-gray-700 mb-1"
+          >
+            Endereço da loja
+          </label>
+          <textarea
+            id="footer-endereco"
+            value={draftSettings.footer_endereco}
+            onChange={(e) =>
+              setDraftSettings((prev) => ({
+                ...prev,
+                footer_endereco: e.target.value,
+              }))
+            }
+            placeholder="Ex.: Rua Exemplo, 123 - Centro, São Paulo - SP"
+            className="w-full px-3 py-2.5 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+            rows={2}
+            maxLength={220}
           />
         </div>
 

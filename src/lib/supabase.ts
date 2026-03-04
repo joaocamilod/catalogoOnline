@@ -21,6 +21,7 @@ export interface StoreSettings {
   nome_loja: string;
   footer_descricao: string;
   footer_observacoes: string;
+  footer_endereco: string;
   facebook_url: string;
   instagram_url: string;
   twitter_url: string;
@@ -32,6 +33,7 @@ const DEFAULT_STORE_SETTINGS: StoreSettings = {
   footer_descricao:
     "Sua loja virtual completa com os melhores produtos e preços do mercado. Qualidade e conveniência em um só lugar.",
   footer_observacoes: "",
+  footer_endereco: "",
   facebook_url: "",
   instagram_url: "",
   twitter_url: "",
@@ -46,6 +48,7 @@ function normalizeStoreSettings(
     footer_descricao:
       data?.footer_descricao?.trim() || DEFAULT_STORE_SETTINGS.footer_descricao,
     footer_observacoes: data?.footer_observacoes?.trim() || "",
+    footer_endereco: data?.footer_endereco?.trim() || "",
     facebook_url: data?.facebook_url?.trim() || "",
     instagram_url: data?.instagram_url?.trim() || "",
     twitter_url: data?.twitter_url?.trim() || "",
@@ -907,7 +910,7 @@ export async function fetchStoreSettings(): Promise<StoreSettings> {
   const { data, error } = await supabase
     .from("loja_config")
     .select(
-      "nome_loja, footer_descricao, footer_observacoes, facebook_url, instagram_url, twitter_url, youtube_url",
+      "nome_loja, footer_descricao, footer_observacoes, footer_endereco, facebook_url, instagram_url, twitter_url, youtube_url",
     )
     .eq("id", true)
     .maybeSingle();
@@ -934,6 +937,9 @@ export async function updateStoreSettings(
     ...(settings.footer_observacoes !== undefined
       ? { footer_observacoes: settings.footer_observacoes.trim() }
       : {}),
+    ...(settings.footer_endereco !== undefined
+      ? { footer_endereco: settings.footer_endereco.trim() }
+      : {}),
     ...(settings.facebook_url !== undefined
       ? { facebook_url: settings.facebook_url.trim() }
       : {}),
@@ -952,7 +958,7 @@ export async function updateStoreSettings(
     .from("loja_config")
     .upsert(payload, { onConflict: "id" })
     .select(
-      "nome_loja, footer_descricao, footer_observacoes, facebook_url, instagram_url, twitter_url, youtube_url",
+      "nome_loja, footer_descricao, footer_observacoes, footer_endereco, facebook_url, instagram_url, twitter_url, youtube_url",
     )
     .single();
 

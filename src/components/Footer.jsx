@@ -15,7 +15,7 @@ function Footer({ storeSettings, tema }) {
     { Icon: Instagram, label: "Instagram", href: storeSettings?.instagram_url },
     { Icon: Twitter, label: "Twitter", href: storeSettings?.twitter_url },
     { Icon: Youtube, label: "YouTube", href: storeSettings?.youtube_url },
-  ];
+  ].filter((item) => Boolean(item.href));
 
   return (
     <footer
@@ -51,30 +51,41 @@ function Footer({ storeSettings, tema }) {
                 {storeSettings.footer_observacoes}
               </p>
             )}
+            {storeSettings?.footer_endereco && (
+              <p
+                className={`text-gray-500 text-xs leading-relaxed ${
+                  storeSettings?.footer_observacoes ? "mt-1" : "mt-2"
+                }`}
+              >
+                {storeSettings.footer_endereco}
+              </p>
+            )}
           </div>
 
-          <div className="lg:justify-self-end">
-            <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-3">
-              Redes Sociais
-            </h3>
-            <div className="flex flex-col gap-2.5">
-              {socialLinks.map(({ Icon, label, href }) => (
-                <a
-                  key={label}
-                  href={href || "#"}
-                  aria-label={label}
-                  target={href ? "_blank" : undefined}
-                  rel={href ? "noreferrer" : undefined}
-                  className="flex items-center gap-2 text-gray-400 hover:text-violet-400 text-xs transition-all duration-150 group"
-                >
-                  <span className="w-7 h-7 rounded-lg bg-white/5 group-hover:bg-violet-500/20 flex items-center justify-center transition-colors flex-shrink-0">
-                    <Icon className="h-4 w-4" aria-hidden="true" />
-                  </span>
-                  {label}
-                </a>
-              ))}
+          {socialLinks.length > 0 && (
+            <div className="lg:justify-self-end">
+              <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-3">
+                Redes Sociais
+              </h3>
+              <div className="flex flex-col gap-2.5">
+                {socialLinks.map(({ Icon, label, href }) => (
+                  <a
+                    key={label}
+                    href={href}
+                    aria-label={label}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="flex items-center gap-2 text-gray-400 hover:text-violet-400 text-xs transition-all duration-150 group"
+                  >
+                    <span className="w-7 h-7 rounded-lg bg-white/5 group-hover:bg-violet-500/20 flex items-center justify-center transition-colors flex-shrink-0">
+                      <Icon className="h-4 w-4" aria-hidden="true" />
+                    </span>
+                    {label}
+                  </a>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
         </div>
 
         <div className="border-t border-white/10 pt-4 flex items-center justify-center">

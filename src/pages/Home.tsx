@@ -201,6 +201,13 @@ const Home: React.FC<HomeProps> = ({
     );
   }, [sidebarSubdepartments]);
 
+  const handlePriceRangeChange = useCallback((range: [number, number]) => {
+    const min = Math.max(0, Number.isFinite(range[0]) ? range[0] : 0);
+    const maxCandidate = Math.max(0, Number.isFinite(range[1]) ? range[1] : min);
+    const max = Math.max(min, maxCandidate);
+    setPriceRange([min, max]);
+  }, []);
+
   const getSelectedVariationStockLimit = (
     product: CatalogProduct,
     selectedVariations: CartItem["selectedVariations"],
@@ -384,7 +391,7 @@ const Home: React.FC<HomeProps> = ({
             selectedBrands={selectedBrands}
             onBrandsChange={setSelectedBrands}
             priceRange={priceRange}
-            onPriceRangeChange={setPriceRange}
+            onPriceRangeChange={handlePriceRangeChange}
             sortBy={sortBy}
             onSortChange={setSortBy}
             isOpen={isSidebarOpen}
