@@ -14,7 +14,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
 }) => {
   const { user, isLoading } = useAuthStore();
 
-  if (isLoading) {
+  if (isLoading && !user) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="h-10 w-10 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin" />
